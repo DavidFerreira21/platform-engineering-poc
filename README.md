@@ -10,7 +10,7 @@ Proof of concept for an Internal Developer Platform (IDP), focused on self-servi
 
 Crossplane will be introduced later through an executor interface; the MVP starts with Terraform.
 
-See [architecture](docs/architecture.md) and [agent instructions](AGENTS.md).
+See [architecture](docs/architecture.md), [repository structure](docs/repository-structure.md), [ADRs](docs/adr/README.md) and [agent instructions](AGENTS.md).
 
 ## Milestones
 1. Bootstrap repository, documentation and conventions.
