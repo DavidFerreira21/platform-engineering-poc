@@ -10,6 +10,7 @@ ADRs document **why** a decision was made, its scope, trade-offs and consequence
 | [0004](0004-observability.md) | OpenTelemetry, Prometheus, Grafana, Loki | Accepted for POC |
 | [0005](0005-platform-runtime-and-data.md) | FastAPI, PostgreSQL, Traefik, Helm, Terraform, ECR | Accepted for POC |
 | [0006](0006-identity-and-future-capabilities.md) | Keycloak SSO and deferred capabilities | Accepted for POC (identity) |
+| [0007](0007-monorepo-structure-and-boundaries.md) | Monorepo structure and directory ownership | Accepted for POC |
 
 ## Conventions
 - Status **Accepted for POC** records a design choice, not a production endorsement.
