@@ -5,13 +5,32 @@ Build an Internal Developer Platform **incrementally**, learning how each compon
 
 This is a learning sequence, not a claim that the platform is deployed. Architecture and tool decisions remain in [ADRs](adr/README.md); directory ownership is defined in [repository structure](repository-structure.md).
 
+## Conceptual learning objectives
+
+Each lab must distinguish **Platform Engineering concepts** from the technologies used to demonstrate them. Tools are means to deliver platform capabilities, not the learning objective. The book *Platform Engineering in Practice* can inform discussions, but the lab order and outcomes are defined by this POC; do not imply that the book prescribes this sequence or cite chapters without checking the source.
+
+| Lab | Platform Engineering concepts | Technology demonstration | Core question |
+| --- | --- | --- | --- |
+| 01 | Platform foundations, abstractions, reconciliation, operational ownership | Kubernetes, kind, Traefik | What capability does this foundation provide beyond a running cluster? |
+| 02 | Platform as a Product, self-service, API-first, versioned contracts | FastAPI, Pydantic, mock executor | What does the consumer request, and what implementation details stay hidden? |
+| 03 | Central identity, authentication vs authorization, least privilege | Keycloak, OIDC, PostgreSQL | Who can request, approve and observe each product? |
+| 04 | Developer Experience, feedback loops, software supply chain, CI | Tekton, Trivy, ECR | How does the platform provide reliable build feedback and guardrails? |
+| 05 | Orchestration, execution abstraction, separation of concerns | Argo Workflows, Terraform plan | Why should the API not run Terraform directly? |
+| 06 | Governance, policy, approvals, auditability | Authorization, approval workflow, execution records | How do we enable autonomy without removing controls? |
+| 07 | Desired state, GitOps, reconciliation, drift, Control/Data Plane boundary | Argo CD, two kind clusters | Who owns desired state and how does the system correct drift? |
+| 08 | Policy as Code, secrets lifecycle, least privilege | Kyverno, ESO, Secrets Manager | Which controls are guardrails versus manual gates? |
+| 09 | Observability as a platform capability, SLI/SLO basics, incident diagnosis | OTel, Prometheus, Grafana, Loki | Can a consumer and operator understand a request failure? |
+| 10 | Golden Paths, platform product lifecycle, discoverability, adoption and DX | End-to-end self-service flow | Is this a reusable product capability or merely a collection of installed tools? |
+
+For each concept, capture a concise definition, why it matters, the concrete architectural decision, an observable experiment, and a short trade-off. Avoid equating product success with a green Kubernetes deployment.
+
 ## Learning method
 Each lab must include:
-1. **Understand:** problem, architecture, boundaries and expected behavior.
+1. **Understand:** problem, architecture, boundaries, key Platform Engineering concepts and expected behavior.
 2. **Build:** introduce only the components needed for this lab; inspect the manifests and resources.
 3. **Observe:** run commands, view controller state, events, logs, API responses and/or UI.
 4. **Break and diagnose:** intentionally cause a safe failure, explain symptoms and recover.
-5. **Validate:** demonstrate acceptance criteria and answer review questions.
+5. **Validate:** demonstrate acceptance criteria, explain the platform capability delivered, and answer review questions.
 6. **Automate and reset:** only after the manual path is understood, add reproducible commands and cleanup/reset instructions.
 
 Use small PRs; separate infrastructure/tool installation from meaningful behavioral exercises when a change would otherwise be too large. No real AWS apply without explicit approval. Never commit credentials, kubeconfigs, tokens or Terraform state.
@@ -60,12 +79,15 @@ These are **planned** lab directories; create each when its lab starts. Lab READ
 
 ## Standard lab README template
 - Goal and architecture diagram (before/after)
+- **Platform Engineering concepts:** definition, motivation, architectural manifestation and trade-off
+- **Technical implementation:** tools, components and why they were selected
+- **Practical evidence:** experiment proving where each concept appears in the running platform
 - Concepts and prerequisite checks
 - What will change in the platform
 - Step-by-step manual actions and expected outputs
 - Observation checklist: resources, events, logs, API/UI
 - Safe failure injection, troubleshooting and recovery
-- Acceptance checklist and review questions
+- Acceptance checklist and review questions, including: **Is this a reusable platform capability or just an installed tool?**
 - Reproducible automation and cleanup/reset
 - Links to source directories, ADRs and related PRs
 
