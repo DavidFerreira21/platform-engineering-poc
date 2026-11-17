@@ -9,7 +9,7 @@ ADRs document **why** a decision was made, its scope, trade-offs and consequence
 | [0003](0003-security-and-secrets.md) | Kyverno, Trivy, AWS Secrets Manager, ESO | Accepted for POC |
 | [0004](0004-observability.md) | OpenTelemetry, Prometheus, Grafana, Loki | Accepted for POC |
 | [0005](0005-platform-runtime-and-data.md) | FastAPI, PostgreSQL, Traefik, Helm, Terraform, ECR | Accepted for POC |
-| [0006](0006-identity-and-future-capabilities.md) | Identity options and deferred capabilities | Proposed / deferred |
+| [0006](0006-identity-and-future-capabilities.md) | Keycloak SSO and deferred capabilities | Accepted for POC (identity) |
 
 ## Conventions
 - Status **Accepted for POC** records a design choice, not a production endorsement.
