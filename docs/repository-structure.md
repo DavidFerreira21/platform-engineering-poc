@@ -60,4 +60,4 @@ Os seis clusters EKS previstos nos Spokes serão modelados com **Amazon EKS Auto
 
 ## Trilha de fundamentos
 
-O diretório `docs/fundamentos/` organiza aulas conceituais, separadas de `labs/`: a primeira explica **por que/para quem/como pensar**; o segundo demonstra **como implementar, observar, falhar e recuperar**. Aulas numeradas com links anterior/próxima devem manter pt-BR, exercícios e exemplos da POC. O livro é referência de temas, não texto a reproduzir. [Índice](fundamentos/README.md).
+O diretório `docs/fundamentos/` organiza artigos conceituais, separadas de `labs/`: a primeira explica **por que/para quem/como pensar**; o segundo demonstra **como implementar, observar, falhar e recuperar**. Artigos sequenciais com links anterior/próxima devem manter pt-BR, explicações aprofundadas, exemplos da POC e links externos confiáveis. O livro é referência de temas, não texto a reproduzir. [Índice](fundamentos/README.md).

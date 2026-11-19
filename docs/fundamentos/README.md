@@ -1,5 +1,7 @@
 # Fundamentos de Platform Engineering
 
+Textos de referência conceitual, com explicações aprofundadas em português, exemplos da POC e fontes externas relevantes. Não é uma apostila de objetivos/exercícios.
+
 **Comece por aqui antes dos labs.** Esta trilha é um curso conceitual em português brasileiro; não exige AWS, Kubernetes ou instalações. Objetivo: compreender **por que** construímos uma plataforma, **para quem**, **qual produto** oferecemos e **como** nossos contratos/planos operam.
 
 ## Referência bibliográfica e autoria
@@ -46,14 +48,17 @@ Como contratos, planos, reconciliação e isolamento funcionam.
 - [Aula 19 — Abstrações, contratos e escape hatches](19-abstracoes-e-escape-hatches.md)
 - [Aula 20 — Multi-tenancy, isolamento e células](20-multitenancy-cells.md)
 - [Aula 21 — API-first, CRDs, XRDs, Operators e ADRs](21-api-first-operadores-adrs.md)
+- [Internal Developer Platform versus Developer Portal](22-idp-e-developer-portal.md)
+- [Catálogo de serviços, produtos e capacidades](23-catalogo-e-capacidades.md)
+- [Ciclo de vida de produtos e serviços de plataforma](24-ciclo-de-vida-produtos.md)
 
 ## Como estudar
 
-Leia uma aula por vez e responda ao exercício antes de seguir. Explique cada conceito com um exemplo e um trade-off; depois consulte o [mapa da arquitetura](../architecture.md) e identifique onde ele se manifesta. Ao concluir as 21 aulas, avance para o [roteiro de implementação](../learning-roadmap.md). Instalar ferramentas sem compreender o problema não é critério de conclusão.
+Leia os artigos na ordem sugerida, reflita sobre os exemplos e consulte o [mapa da arquitetura](../architecture.md) e identifique onde ele se manifesta. Ao concluir as 24 artigos, avance para o [roteiro de implementação](../learning-roadmap.md). Instalar ferramentas sem compreender o problema não é critério de conclusão.
 
 ## Contrato de qualidade das aulas
 
-Cada aula traz objetivos, explicação e motivação, aplicação específica na POC, erro comum, exercício com critério de avaliação, ideia central e referência temática. As aulas são **conceituais**, diferentes dos labs: os labs exigem comandos, evidências, falhas e recuperação. Atualizações devem permanecer em pt-BR e manter links anterior/próxima aula.
+Os artigos são textos explicativos autorais, sem seções fixas de objetivos, exercícios ou resumos. Devem desenvolver o conceito com profundidade, explicar implicações e limites, trazer exemplos pertinentes da POC e links confiáveis de aprofundamento, preservando a navegação entre textos. Os labs, em contraste, exigem comandos, evidências, falhas e recuperação.
 
 ## O que esta trilha não pretende
 
