@@ -1,32 +1,29 @@
-# AGENTS.md — Platform Engineering Lab
+# AGENTS.md — Instruções aos agentes
 
-## Mission and source of truth
-Build the personal Kubernetes-native Platform Engineering POC described in [architecture](docs/architecture.md) and [ADRs](docs/adr/README.md). These records supersede the repository's previous FastAPI-first, two-kind-cluster design. Do not reference any employer, real landing zone, account IDs or proprietary names.
+## Idioma
+**Português brasileiro (pt-BR) é obrigatório** para README, ADRs, arquitetura, roadmap, tutoriais, descrições de PR e explicações. Preservar nomes técnicos/identificadores: Kubernetes, Argo CD, `AWSEnvironment`, `spec`, `status`, `kind`, nomes de pastas e comandos.
 
-## Non-negotiable architectural contract
-- **Experience Layer:** Backstage, CLI, GitOps, AI/MCP; Git is the declarative desired-state source. Persistent changes from Backstage/CLI/MCP should be PR-driven; read/status operations may query the Kubernetes API with restricted RBAC.
-- **Hub:** `Platform Management Cluster`. Kubernetes API Server is the platform API. CRD families: `AWSEnvironment` (one account and foundations), `Domain` (business/service ecosystem), specialized Capabilities (e.g. `Database`, `ObjectStorage`, `ComputeInstance`). `Capability` is a **category**, not necessarily a single CRD; no generic Claim in v1.
-- **Control Plane:** CRD schemas, validation/policy, Platform Controllers, reconciled status and lifecycle.
-- **Workflow Plane:** Argo Workflows, Terraform Executor, Argo CD, future/optional Crossplane, authorized manual gates; do not make Argo CD an infrastructure task engine.
-- **Observability Plane:** telemetry for hub/spokes; collectors local as needed, backend location decided later.
-- **Spokes:** UAT and PROD only, each a distinct AWS account with Environment Management EKS, EKS PCI, EKS Non-PCI and AWS Runtime. No country/entity hierarchy in this personal POC.
-- **Hub-and-spoke describes management topology**, not presumed AWS networking. Logical planes are not dedicated Kubernetes clusters.
-- Operators may require cluster-local installation; do not assume all controllers can operate remotely. PCI administrative boundaries must be assessed before shared Argo CD controls both PCI and Non-PCI.
+## Fonte de verdade
+Ler [arquitetura](docs/architecture.md), [ADRs](docs/adr/README.md) e [estrutura do repositório](docs/repository-structure.md) antes de implementar. Esta baseline substitui os ADRs antigos baseados em FastAPI como API principal e em apenas dois clusters kind.
 
-## Repo ownership
-- `control-plane/`: CRD schemas, API contracts, admission/reconciliation controller source and tests.
-- `workflow-plane/`: Argo WorkflowTemplates, Terraform runner definitions, approval gates, GitOps ApplicationSets/config, optional Crossplane integration.
-- `observability-plane/`: OpenTelemetry, metrics/logs/traces and audit config.
-- `data-plane/uat/` and `data-plane/prod/`: desired-state spoke-specific configuration, management EKS, PCI/Non-PCI clusters, AWS Runtime declarations.
-- `platform/`: hub bootstrap and kind simulation; deployment/installation wiring.
-- `docs/`, `labs/`, `tests/`: decisions, learning, cross-plane validation.
-Do not duplicate manifests across folders: use reusable definitions and thin environment overlays. Do not create speculative tools/services or implement everything in one PR.
+## Arquitetura obrigatória
+- **Experience Layer:** Backstage, CLI, GitOps e AI/MCP. Para alterações persistentes, preferir PR no Git; leitura de estado pode acessar Kubernetes API sob RBAC.
+- **Control Plane:** Kubernetes API Server como API da plataforma, schemas/CRDs, políticas, Platform Controllers, reconciliação e status.
+- **Famílias de CRDs:** `AWSEnvironment` (uma conta AWS + foundation), `Domain` (ecossistema de aplicações) e Capabilities especializadas (por exemplo `Database`, `ObjectStorage`, `ComputeInstance`). Capability é categoria, não necessariamente um recurso de kind Capability. Não criar Claim genérico na primeira versão.
+- **Workflow Plane:** Argo Workflows, Terraform Executor, Argo CD e gates manuais; Crossplane como integração progressiva. Não usar Argo CD para executar etapas imperativas Terraform.
+- **Observability Plane:** telemetria, métricas, logs, traces, eventos e auditoria transversal.
+- **Data Plane:** dois ambientes, UAT e PROD, cada qual uma conta AWS com Environment Management EKS, EKS PCI, EKS Non-PCI e AWS Runtime. Não incluir países nem entidades.
+- **Platform Management Cluster:** hospeda Control, Workflow e Observability Planes; estes são agrupamentos lógicos, não três clusters.
+- **Hub-and-Spoke:** apenas conceito de topologia de gerenciamento, documentado sem substituir os nomes das camadas. Não implica topologia de rede ou Transit Gateway.
+- Operadores podem exigir execução no próprio cluster de workload. Compartilhar controle entre PCI e Non-PCI depende da avaliação de segurança.
 
-## Delivery rules
-1. Read architecture and applicable ADRs before changing behavior; update them if a decision changes.
-2. Work in feature branches, submit a reviewable PR, and keep main untouched until review.
-3. Favor small incremental labs and mock/dry-run by default; explicit permission before cloud-side effects.
-4. Never commit secrets, kubeconfigs, Terraform state, private certificates, real AWS account IDs or organization-specific information.
-5. Separate desired state (`spec`), observed status (`status`), and workflow execution logs/artifacts.
-6. Reconcile idempotently; use retries with bounded timeouts, approval authorization, audit records, drift detection and safe deletion policies.
-7. Clearly distinguish **target architecture**, **implemented**, **mocked**, and **deferred** components. Keep documentation links and naming synchronized.
+## Responsabilidades do monorepo
+- `control-plane/`: contratos, CRDs, controllers, políticas.
+- `workflow-plane/`: Argo Workflows, Terraform Executor, gates, GitOps e integração Crossplane.
+- `observability-plane/`: configurações transversais de telemetria.
+- `platform/hub/`: bootstrap do Platform Management Cluster.
+- `data-plane/uat/`, `data-plane/prod/`: configuração específica do ambiente e de seus clusters e AWS Runtime.
+- `docs/`, `labs/`, `tests/`: documentação, aprendizado e validação.
+
+## Qualidade e segurança
+Implementar progressivamente, com testes observáveis, falhas controladas e limpeza. Utilizar mocks/dry-run por padrão. Nunca publicar credenciais, IDs reais, certificados privados, estado Terraform ou dados corporativos. Mudanças no Git devem ocorrer via branches e PRs. Reconciliação idempotente, status confiável, aprovações autorizadas, auditoria e proteção contra exclusão destrutiva são requisitos. Distinguir claramente **planejado**, **mockado**, **implementado** e **adiado**.

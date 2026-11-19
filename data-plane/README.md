@@ -1,1 +1,5 @@
-Two target Spokes only: UAT and PROD. Each corresponds to one AWS account, containing local management EKS, PCI EKS, Non-PCI EKS and AWS Runtime. Descriptions are target, not provisioned resources.
+# data-plane / README.md
+
+O Data Plane possui apenas dois ambientes, UAT e PROD. Cada um representa uma conta AWS independente com Environment Management EKS, EKS PCI, EKS Non-PCI e AWS Runtime.
+
+Consulte a [arquitetura](../docs/architecture.md) para entender as responsabilidades.

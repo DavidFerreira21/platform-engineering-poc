@@ -1,16 +1,16 @@
-# ADR-0002: Three contract families and specialized capabilities
+# ADR-0002: Três famílias de contratos Kubernetes
 
-- **Status:** Accepted as POC target
-- **Date:** 2026-11-18
+- **Situação:** Aceito como arquitetura-alvo da POC
+- **Data:** 18/11/2026
 
-## Context
-The ecosystem must represent AWS account environments, business domains and provisionable products without a generic catch-all request object.
+## Contexto
+Precisamos representar ambientes AWS, ecossistemas de negócio e produtos da plataforma sem acoplar todas as solicitações em um CRD genérico.
 
-## Decision
-Use three logical families: AWSEnvironment (exactly one AWS account per environment, foundations and cluster profile); Domain (business/application ecosystem, many domains can share an account); Capability (specialized kinds such as Database, ObjectStorage, ComputeInstance and Messaging). Each specialized CR represents its own consumption. No generic CapabilityClaim in v1; Capability does not imply kind Capability. Cross-resource links use explicit refs validated by controllers.
+## Decisão
+As três famílias são AWSEnvironment (uma conta AWS e sua fundação), Domain (ecossistema de aplicações e serviços) e Capabilities especializadas (Database, ObjectStorage, ComputeInstance, Messaging). A própria instância do CRD especializado representa o consumo; não usar CapabilityClaim genérico inicialmente. Referências entre objetos são explícitas e validadas pelos controllers.
 
-## Consequences and trade-offs
-Simpler typed API and fewer indirections, but more CRD schemas; must design Domain identity across environments, refs, deletion protection and lifecycle semantics carefully.
+## Consequências e pontos de atenção
+São necessários schemas próprios por Capability, regras claras de lifecycle e validação de referências. Uma família lógica não precisa corresponder a um único CRD.
 
-## Validation
-Validate through phased labs before real AWS provisioning; update design when a constraint is disproven.
+## Validação
+Validar a decisão em labs incrementais e atualizar a documentação se surgir um requisito incompatível. Não executar mudanças reais na AWS sem autorização.

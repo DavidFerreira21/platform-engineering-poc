@@ -1,16 +1,16 @@
-# ADR-0001: Kubernetes API Server as the platform API
+# ADR-0001: Kubernetes API Server como API da plataforma
 
-- **Status:** Accepted as POC target
-- **Date:** 2026-11-18
+- **Situação:** Aceito como arquitetura-alvo da POC
+- **Data:** 18/11/2026
 
-## Context
-The former POC proposed a separate FastAPI REST control API. The chosen platform architecture can instead expose declarative Kubernetes-native contracts.
+## Contexto
+A baseline anterior previa uma REST API própria baseada em FastAPI, mas a nova arquitetura pretende aproveitar contratos nativos do Kubernetes.
 
-## Decision
-Use the Hub Kubernetes API Server, CRDs, admission/RBAC and Platform Controllers as the public platform control interface. Controllers reconcile spec to status; client integrations may authenticate directly or through scoped adapters, without mandatory custom REST. GitOps owns persisted desired-state writes.
+## Decisão
+O Kubernetes API Server do Platform Management Cluster é a API oficial. CRDs, RBAC, admission e Platform Controllers implementam contratos declarativos, validação e reconciliação. Clientes autorizados acessam a API diretamente ou por adaptadores, sem uma REST API proprietária obrigatória.
 
-## Consequences and trade-offs
-We reuse native discovery, watches, RBAC and resource lifecycle, but must design versioned OpenAPI schemas, status conditions, admission policies, conversion and upgrade strategy. Kubernetes API accessibility/security needs planning.
+## Consequências e pontos de atenção
+É necessário versionar schemas, controlar permissões, definir condições de status e políticas de upgrade. O Kubernetes não oferece automaticamente lógica de negócio para os CRDs.
 
-## Validation
-Validate through phased labs before real AWS provisioning; update design when a constraint is disproven.
+## Validação
+Validar a decisão em labs incrementais e atualizar a documentação se surgir um requisito incompatível. Não executar mudanças reais na AWS sem autorização.

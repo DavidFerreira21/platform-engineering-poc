@@ -1,1 +1,5 @@
-Own versioned Argo Workflows, Terraform runner contracts, manual gates, GitOps definitions, and an optional Crossplane engine. Do not duplicate CRDs or manage deployment via CI alone.
+# workflow-plane / README.md
+
+Responsável pelas definições de Argo Workflows, Terraform Executor, gates manuais, GitOps via Argo CD e integração futura com Crossplane. O Workflow Plane é uma responsabilidade lógica, não um cluster próprio.
+
+Consulte a [arquitetura](../docs/architecture.md) para entender as responsabilidades.

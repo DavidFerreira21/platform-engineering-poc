@@ -1,31 +1,33 @@
-# Platform Engineering Lab
+# Platform Engineering POC
 
-Personal, vendor-neutral learning POC for a **Kubernetes-native platform API** using a hierarchical **hub-and-spoke** architecture. This repository is a **design baseline**, not a claim that the stack has been provisioned.
+Laboratório pessoal para estudar uma plataforma **Kubernetes-native**, com API declarativa, automação e ambientes de execução separados.
 
-## Architecture
-- **Experience:** Backstage, CLI, GitOps (Git as the source of desired state), AI/MCP.
-- **Hub — Platform Management Cluster:** Kubernetes API Server; three contract **families** (`AWSEnvironment`, `Domain`, specialized `Capability` resource kinds); Platform Controllers; logical Workflow and Observability planes.
-- **Workflow:** Argo CD for GitOps, Argo Workflows for orchestration and manual gates, Terraform execution; Crossplane is a candidate additional reconciler, introduced progressively.
-- **Spokes — UAT and PROD:** each represents **one separate AWS account**; each target account contains an Environment Management EKS, EKS PCI, EKS Non-PCI and AWS Runtime (network, RDS, S3, EC2 and managed services).
-- **Observability:** telemetry, logs, metrics, traces and audit across hub and spokes. Collection and gateway components may run locally.
+## Arquitetura-alvo
 
-The architecture is logical and a **target topology**: its seven Kubernetes clusters need not all be deployed to learn or validate the patterns. The initial local implementation uses kind and mocks; actual EKS and AWS integration are explicit later steps.
+1. **Experience Layer:** Backstage, CLI, GitOps e AI/MCP.
+2. **Control Plane:** Kubernetes API Server, CRDs da plataforma e Platform Controllers.
+3. **Workflow Plane:** Argo Workflows, Terraform Executor, Argo CD, aprovações e Crossplane como integração progressiva.
+4. **Observability Plane:** OpenTelemetry, métricas, logs, traces, auditoria e alertas.
+5. **Data Plane:** ambientes **UAT** e **PROD**, cada um representando uma conta AWS, com Environment Management EKS, EKS PCI, EKS Non-PCI e AWS Runtime.
 
-## Start here
-- [Architecture and data flows](docs/architecture.md)
-- [Architecture decisions](docs/adr/README.md)
-- [Repository boundaries](docs/repository-structure.md)
-- [Progressive learning roadmap](docs/learning-roadmap.md)
-- [Agent instructions](AGENTS.md)
+O Control, Workflow e Observability Planes são responsabilidades lógicas hospedadas no **Platform Management Cluster**. O Data Plane contém os ambientes de execução. O padrão **Hub-and-Spoke** ajuda a explicar a relação entre gerenciamento central e ambientes, mas não substitui os nomes das camadas e não significa, por si só, uma topologia de redes AWS.
 
-## Principles
-- No organization/customer names, corporate identifiers, credentials or production config.
-- Git owns desired-state manifests; Kubernetes owns operational resource status; no ungoverned direct changes to GitOps-managed specs.
-- Native Kubernetes API/CRDs instead of a mandatory custom REST API; use `spec` and `status.conditions`.
-- One environment = one AWS account. UAT and PROD are separate spokes; PCI and Non-PCI are clusters **within** each spoke.
-- Separate intended capability from implementation engine. No generic `CapabilityClaim` for the initial design.
-- Human dependencies are explicit workflow gates with evidence, authorized resume and technical verification; never equate a ticket opened with work completed.
-- No real AWS provisioning, destructive apply or secrets without explicit authorization.
-- Each lab is progressive, observable, reproducible, and has a safe failure/recovery exercise.
+O desenho físico-alvo contempla sete clusters, mas os labs começam com simulação local em `kind` e serviços mockados. **A documentação não significa que essa infraestrutura já foi implantada.**
 
-**Current state:** architecture and learning plan only. Implementation folders contain scope notes, not running components.
+## Documentação
+- [Arquitetura](docs/architecture.md)
+- [Decisões arquiteturais](docs/adr/README.md)
+- [Estrutura do repositório](docs/repository-structure.md)
+- [Roteiro de aprendizado](docs/learning-roadmap.md)
+- [Instruções para agentes](AGENTS.md)
+
+## Regras fundamentais
+- Documentação, ADRs, orientações e explicações em **português brasileiro**; preservar nomes técnicos, comandos e campos de API.
+- Nenhuma associação a empresa, país ou entidade: apenas UAT e PROD.
+- Git é a fonte da verdade do estado desejado; Kubernetes API é a API da plataforma e expõe o estado operacional.
+- Três **famílias** de contratos: `AWSEnvironment`, `Domain` e Capabilities especializadas (`Database`, `ObjectStorage` etc.). Não adotar `CapabilityClaim` genérico inicialmente.
+- Um `AWSEnvironment` corresponde a uma conta AWS; pode haver vários Domains por ambiente.
+- Provisionamento combina automação, validações técnicas e aprovações humanas auditáveis.
+- Proibido versionar segredos, kubeconfigs, Terraform state ou identificadores reais. Operações AWS reais exigem autorização explícita.
+
+**Situação atual:** documentação e estrutura inicial para implementação futura.

@@ -1,1 +1,5 @@
-Phased, visible learning labs follow docs/learning-roadmap.md. Each lab must explain concept, execution, observations, safe failures, validation and cleanup.
+# labs / README.md
+
+Laboratórios progressivos em português brasileiro. Seguir docs/learning-roadmap.md e incluir objetivos, passos, observação, falha controlada, diagnóstico, recuperação e limpeza.
+
+Consulte a [arquitetura](../docs/architecture.md) para entender as responsabilidades.

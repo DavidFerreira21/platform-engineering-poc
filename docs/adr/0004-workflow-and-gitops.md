@@ -1,16 +1,16 @@
-# ADR-0004: Distinct declarative GitOps, orchestration and execution
+# ADR-0004: GitOps, workflows e execução com responsabilidades distintas
 
-- **Status:** Accepted as POC target
-- **Date:** 2026-11-18
+- **Situação:** Aceito como arquitetura-alvo da POC
+- **Data:** 18/11/2026
 
-## Context
-Consumers can enter through Backstage, CLI, GitOps or AI/MCP while Git remains authoritative for durable desired state.
+## Contexto
+A Experience Layer terá Backstage, CLI, GitOps e AI/MCP, sem criar fontes conflitantes de estado desejado.
 
-## Decision
-Git is declarative desired state; Argo CD synchronizes Hub CRs. CLI/Backstage/MCP persistent changes should produce reviewed PRs. Platform Controllers reconcile lifecycle and invoke Argo Workflows for steps, Terraform for plans/applies and optional Crossplane for continuous infrastructure reconciliation. Each local Environment Management EKS may run Argo CD to manage its PCI and Non-PCI clusters, conditional on security approval. Argo CD is not Terraform's step scheduler.
+## Decisão
+Git é a fonte da verdade declarativa; Argo CD sincroniza manifests com o Kubernetes. Backstage/CLI/AI-MCP devem preferencialmente produzir PRs para alterações permanentes. Platform Controllers gerenciam lifecycle; Argo Workflows coordena passos e aprovações; Terraform executa infraestrutura; Crossplane é um reconciliador adicional futuro. Argo CDs locais podem gerenciar PCI e Non-PCI conforme segurança.
 
-## Consequences and trade-offs
-Keep a single spec writer, distinguish hub and spoke Argo instances, prevent Terraform/Crossplane double ownership, and separate Argo GitOps from Argo Workflows. CI tooling is selected independently later.
+## Consequências e pontos de atenção
+Separar Argo CD de Argo Workflows. Evitar concorrência no spec e dupla propriedade Terraform/Crossplane. CI será avaliado separadamente.
 
-## Validation
-Validate through phased labs before real AWS provisioning; update design when a constraint is disproven.
+## Validação
+Validar a decisão em labs incrementais e atualizar a documentação se surgir um requisito incompatível. Não executar mudanças reais na AWS sem autorização.
