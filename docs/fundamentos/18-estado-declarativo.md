@@ -1,37 +1,22 @@
-# Aula 18 — Estado desejado, estado observado e reconciliação
-
-**Trilha:** Arquitetura conceitual · **Tipo:** fundamento conceitual · **Pré-requisito:** aula 17
-
-## Objetivos de aprendizagem
-
-Ao terminar, você deve conseguir explicar o conceito com suas palavras, reconhecer o problema que ele resolve e relacioná-lo às decisões da POC.
-
-## Conceito e por que existe
+# Estado desejado, estado observado e reconciliação
 
 O estado desejado descreve resultado, como um bucket com política ou um Domain com quota; o estado observado informa o que existe de fato. Um reconciliador compara os dois e tenta convergir de forma idempotente, atualizando condições e expondo erros. Git contém o spec revisado; Kubernetes API contém o recurso e o status. Drift é divergência relevante, não apenas diferença textual de YAML.
 
-## Como aparece na nossa POC
+## A reconciliação é contínua
+
+Um controller recebe eventos e também reavalia periodicamente recursos sob sua responsabilidade, compara estado atual e declarado e busca convergência. Isso não garante sucesso imediato: dependências podem estar indisponíveis, credenciais podem expirar e políticas podem rejeitar configurações. O contrato precisa expor condições claras de progresso, falha e prontidão. A implementação deve ser idempotente, evitando recriar recursos a cada tentativa.
+
+## Dois caminhos dentro da mesma API
 
 Ao criar ObjectStorage, Crossplane observa o XR e seu recurso AWS até informar Ready. O Environment Controller observa AWSEnvironment e avança condições conforme workflows.
 
-## Erro comum
+Em ObjectStorage, o Kubernetes API Server persiste o recurso, e Crossplane Compositions/Providers criam ou ajustam o bucket AWS. Em AWSEnvironment, outro controller coordena um workflow mais longo. A API não é substituída: mudam os reconciliadores e o tipo de execução.
 
-Não confundir o conceito com a simples instalação de uma ferramenta. A evidência de uma capacidade de plataforma está na experiência de consumo, no contrato e na possibilidade de observar e corrigir o resultado.
+## Leitura complementar
 
-## Exercício conceitual
-
-Qual a diferença entre 'o usuário pediu Database' e 'Database está Ready'?
-
-**Critério de conclusão:** responder com um exemplo, um trade-off e uma forma de verificar se o conceito foi aplicado.
-
-## Para fixar
-
-Compreender por que controllers e status são essenciais ao self-service.
-
-## Referência e leitura complementar
-
-Inspirado no tema **Capítulo 3 — declared/actual state e loops de reconciliação.** do livro *Platform Engineering in Practice*, de Zebb Wright (GitforGits, 2026), com explicações e exemplos **autorais**, adaptados à nossa POC. Consulte o exemplar licenciado para aprofundamento; este texto não o substitui nem reproduz trechos.
+- [Kubernetes — Controllers](https://kubernetes.io/docs/concepts/architecture/controller/) — documentação e material público complementar.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 3 — declared/actual state e loops de reconciliação.. Referência temática; texto autoral adaptado à POC.
 
 ---
 
-[Aula anterior](./17-planos-e-responsabilidades.md) · [Índice da trilha](README.md) · [Próxima aula](./19-abstracoes-e-escape-hatches.md)
+[Aula anterior](17-planos-e-responsabilidades.md) · [Índice](README.md) · [Próxima aula](19-abstracoes-e-escape-hatches.md)

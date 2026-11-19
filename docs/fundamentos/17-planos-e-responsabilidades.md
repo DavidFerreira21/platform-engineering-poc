@@ -1,37 +1,22 @@
-# Aula 17 — Camadas e planos de uma plataforma
-
-**Trilha:** Arquitetura conceitual · **Tipo:** fundamento conceitual · **Pré-requisito:** aula 16
-
-## Objetivos de aprendizagem
-
-Ao terminar, você deve conseguir explicar o conceito com suas palavras, reconhecer o problema que ele resolve e relacioná-lo às decisões da POC.
-
-## Conceito e por que existe
+# Camadas e planos de uma plataforma
 
 Arquiteturas de plataforma podem agrupar responsabilidades em experiências, controle, entrega/workflows, recursos, segurança e observabilidade. Não existe uma taxonomia única universal: são modelos para tornar limites claros, não regras rígidas. Na nossa POC usamos Experience Layer, Control Plane, Workflow Plane, Observability Plane e Data Plane. Planes lógicos podem coexistir num cluster; topologia física e responsabilidades não são sinônimos.
 
-## Como aparece na nossa POC
+## Plano lógico não é cluster físico
+
+Um plano organiza responsabilidade de arquitetura. Control Plane representa contratos e reconciliação; Workflow Plane representa processos, integração GitOps e executores; Observability Plane dá visibilidade transversal; Data Plane reúne contas, infraestrutura e workloads; Experience Layer oferece os canais de consumo. Sistemas distintos podem rodar no mesmo cluster, e um componente pode servir a mais de um fluxo sem perder uma responsabilidade principal.
+
+## A posição do Crossplane
 
 Platform Management Cluster hospeda Control/Workflow/Observability. UAT e PROD são Data Planes; Hub-and-Spoke explica gerenciamento, não necessariamente rede.
 
-## Erro comum
+Crossplane fica no Control Plane da POC porque observa XRDs e reconcilia recursos. Argo Workflows fica no Workflow Plane porque coordena passos e gates. Ambos podem rodar fisicamente no Platform Management Cluster local, sem criar clusters separados só para respeitar o diagrama.
 
-Não confundir o conceito com a simples instalação de uma ferramenta. A evidência de uma capacidade de plataforma está na experiência de consumo, no contrato e na possibilidade de observar e corrigir o resultado.
+## Leitura complementar
 
-## Exercício conceitual
-
-Se Crossplane e Argo Workflows rodam no mesmo cluster, por que pertencem a responsabilidades diferentes?
-
-**Critério de conclusão:** responder com um exemplo, um trade-off e uma forma de verificar se o conceito foi aplicado.
-
-## Para fixar
-
-Ler arquitetura por contrato, reconciliação e execução, não por posição em um diagrama.
-
-## Referência e leitura complementar
-
-Inspirado no tema **Capítulo 3 — arquitetura em planos; classificação da POC é autoral.** do livro *Platform Engineering in Practice*, de Zebb Wright (GitforGits, 2026), com explicações e exemplos **autorais**, adaptados à nossa POC. Consulte o exemplar licenciado para aprofundamento; este texto não o substitui nem reproduz trechos.
+- [CNCF — Platforms White Paper](https://tag-app-delivery.cncf.io/whitepapers/platforms/) — documentação e material público complementar.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 3 — arquitetura em planos; classificação da POC é autoral.. Referência temática; texto autoral adaptado à POC.
 
 ---
 
-[Aula anterior](./16-charter-e-backlog.md) · [Índice da trilha](README.md) · [Próxima aula](./18-estado-declarativo.md)
+[Aula anterior](16-charter-e-backlog.md) · [Índice](README.md) · [Próxima aula](18-estado-declarativo.md)

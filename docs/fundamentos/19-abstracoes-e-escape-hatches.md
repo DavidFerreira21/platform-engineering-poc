@@ -1,37 +1,22 @@
-# Aula 19 — Abstrações, contratos e escape hatches
-
-**Trilha:** Arquitetura conceitual · **Tipo:** fundamento conceitual · **Pré-requisito:** aula 18
-
-## Objetivos de aprendizagem
-
-Ao terminar, você deve conseguir explicar o conceito com suas palavras, reconhecer o problema que ele resolve e relacioná-lo às decisões da POC.
-
-## Conceito e por que existe
+# Abstrações, contratos e escape hatches
 
 Uma boa abstração permite ao consumidor expressar intenção sem expor parâmetros operacionais de baixo nível. Uma abstração rasa exige conhecimento demais; uma abstração rígida bloqueia casos legítimos. Escolha o nível que preserve decisões relevantes (classe, região, retenção, disponibilidade) e esconda detalhes de implementação (roles, recursos intermediários, módulos). Escape hatch precisa de governança para exceções.
 
-## Como aparece na nossa POC
+## Contratos devem representar intenções duráveis
+
+Uma abstração útil inclui decisões relevantes para o usuário e deixa de fora detalhes de infraestrutura que só existem por causa da implementação atual. O design precisa considerar compatibilidade entre versões: remover um campo, mudar valor default ou alterar comportamento de exclusão pode quebrar consumidores. Os escape hatches atendem cenários legítimos sem transformar toda exceção em parâmetro de baixo nível aberto para qualquer pessoa.
+
+## Delimitação do produto
 
 Database oferece perfil small/medium e modo de disponibilidade, mas não exige definição de cada parâmetro Terraform. Um caso não previsto pode solicitar evolução do contrato.
 
-## Erro comum
+Para Database, campos como classe de serviço, ambiente, retenção e disponibilidade fazem sentido. A lista exata de subnets, provider-specific IDs e scripts Terraform normalmente não deveria aparecer no contrato público. A escolha final depende do que os consumidores realmente precisam.
 
-Não confundir o conceito com a simples instalação de uma ferramenta. A evidência de uma capacidade de plataforma está na experiência de consumo, no contrato e na possibilidade de observar e corrigir o resultado.
+## Leitura complementar
 
-## Exercício conceitual
-
-Quais três campos devem estar no spec público de ObjectStorage e quais três não deveriam estar?
-
-**Critério de conclusão:** responder com um exemplo, um trade-off e uma forma de verificar se o conceito foi aplicado.
-
-## Para fixar
-
-Fazer APIs pequenas, estáveis e úteis sem perder extensibilidade.
-
-## Referência e leitura complementar
-
-Inspirado no tema **Capítulo 3 — developer-facing abstractions e escape hatches.** do livro *Platform Engineering in Practice*, de Zebb Wright (GitforGits, 2026), com explicações e exemplos **autorais**, adaptados à nossa POC. Consulte o exemplar licenciado para aprofundamento; este texto não o substitui nem reproduz trechos.
+- [CNCF — Platforms White Paper](https://tag-app-delivery.cncf.io/whitepapers/platforms/) — documentação e material público complementar.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 3 — developer-facing abstractions e escape hatches.. Referência temática; texto autoral adaptado à POC.
 
 ---
 
-[Aula anterior](./18-estado-declarativo.md) · [Índice da trilha](README.md) · [Próxima aula](./20-multitenancy-cells.md)
+[Aula anterior](18-estado-declarativo.md) · [Índice](README.md) · [Próxima aula](20-multitenancy-cells.md)
