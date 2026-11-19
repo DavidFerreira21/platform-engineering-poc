@@ -1,1 +1,5 @@
-UAT — PCI workload Kubernetes cluster: applications and cluster-local agents/operators. Target only; do not deploy real AWS resources without approval.
+# UAT — eks-pci
+
+Cluster EKS destinado a workloads PCI, incluindo operators/agentes locais quando necessários.
+
+**Situação:** componente previsto na arquitetura-alvo, não provisionado. Qualquer alteração real na AWS exige autorização explícita.

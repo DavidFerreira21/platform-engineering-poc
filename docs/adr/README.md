@@ -1,17 +1,17 @@
-# Architecture Decision Records
+# Registros de Decisão Arquitetural (ADRs)
 
-These ADRs are the **new authoritative POC baseline (2026-11-18)**, replacing the obsolete pre-Kubernetes-native records. They describe target design, not deployed infrastructure.
+Baseline da POC pessoal, em **18/11/2026**. As decisões descrevem a **arquitetura-alvo**, não componentes necessariamente implementados.
 
-| ADR | Decision |
+| ADR | Decisão |
 | --- | --- |
-| [0001](0001-kubernetes-native-platform-api.md) | Kubernetes API Server and CRDs as the platform API |
-| [0002](0002-contract-families.md) | AWSEnvironment, Domain, specialized Capability families; no generic Claim |
-| [0003](0003-hub-spoke-topology.md) | Platform Management Cluster and UAT/PROD account spokes |
-| [0004](0004-workflow-and-gitops.md) | GitOps ownership, Argo Workflows, Terraform, Argo CD and Crossplane |
-| [0005](0005-long-running-environment-lifecycle.md) | Manual gates, technical checks and lifecycle status |
-| [0006](0006-observability-and-local-operators.md) | Cross-cutting telemetry and local management components |
-| [0007](0007-security-and-isolation.md) | Identities, PCI boundary, account and deletion protections |
-| [0008](0008-monorepo-and-learning.md) | Monorepo placement and incremental learning implementation |
+| [0001](0001-kubernetes-native-platform-api.md) | API Kubernetes-native com CRDs e controllers |
+| [0002](0002-contract-families.md) | Famílias AWSEnvironment, Domain e Capabilities |
+| [0003](0003-hub-spoke-topology.md) | Camadas arquiteturais e topologia de gerenciamento |
+| [0004](0004-workflow-and-gitops.md) | GitOps, orquestração e mecanismos de execução |
+| [0005](0005-long-running-environment-lifecycle.md) | Provisionamento longo e dependências manuais |
+| [0006](0006-observability-and-local-operators.md) | Observabilidade transversal e operators locais |
+| [0007](0007-security-and-isolation.md) | Segurança, isolamento PCI e proteção contra exclusão |
+| [0008](0008-monorepo-and-learning.md) | Monorepo e aprendizado incremental |
 
-## ADR conventions
-All records have Status: **Accepted as POC target**, Date, Context, Decision and Consequences. A future change supersedes rather than silently rewrites a previously implemented choice; implementation status is tracked separately. New names remain organization-neutral.
+## Convenções
+Todos os textos explicativos são escritos em **português brasileiro**. Os nomes **Control Plane, Workflow Plane, Observability Plane e Data Plane** identificam as camadas. **Hub-and-Spoke** é apenas o padrão complementar de topologia de gerenciamento. Mudanças de arquitetura devem ser registradas em novos ADRs ou revisões explícitas via PR. Nunca incluir dados sensíveis, contas reais ou referências corporativas.

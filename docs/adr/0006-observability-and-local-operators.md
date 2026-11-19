@@ -1,16 +1,16 @@
-# ADR-0006: Cross-cutting telemetry and environment-local management
+# ADR-0006: Observabilidade transversal e controllers distribuídos
 
-- **Status:** Accepted as POC target
-- **Date:** 2026-11-18
+- **Situação:** Aceito como arquitetura-alvo da POC
+- **Data:** 18/11/2026
 
-## Context
-Monitoring and operators can need access close to an isolated spoke's resources, but global diagnosis must remain possible.
+## Contexto
+Telemetria e automações locais podem depender do isolamento e da conectividade de cada ambiente.
 
-## Decision
-Observability Plane is logical and spans Hub and Spokes: OpenTelemetry, metrics, logs/traces, audit and alerts. Each Environment Management EKS can host a telemetry gateway and remotely capable operators/controllers. Each PCI/Non-PCI EKS retains cluster-local agents/operators when required; backends/storage and data-routing are separate design decisions.
+## Decisão
+O Observability Plane abrange Hub e Data Plane, com OpenTelemetry, métricas, logs, traces, alertas e auditoria. O Environment Management EKS pode hospedar Argo CD, gateways e operators compatíveis com gerenciamento remoto; operators que exigem execução local permanecem nos clusters PCI/Non-PCI.
 
-## Consequences and trade-offs
-Operator suitability must be validated per product/API and authorization. PCI telemetry routing, sensitivity, aggregation, offline operation and resource consumption require tests.
+## Consequências e pontos de atenção
+Validar compatibilidade, permissões e regras PCI de cada operator; separar coleta, processamento e armazenamento de dados de telemetria.
 
-## Validation
-Validate through phased labs before real AWS provisioning; update design when a constraint is disproven.
+## Validação
+Validar a decisão em labs incrementais e atualizar a documentação se surgir um requisito incompatível. Não executar mudanças reais na AWS sem autorização.

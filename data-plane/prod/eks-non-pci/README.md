@@ -1,1 +1,5 @@
-PROD — Non-PCI workload Kubernetes cluster: applications and cluster-local agents/operators. Target only; do not deploy real AWS resources without approval.
+# PROD — eks-non-pci
+
+Cluster EKS destinado a workloads não PCI, incluindo operators/agentes locais quando necessários.
+
+**Situação:** componente previsto na arquitetura-alvo, não provisionado. Qualquer alteração real na AWS exige autorização explícita.

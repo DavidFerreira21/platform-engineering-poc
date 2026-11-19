@@ -1,16 +1,16 @@
-# ADR-0008: Monorepo mirrors planes and environment ownership
+# ADR-0008: Estrutura do monorepo e labs incrementais
 
-- **Status:** Accepted as POC target
-- **Date:** 2026-11-18
+- **Situação:** Aceito como arquitetura-alvo da POC
+- **Data:** 18/11/2026
 
-## Context
-The source tree should clearly expose the Hub, Workflow/Observability responsibilities and two Spokes without duplicating templates.
+## Contexto
+A organização do Git deve refletir os planos e os ambientes, preservando reutilização de código e transparência pedagógica.
 
-## Decision
-Use control-plane/, workflow-plane/, observability-plane/, platform/hub/, data-plane/{uat,prod}/{management-eks,eks-pci,eks-non-pci,aws-runtime}/ plus docs/, labs/, tests/. Reusable implementation remains in owning plane and overlays in each spoke. Labs are progressive, observable and safe; placeholders document boundaries until implementation exists.
+## Decisão
+Criar diretórios control-plane, workflow-plane, observability-plane, platform/hub e data-plane/uat e data-plane/prod (cada qual com management-eks, eks-pci, eks-non-pci e aws-runtime), além de docs, labs e tests. Hub-and-Spoke fica na documentação como conceito auxiliar, não como diretório obrigatório. Todo conteúdo explicativo será em pt-BR.
 
-## Consequences and trade-offs
-Clear ownership aids contribution, but boundaries are not automatic runtime isolation. Reassess path layout when real reusable infrastructure modules or controllers are introduced.
+## Consequências e pontos de atenção
+A divisão de pastas organiza responsabilidades, mas não equivale a isolamento runtime. Os componentes serão implementados por fases com testes e exercícios observáveis.
 
-## Validation
-Validate through phased labs before real AWS provisioning; update design when a constraint is disproven.
+## Validação
+Validar a decisão em labs incrementais e atualizar a documentação se surgir um requisito incompatível. Não executar mudanças reais na AWS sem autorização.

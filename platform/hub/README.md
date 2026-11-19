@@ -1,1 +1,5 @@
-Bootstrap the Platform Management Cluster (Hub) with kind first. Install Kubernetes-native controllers and logical Workflow/Observability components incrementally, using Argo CD when ready.
+# hub / README.md
+
+Bootstrap e instalação do Platform Management Cluster. Hospeda logicamente Control Plane, Workflow Plane e Observability Plane. A POC começa em kind.
+
+Consulte a [arquitetura](../../docs/architecture.md) para entender as responsabilidades.

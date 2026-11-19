@@ -1,16 +1,16 @@
-# ADR-0005: AWSEnvironment runs long-lived workflows with human dependencies
+# ADR-0005: Ciclo longo de AWSEnvironment com aprovações
 
-- **Status:** Accepted as POC target
-- **Date:** 2026-11-18
+- **Situação:** Aceito como arquitetura-alvo da POC
+- **Data:** 18/11/2026
 
-## Context
-Creating an account requires IP allocations, firewall/routes, certificates and third-party manual tasks that may last days.
+## Contexto
+Criar uma conta e deixá-la pronta exige etapas como IPs, redes, rotas, firewall e certificados, inclusive por equipes externas sem integração automatizada.
 
-## Decision
-AWSEnvironment expresses outcomes/profile, not procedural tasks. Controller starts a versioned Argo Workflow with Terraform steps, bounded technical validations, suspend/resume manual gates and evidence checks. Track step status plus conditions AccountReady, NetworkReady, SecurityReady, ClustersReady, Ready. Ticket creation alone never satisfies a gate. Support pre-existing account adoption and require explicit decommission to destroy an AWS account.
+## Decisão
+AWSEnvironment declara o resultado desejado; um controller invoca workflow versionado no Argo Workflows. Etapas automáticas usam Terraform e validações técnicas com timeout; etapas humanas usam suspend/resume e autorização, justificativa e evidência. O controller expõe AccountReady, NetworkReady, SecurityReady, ClustersReady e Ready. Abrir chamado não equivale a validá-lo.
 
-## Consequences and trade-offs
-Workflow retries/idempotency, audit of approvers, pause duration, evidence integrity, cross-system checks, status references, and recovery/retention policies are needed. No ServiceNow integration in v1.
+## Consequências e pontos de atenção
+Exigir idempotência, recuperação, auditoria, proteção de exclusão e distinção entre solicitação registrada e dependência atendida. Integração real com sistemas de chamados não faz parte do início da POC.
 
-## Validation
-Validate through phased labs before real AWS provisioning; update design when a constraint is disproven.
+## Validação
+Validar a decisão em labs incrementais e atualizar a documentação se surgir um requisito incompatível. Não executar mudanças reais na AWS sem autorização.

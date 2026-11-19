@@ -1,16 +1,16 @@
-# ADR-0003: Hierarchical Hub-and-Spoke with two account spokes
+# ADR-0003: Camadas lógicas e dois ambientes de execução
 
-- **Status:** Accepted as POC target
-- **Date:** 2026-11-18
+- **Situação:** Aceito como arquitetura-alvo da POC
+- **Data:** 18/11/2026
 
-## Context
-The personal POC needs an organization-neutral target reflecting separation between global coordination and environment-local operation.
+## Contexto
+A POC precisa representar gerenciamento central e operação por ambiente sem referências a empresas, países ou entidades.
 
-## Decision
-One Platform Management Cluster (Hub) contains logically co-located Control, Workflow and Observability planes. Data Plane has only UAT and PROD spokes, each exactly one AWS account. Each spoke's target layout contains Environment Management EKS, EKS PCI, EKS Non-PCI and AWS Runtime (RDS/S3/EC2/network/managed services). PCI and Non-PCI are not separate spokes. Model with kind/mocks before real EKS.
+## Decisão
+Adotar as camadas Experience Layer, Control Plane, Workflow Plane, Observability Plane e Data Plane. O Platform Management Cluster hospeda Control, Workflow e Observability, como divisões lógicas. No Data Plane, UAT e PROD são contas AWS distintas, cada qual com Environment Management EKS, EKS PCI, EKS Non-PCI e AWS Runtime. Hub-and-Spoke descreve a topologia de gerenciamento, sem substituir o nome das camadas.
 
-## Consequences and trade-offs
-Target is seven Kubernetes clusters, not necessarily seven deployed clusters during learning. Hub-spoke means management, not assumed routing; segregation across accounts and environments remains explicit.
+## Consequências e pontos de atenção
+Topologia física-alvo de sete clusters; implementação incremental com kind/mocks. O padrão não determina Transit Gateway nem outra arquitetura de rede.
 
-## Validation
-Validate through phased labs before real AWS provisioning; update design when a constraint is disproven.
+## Validação
+Validar a decisão em labs incrementais e atualizar a documentação se surgir um requisito incompatível. Não executar mudanças reais na AWS sem autorização.

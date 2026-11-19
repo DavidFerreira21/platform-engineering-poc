@@ -1,16 +1,16 @@
-# ADR-0007: Per-environment boundaries, secure identities and safe deletion
+# ADR-0007: Isolamento de ambientes e proteção de recursos
 
-- **Status:** Accepted as POC target
-- **Date:** 2026-11-18
+- **Situação:** Aceito como arquitetura-alvo da POC
+- **Data:** 18/11/2026
 
-## Context
-UAT and PROD are separate AWS accounts. An Argo CD with control over both PCI and Non-PCI may cross a PCI administrative boundary.
+## Contexto
+Os ambientes UAT e PROD são contas AWS independentes e PCI/Non-PCI podem ter requisitos diferentes de gestão administrativa.
 
-## Decision
-Separate credentials and least-privilege federated roles for Hub/spokes, environments and service identities. Enforce Kubernetes RBAC/admission, restricted Git PR approvals and independent manual-gate authorization. Do not assume namespaces are hard boundaries or that one local Argo CD is PCI-compliant without security validation. No secrets, real IDs or state in Git. Deleting an AWSEnvironment CR must not automatically delete its AWS account.
+## Decisão
+Aplicar menor privilégio, identidades separadas, RBAC/admission, revisões de PR, gates auditados e proteção de dados. Um Argo CD gerenciando PCI e Non-PCI só será permitido se a avaliação de segurança autorizar. Excluir AWSEnvironment nunca deve excluir automaticamente a conta AWS. Não versionar segredos, estados Terraform ou identificadores reais.
 
-## Consequences and trade-offs
-Management EKS may need distinct control scopes for PCI. Real AWS operations, accounts, expenses and destructive actions remain opt-in. Identity provider and secret provider are implementation choices, not hardcoded for this baseline.
+## Consequências e pontos de atenção
+Uma instância local de Argo CD pode precisar ser separada por fronteira PCI. Ações AWS reais, custos e operações destrutivas exigem autorização explícita.
 
-## Validation
-Validate through phased labs before real AWS provisioning; update design when a constraint is disproven.
+## Validação
+Validar a decisão em labs incrementais e atualizar a documentação se surgir um requisito incompatível. Não executar mudanças reais na AWS sem autorização.

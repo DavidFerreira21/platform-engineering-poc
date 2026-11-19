@@ -1,1 +1,5 @@
-UAT — Managed services inside this AWS account: RDS/Aurora, S3, EC2, networking and messaging. Target only; do not deploy real AWS resources without approval.
+# UAT — aws-runtime
+
+Recursos de infraestrutura da conta AWS: RDS/Aurora, S3, EC2, VPC/rede, mensageria e demais serviços gerenciados.
+
+**Situação:** componente previsto na arquitetura-alvo, não provisionado. Qualquer alteração real na AWS exige autorização explícita.
