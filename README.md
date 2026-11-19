@@ -8,7 +8,7 @@ Laboratório pessoal para estudar uma plataforma **Kubernetes-native**, com API 
 2. **Control Plane:** Kubernetes API Server, CRD nativo `AWSEnvironment` com controller próprio, Crossplane Core com XRDs/Compositions/Providers para `Domain` e Capabilities.
 3. **Workflow Plane:** Argo Workflows, Terraform Executor, Argo CD e aprovações. Crossplane pertence ao **Control Plane**.
 4. **Observability Plane:** OpenTelemetry, métricas, logs, traces, auditoria e alertas.
-5. **Data Plane:** ambientes **UAT** e **PROD**, cada um representando uma conta AWS, com Environment Management EKS, EKS PCI, EKS Non-PCI e AWS Runtime.
+5. **Data Plane:** ambientes **UAT** e **PROD**, cada um representando uma conta AWS, com Environment Management EKS, EKS PCI e EKS Non-PCI **projetados para Amazon EKS Auto Mode**, além do AWS Runtime.
 
 O Control, Workflow e Observability Planes são responsabilidades lógicas hospedadas no **Platform Management Cluster**. O Data Plane contém os ambientes de execução. O padrão **Hub-and-Spoke** ajuda a explicar a relação entre gerenciamento central e ambientes, mas não substitui os nomes das camadas e não significa, por si só, uma topologia de redes AWS.
 
@@ -18,7 +18,8 @@ A topologia-alvo contempla sete clusters, mas o **Hub pode começar localmente e
 - [Arquitetura](docs/architecture.md)
 - [Decisões arquiteturais](docs/adr/README.md)
 - [Estrutura do repositório](docs/repository-structure.md)
-- [Roteiro de aprendizado](docs/learning-roadmap.md)
+- [Fundamentos de Platform Engineering — curso conceitual](docs/fundamentos/README.md)
+- [Roteiro de aprendizado prático](docs/learning-roadmap.md)
 - [Instruções para agentes](AGENTS.md)
 
 ## Regras fundamentais
@@ -38,3 +39,9 @@ A topologia-alvo contempla sete clusters, mas o **Hub pode começar localmente e
 3. **Criação de contas:** evoluir o `AWSEnvironment` para provisionamento/adoção automatizados, com Argo Workflows e aprovações.
 
 Decisões: [ADR-0009](docs/adr/0009-crossplane-e-reconciliacao.md) e [ADR-0010](docs/adr/0010-aws-real-e-ambientes.md).
+
+## Padrão EKS dos ambientes
+Os clusters reais de gerenciamento local, PCI e Non-PCI terão **Amazon EKS Auto Mode** como escolha padrão. Isso reduz a necessidade de operar nós e componentes gerenciados de computação, rede e storage. O **Platform Management Cluster permanece em kind local**, e o uso do Auto Mode nos EKS reais será validado conforme compatibilidade, requisitos PCI e custos. Ver [ADR-0011](docs/adr/0011-eks-auto-mode.md).
+
+## Antes dos laboratórios
+Comece pelas **[24 artigos de fundamentos](docs/fundamentos/README.md)**, baseadas nos temas conceituais dos primeiros capítulos de *Platform Engineering in Practice* (Zebb Wright), mas com conteúdo autoral em pt-BR e exemplos exclusivos da nossa POC. A trilha de fundamentos **explica conceitos**; o roadmap prático **implementa e valida** esses conceitos.

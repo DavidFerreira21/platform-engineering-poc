@@ -25,9 +25,10 @@ PLATFORM MANAGEMENT CLUSTER
 DATA PLANE
   UAT — conta AWS                PROD — conta AWS
     Environment Management EKS     Environment Management EKS
+      (Auto Mode)                    (Auto Mode)
       Argo CD / Operators / OTel     Argo CD / Operators / OTel
-    EKS PCI                        EKS PCI
-    EKS Non-PCI                    EKS Non-PCI
+    EKS PCI (Auto Mode)           EKS PCI (Auto Mode)
+    EKS Non-PCI (Auto Mode)       EKS Non-PCI (Auto Mode)
     AWS Runtime                    AWS Runtime
       RDS, S3, EC2, VPC etc.         RDS, S3, EC2, VPC etc.
 ```
@@ -104,3 +105,13 @@ Não permitir que Terraform e Crossplane modifiquem simultaneamente o mesmo recu
 **Etapa 3 — Criar contas:** automatizar criação/adoção de contas por meio do `AWSEnvironment`, com fluxo de fundação, dependências humanas, aprovações e proteção contra exclusão. A criação de contas está **adiada**, não excluída da arquitetura-alvo.
 
 Antes de qualquer alteração AWS: confirmar account ID e região usando STS, planejar a mudança, dimensionar custo, documentar autorização explícita, privilégios mínimos, proteção de credenciais, state remoto e limpeza/descomissionamento. Nenhum `apply` ou `destroy` automático apenas pela aprovação do PR de documentação.
+
+## Padrão de provisionamento Kubernetes: EKS Auto Mode
+
+Para os **clusters reais dos Data Planes**, adotar **Amazon EKS Auto Mode** inicialmente: Environment Management EKS, EKS PCI e EKS Non-PCI de UAT/PROD. O **Platform Management Cluster** permanece no **`kind` local** durante os primeiros laboratórios. A escolha reduz a manutenção direta de compute, nós, integração de load balancing, networking e storage, mas não elimina o gerenciamento de permissões, VPC, políticas, add-ons compatíveis, workloads, upgrades e custos.
+
+O provisionamento deve declarar explicitamente Auto Mode nos módulos Terraform e validar a configuração do cluster, NodePools/NodeClasses quando necessários e compatibilidade dos componentes instalados. O recurso de Auto Mode gerencia nós com restrições: não pressupor SSH/SSM nos nós, customização livre de AMI ou instalação host-level. Agents compatíveis podem ser executados por DaemonSet; avaliar limitações e necessidades de PCI antes de adotar como definitivo.
+
+A POC continua incremental: **não criar seis EKS reais simultaneamente** e manter gates de custo, conta/região verificados e cleanup. Caso um operator ou requisito de segurança precise de capacidade incompatível, registrar ADR de exceção, em vez de trocar silenciosamente o modelo.
+
+Decisão detalhada: [ADR-0011](adr/0011-eks-auto-mode.md).

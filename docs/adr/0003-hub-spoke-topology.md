@@ -14,3 +14,6 @@ Topologia física-alvo de sete clusters; implementação incremental com kind/mo
 
 ## Validação
 Validar a decisão em labs incrementais e atualizar a documentação se surgir um requisito incompatível. Não executar mudanças reais na AWS sem autorização.
+
+## Complemento posterior — ADR-0011
+Os EKS reais dos Data Planes (management, PCI e Non-PCI) adotarão inicialmente **Amazon EKS Auto Mode**. O Hub local segue em `kind`. Consultar [ADR-0011](0011-eks-auto-mode.md).
