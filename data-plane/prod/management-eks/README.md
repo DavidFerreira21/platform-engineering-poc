@@ -13,4 +13,4 @@ Nenhuma execução AWS é autorizada apenas por este documento. Recursos devem s
 
 ---
 
-[← PROD](../README.md) · [Data Plane](../../README.md) · [Arquitetura](../../../docs/architecture.md) · [ADR EKS Auto Mode](../../../docs/adr/0011-eks-auto-mode.md)
+[← PROD](../README.md) · [Data Plane](../../README.md) · [Arquitetura](../../../docs/architecture.md) · [ADR AWS e EKS Auto Mode](../../../docs/adr/0004-aws-security-and-roadmap.md)
