@@ -1,87 +1,127 @@
-# Lab 01 — Platform Management Cluster com kind
+# Lab 01 — Preparação do Platform Management Cluster: kind, rede e Traefik
 
-[← Labs](README.md) · [Arquitetura](../docs/architecture.md) · [Fundamentos: planos](../docs/fundamentos/17-planos-e-responsabilidades.md) · [Próximo passo: roadmap](../docs/learning-roadmap.md)
+[← Labs](README.md) · [Arquitetura](../docs/architecture.md) · [Fundamentos: planos](../docs/fundamentos/17-planos-e-responsabilidades.md) · [Roadmap](../docs/learning-roadmap.md)
 
 ## Objetivo e limite
 
-Criar o **Hub local** que futuramente hospedará Control Plane, Workflow Plane e Observability Plane. Neste laboratório **não** instalamos Crossplane, Argo CD, Terraform, Providers AWS, EKS ou Capabilities. O objetivo é **ver a infraestrutura nascendo e funcionando**, sem surpresas na conta AWS.
+Preparar **um único Hub local reproduzível** para hospedar mais tarde Argo CD central e Crossplane. Este lab entrega: **kind → rede/portas → namespaces → Traefik → Ingress HTTP de teste**. Argo CD, Crossplane, GitOps e serviços AWS **não são instalados** aqui. As configurações de Argo CD/Crossplane terão labs próprios.
+
+> **Aprendizado progressivo:** rode as etapas em sequência e observe os recursos. O futuro bootstrap completo apenas chamará os mesmos passos; não existirá uma segunda implementação concorrente.
 
 ## Pré-requisitos
 
-- Docker instalado e funcionando; verificar `docker info`.
-- `kind` e `kubectl` no `PATH`, com versões suportadas e compatíveis.
-- Recursos locais suficientes para um nó control-plane; internet para baixar a imagem do kind quando necessário.
-- **Nenhuma credencial AWS é necessária.** Caso haja outros clusters no kubeconfig, os scripts usam explicitamente `--context kind-platform-management`.
+- Docker funcional, `kind`, `kubectl`, `helm` e `curl` no PATH.
+- Conexão para baixar imagens e o Helm chart oficial do Traefik.
+- Portas **8080 e 8443 TCP** disponíveis no host para o kind. O bind é exclusivamente em **127.0.0.1** (não expõe o laboratório na LAN).
+- Sem AWS, sem secrets e sem alteração do contexto Kubernetes padrão.
+- Ambiente local com recursos suficientes para kind, Traefik e pod de teste.
 
-Do diretório raiz do projeto:
+Verifique antes:
 
 ```bash
+docker info
 kind version
 kubectl version --client
-docker info
+helm version
 ```
 
-## Etapa 1 — Ler a definição
+## Etapa 1 — Entender a rede e criar o cluster
 
-Abra [`kind-config.yaml`](../platform/hub/kind-config.yaml). O cluster se chama `platform-management` e contém **um nó control-plane**, suficiente para o primeiro lab. Esse **não é um EKS** nem um cluster por plano: é o Hub único que receberá as ferramentas por etapas.
-
-## Etapa 2 — Criar e observar
+Abra [`kind-config.yaml`](../platform/hub/kind-config.yaml): **host 127.0.0.1:8080 → node container:30080**, e **host 127.0.0.1:8443 → node container:30443**. Esses números correspondem aos **NodePorts** do Service Traefik definidos em [`values.yaml`](../platform/hub/traefik/values.yaml).
 
 ```bash
 bash platform/hub/scripts/create.sh
 ```
 
-O script valida Docker/`kind`/`kubectl`, só cria o cluster se não existir, espera o nó ficar `Ready` e mostra os nós. Observe também:
+O script reutiliza o cluster existente, caso haja um; nesse caso **não consegue alterar os mapeamentos de portas**. Se você criou o cluster com uma configuração antiga, será necessário removê-lo e recriá-lo explicitamente (consulte a limpeza). Depois observe:
 
 ```bash
 kubectl --context kind-platform-management cluster-info
 kubectl --context kind-platform-management get nodes -o wide
 kubectl --context kind-platform-management get pods -n kube-system
-kubectl --context kind-platform-management get namespaces
 ```
 
-**O que observar:** API Server acessível, control-plane `Ready`, pods de sistema iniciados e namespaces padrão. Os planos da plataforma ainda são **responsabilidades arquiteturais**, não componentes instalados.
+**Resultado esperado:** nó `Ready`, API acessível, CoreDNS e componentes Kubernetes básicos operacionais.
 
-## Etapa 3 — Verificar e diagnosticar
+## Etapa 2 — Entender os namespaces
+
+Abra [`namespaces.yaml`](../platform/hub/namespaces.yaml). Os namespaces `platform-system`, `traefik`, `argocd` e `crossplane-system` foram aplicados pelo `create.sh`. Os dois últimos são **somente reservas lógicas**: não há Argo CD nem Crossplane instalados.
+
+```bash
+kubectl --context kind-platform-management get namespaces --show-labels
+```
+
+**Conceito:** namespace não é um Domain. O Hub central e os Domains do Data Plane possuem responsabilidades diferentes.
+
+## Etapa 3 — Instalar Traefik, com script independente
+
+Examine as configurações [`values.yaml`](../platform/hub/traefik/values.yaml) e [versão do Helm chart](../platform/hub/traefik/chart-version.txt). O chart usa uma **versão fixa** para reprodução. O Service é `NodePort`, não `LoadBalancer`; no kind, não é necessário cloud load balancer nem MetalLB.
+
+```bash
+bash platform/hub/scripts/install-traefik.sh
+kubectl --context kind-platform-management -n traefik get deployment,pods,service
+```
+
+O script instala/atualiza o Traefik via Helm, espera o Deployment e aplica um **Deployment + Service + Ingress Kubernetes nativo** de demonstração, definido em [`demo.yaml`](../platform/hub/traefik/demo.yaml).
+
+**Escolha didática:** usamos `networking.k8s.io/v1/Ingress` em vez de desenvolver um CRD de plataforma ou usar IngressRoute. O Helm chart Traefik pode instalar CRDs de terceiros, mas não criamos controllers/contratos próprios. O dashboard não é publicado.
+
+## Etapa 4 — Validar o caminho de rede
 
 ```bash
 bash platform/hub/scripts/verify.sh
+curl --noproxy '*' --resolve demo.localhost:8080:127.0.0.1 http://demo.localhost:8080/
 ```
 
-Se o nó não ficar pronto, verifique `docker info`, `kind get clusters` e `kubectl --context kind-platform-management get events -A`. Para logs do cluster:
+**Resposta esperada:** `platform-management-ok`. A URL também funciona no navegador em ambientes que resolvem `.localhost` como loopback: [http://demo.localhost:8080/](http://demo.localhost:8080/).
+
+```text
+Browser / curl (127.0.0.1:8080)
+    → Docker port mapping (kind node :30080)
+    → Traefik Service NodePort :30080
+    → Traefik Pod (IngressClass traefik)
+    → Ingress demo.localhost
+    → Service echo :80
+    → Deployment echo :5678
+```
+
+A porta 8443 fica preparada para HTTPS futuro, mas **não configuramos CA/certificado TLS confiável** neste lab. Não expor dashboard, secrets ou endpoints administrativos.
+
+## Etapa 5 — Observar, provocar erro e recuperar
 
 ```bash
-kind export logs --name platform-management
+kubectl --context kind-platform-management -n platform-system get ingress,svc,deploy,pods
+kubectl --context kind-platform-management -n traefik logs deploy/traefik --tail=100
+curl --noproxy '*' -i --resolve desconhecido.localhost:8080:127.0.0.1 http://desconhecido.localhost:8080/
 ```
 
-**Falha controlada sem alterações:** tente inspecionar um contexto inexistente:
+**Falha controlada:** a última requisição deve retornar **404** do Traefik, pois não há uma regra Ingress para `desconhecido.localhost`. Em seguida faça a requisição para `demo.localhost` e observe o sucesso. Isso prova o roteamento baseado no header HTTP `Host`, não apenas que o pod respondeu. Se surgir `connection refused`, confira o mapping/porta. Se houver `503`, confira endpoints e health do backend. Se houver `404` para a rota correta, confira `IngressClass` e regras.
 
-```bash
-kubectl --context contexto-inexistente get nodes
-```
+## Etapa 6 — Limpeza e reexecução
 
-O erro é esperado. Compare com `kubectl --context kind-platform-management get nodes` para compreender por que os scripts usam um contexto explícito.
-
-## Etapa 4 — Limpeza
-
-A remoção do cluster é **opcional**; se for prosseguir para o Lab Crossplane, mantenha-o. Para recriar do zero, execute:
+Para **repetir o Lab sem apagar o cluster**, `create.sh` e `install-traefik.sh` podem ser chamados novamente (manifests declarativos / Helm upgrade). Para **zerar todo o Hub**, inclusive configurações futuras, é necessário confirmar explicitamente:
 
 ```bash
 bash platform/hub/scripts/delete.sh --confirm
 bash platform/hub/scripts/create.sh
+bash platform/hub/scripts/install-traefik.sh
 bash platform/hub/scripts/verify.sh
 ```
 
-**Aviso:** `delete.sh` remove o cluster **local `platform-management`** e todos os objetos dentro dele. Não toca na AWS. Sem `--confirm`, ele se recusa a excluir.
+**Atenção:** o `delete.sh` apaga **todo o cluster kind** e seus objetos, incluindo eventuais instalações posteriores de Argo CD/Crossplane. Não afeta AWS, mas jamais assuma que recursos externos gerenciados por esses componentes foram removidos.
 
-## Critérios de conclusão
+## Critérios de aceite
 
-- [ ] `kind` cria o Hub e um nó fica `Ready`.
-- [ ] `kubectl` mostra API, namespaces e pods `kube-system`.
-- [ ] A verificação executa sem erros e é possível identificar o contexto correto.
-- [ ] Foi observada uma falha controlada e entendida a recuperação.
-- [ ] O procedimento de remoção/recriação foi compreendido (executar apenas se desejado).
+- [ ] API Kubernetes e CoreDNS funcionam, nó está `Ready`.
+- [ ] Namespaces esperados criados, sem componentes Argo CD/Crossplane instalados.
+- [ ] Traefik está saudável e usando NodePorts 30080/30443.
+- [ ] `demo.localhost:8080` retorna `platform-management-ok`.
+- [ ] Host incorreto retorna `404` e é possível explicar a rota do tráfego.
+- [ ] Scripts podem ser executados novamente sem duplicar recursos.
+- [ ] Limpeza destrutiva requer `--confirm`.
 
-## Próximo laboratório
+## Próximas etapas
 
-Instalar e inspecionar o **Crossplane no Hub** antes de configurar qualquer conta AWS. Depois provisionaremos `ObjectStorage` e `Database` com **Amazon Aurora PostgreSQL**, usando **somente UAT inicialmente**. O método de autenticação AWS será definido na etapa específica; o [template UAT](../foundation/config/entity-a/uat/environment.example.yaml) não contém credenciais.
+**Lab 02: Argo CD central** — bootstrap GitOps e aplicações da plataforma. **Lab 03: Crossplane** — instalação por GitOps, XRDs e Compositions; depois Capabilities AWS. Ao adotar Traefik no Argo CD, documentar uma **transferência de ownership Helm → Argo CD**, sem dois reconciliadores gerenciando o release simultaneamente. Não executar o bootstrap do Traefik manual depois de adotado pelo GitOps.
+
+Fontes: [kind — Configuration](https://kind.sigs.k8s.io/docs/user/configuration/) · [Traefik — Setup on Kubernetes](https://doc.traefik.io/traefik/setup/kubernetes/) · [Traefik Helm Chart](https://github.com/traefik/traefik-helm-chart).

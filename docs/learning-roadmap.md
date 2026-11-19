@@ -2,14 +2,15 @@
 
 [← Início](../README.md) · [Arquitetura](architecture.md) · [Fundamentos](fundamentos/README.md)
 
-Construção incremental e observável: cada lab terá pré-requisitos, comandos, evidências, falha controlada, diagnóstico, recuperação, custo e limpeza. **Primeira implementação: Lab 01 do Hub com kind**, seguido por Crossplane, `ObjectStorage` e **`Database` com Aurora PostgreSQL**. A conta inicial será apenas UAT. A decisão de autenticação AWS fica para uma fase posterior; não é necessária para criar o kind. **A ordem pedagógica difere da sequência de provisionamento de uma entidade completa.**
+Construção incremental e observável: cada lab terá pré-requisitos, comandos, evidências, falha controlada, diagnóstico, recuperação, custo e limpeza. **Primeira implementação: Lab 01 (kind, namespaces, rede local e Traefik)**, seguido por **Lab 02 (Argo CD central)** e **Lab 03 (Crossplane instalado via GitOps)**, depois `ObjectStorage` e **`Database` com Aurora PostgreSQL**. A conta inicial será apenas UAT. A decisão de autenticação AWS fica para uma fase posterior; não é necessária para criar o kind. **A ordem pedagógica difere da sequência de provisionamento de uma entidade completa.**
 
 | Fase | Tema | Evidência |
 | :--- | :--- | :--- |
 | **00** | Documentação e monorepo | Conceitos e decisões consistentes |
-| **01** | Hub `kind` | API Kubernetes e RBAC funcionando |
-| **02** | Crossplane Core no Hub local | Instalar Crossplane e explorar CRDs, XRDs, Compositions e status sem AWS |
-| **03** | UAT: registro de conta e autenticação AWS | Configurar arquivo de Environment e método de autenticação a definir; validar identidade com STS **antes de qualquer operação** |
+| **01** | Hub `kind` + Traefik | API, CoreDNS, namespaces, mapeamento de portas, Ingress HTTP e verificações locais |
+| **02** | Argo CD central (GitOps) | Bootstrap do Argo CD, acesso local, Git como fonte da verdade e aplicações da plataforma |
+| **03** | Crossplane Core por GitOps | Argo CD instala o Crossplane; observar CRDs, XRDs, Compositions e status sem AWS |
+| **03B** | UAT: registro de conta e autenticação AWS | Configurar arquivo de Environment e método de autenticação a definir; validar STS **antes de qualquer operação** |
 | **04** | `ObjectStorage` real | XRD/Composition/Provider AWS, bucket de laboratório, `Ready`, drift e teardown |
 | **04B** | `Database` com Amazon Aurora PostgreSQL | Contrato de Database e cluster Aurora PostgreSQL em UAT, sujeito a custo, rede, IAM, plano e teardown autorizados |
 | **05** | Entity, Environment e criação padronizada de Domain | Registro único, perfil versionado, destinos selecionados e geração idempotente de estrutura/manifests |
