@@ -17,13 +17,17 @@ jobs:
       - name: Validar links e blocos Markdown
         run: python3 tests/check_docs.py
       - name: Validar sintaxe dos scripts bash
-        run: bash -n platform/hub/scripts/create.sh platform/hub/scripts/verify.sh platform/hub/scripts/delete.sh
+        run: bash -n platform/hub/scripts/create.sh platform/hub/scripts/install-traefik.sh platform/hub/scripts/verify.sh platform/hub/scripts/delete.sh
       - name: Validar YAML de exemplo e kind
         run: |
           python3 - <<'PY'
           from pathlib import Path
           configs = [
               Path("platform/hub/kind-config.yaml"),
+              Path("platform/hub/namespaces.yaml"),
+              Path("platform/hub/traefik/values.yaml"),
+              Path("platform/hub/traefik/demo.yaml"),
+              Path("platform/hub/traefik/chart-version.txt"),
               Path("foundation/config/entity-a/uat/environment.example.yaml"),
           ]
           for config in configs:

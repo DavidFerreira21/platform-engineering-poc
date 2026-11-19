@@ -15,7 +15,7 @@
 | [🗂️ Monorepo](docs/repository-structure.md) | Responsabilidades e localização das configurações |
 | [📝 Decisões vigentes](docs/adr/README.md) | ADRs atuais, sem versões contraditórias |
 | [🧪 Roteiro prático](docs/learning-roadmap.md) | Fases de laboratório, AWS real e validações |
-| [▶️ Lab 01: Hub kind](labs/01-platform-management-cluster.md) | Criar, verificar e remover o Platform Management Cluster local |
+| [▶️ Lab 01: Hub kind + Traefik](labs/01-platform-management-cluster.md) | Preparar cluster, namespaces, portas e ingress HTTP local |
 | [📖 Fundamentos](docs/fundamentos/README.md) | 24 aulas conceituais pt-BR |
 | [🤖 Orientações para agentes](AGENTS.md) | Padrões de implementação e segurança |
 
