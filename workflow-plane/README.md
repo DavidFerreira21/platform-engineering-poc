@@ -1,5 +1,5 @@
-# workflow-plane / README.md
+# Workflow Plane
 
-Responsável pelas definições de Argo Workflows, Terraform Executor, gates manuais, GitOps via Argo CD e integração futura com Crossplane. O Workflow Plane é uma responsabilidade lógica, não um cluster próprio.
+Contém **Argo Workflows** (etapas, esperas, aprovações), **Terraform Executor** (plan/apply controlados) e **Argo CD** (GitOps). É uma camada lógica hospedada no Platform Management Cluster, não um cluster separado.
 
-Consulte a [arquitetura](../docs/architecture.md) para entender as responsabilidades.
+O Environment Controller, localizado no Control Plane, pode acionar Argo Workflows. **Crossplane Core, XRDs, Compositions e Providers pertencem ao Control Plane**, pois reconciliam recursos declarativos sem depender de workflows sequenciais. Recursos AWS reais são provisionados somente em contas autenticadas, mediante plano e autorização.

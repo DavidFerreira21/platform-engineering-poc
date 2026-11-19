@@ -15,3 +15,9 @@ Baseline da POC pessoal, em **18/11/2026**. As decisões descrevem a **arquitetu
 
 ## Convenções
 Todos os textos explicativos são escritos em **português brasileiro**. Os nomes **Control Plane, Workflow Plane, Observability Plane e Data Plane** identificam as camadas. **Hub-and-Spoke** é apenas o padrão complementar de topologia de gerenciamento. Mudanças de arquitetura devem ser registradas em novos ADRs ou revisões explícitas via PR. Nunca incluir dados sensíveis, contas reais ou referências corporativas.
+
+## Decisões adicionais
+- [ADR-0009 — Crossplane e responsabilidades de reconciliação](0009-crossplane-e-reconciliacao.md)
+- [ADR-0010 — AWS real e adoção progressiva de ambientes](0010-aws-real-e-ambientes.md)
+
+Esses ADRs atualizam decisões anteriores sobre Crossplane e ordem dos labs, sem alterar a nomenclatura dos planes.

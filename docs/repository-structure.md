@@ -7,13 +7,14 @@ platform-engineering-poc/
 ├── AGENTS.md
 ├── README.md
 ├── control-plane/
-│   ├── crds/                    # AWSEnvironment, Domain e Capabilities
-│   └── controllers/             # reconciliação, políticas e status
+│   ├── environment/             # CRD AWSEnvironment + controller próprio
+│   └── crossplane/              # Core, XRDs, Compositions, Providers
+│       ├── domains/             # XRD Domain
+│       └── capabilities/        # XRDs Database, Storage, Compute, Messaging
 ├── workflow-plane/
 │   ├── argo-workflows/          # execução e aprovações
 │   ├── terraform-executor/      # plan/apply controlado
 │   ├── argocd/                  # GitOps global
-│   └── crossplane/              # integração progressiva
 ├── observability-plane/         # OTel, métricas, logs, traces, auditoria
 ├── platform/hub/                # bootstrap do Platform Management Cluster
 ├── data-plane/
@@ -37,8 +38,8 @@ platform-engineering-poc/
 ```
 
 ## Critérios de organização
-- Código de CRDs e controllers pertence a `control-plane/`; instalação do Hub pertence a `platform/hub/`.
-- Definições compartilhadas de workflows, Terraform runners, Argo CD e Crossplane pertencem a `workflow-plane/`.
+- Código do controller AWSEnvironment e XRDs/Compositions/Providers Crossplane pertencem ao `control-plane/`; instalação do Hub pertence a `platform/hub/`.
+- Argo Workflows, Terraform Executor, gates e Argo CD pertencem a `workflow-plane/`; Crossplane pertence ao **Control Plane**.
 - Telemetria compartilhada fica em `observability-plane/`; overlays específicos do ambiente ficam no respectivo Spoke.
 - Configurações e recursos por conta ficam em `data-plane/uat/` ou `data-plane/prod/`. Não duplicar manifests compartilhados.
 - **Experience Layer** descreve canais de consumo, não exige pasta separada para cada cliente enquanto não houver código.
@@ -49,3 +50,7 @@ platform-engineering-poc/
 
 ## Critérios de revisão
 Isolamento UAT/PROD, contratos versionados, referências válidas, ownership do `spec` por GitOps, status reconciliado, privilégio mínimo, limites PCI, ausência de segredos, testes e instruções de limpeza.
+
+## AWS real e separação de fases
+
+Os diretórios `data-plane/uat` e `data-plane/prod` representarão contas AWS **reais** distintas quando disponibilizadas. No início, usar uma única conta preexistente autorizada e evoluir para duas contas. Somente depois implementar a criação automática de contas pelo Environment Controller. Templates reutilizáveis ficam na camada proprietária, não duplicados nos overlays UAT/PROD. O bootstrap `kind` do Hub não implica que os recursos AWS sejam simulados.
