@@ -1,0 +1,12 @@
+# Exemplo de configuração de destino UAT; NÃO é um CRD nem configura autenticação.
+# Copie/ajuste na etapa AWS após definir conta, região, IAM e método de autenticação.
+# Nunca coloque access keys, session tokens, perfis com segredos ou passwords aqui.
+entity: entity-a
+environment: uat
+aws:
+  accountId: "REPLACE_WITH_AWS_ACCOUNT_ID"
+  region: "REPLACE_WITH_AWS_REGION"
+foundation:
+  profile: standard
+core:
+  profile: eks-standard

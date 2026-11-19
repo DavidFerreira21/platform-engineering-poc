@@ -6,7 +6,7 @@ Um catálogo útil precisa apresentar o resultado de cada opção, público aten
 
 ## Famílias versus produtos especializados
 
-Na POC, **Capability é uma família arquitetural**, não um CRD genérico. Os produtos concretos terão XRDs especializados, como `Database`, `ObjectStorage`, `ComputeInstance` e `Messaging`. Isso oferece contratos tipados e permite políticas adequadas para cada serviço. `Domain` descreve o agrupamento lógico de aplicações e configurações; `AWSEnvironment` identifica o ambiente associado à conta AWS.
+Na POC, **Capability é uma família arquitetural**, não um CRD genérico. Os produtos concretos terão XRDs especializados, como `Database`, `ObjectStorage`, `ComputeInstance` e `Messaging`. Isso oferece contratos tipados e permite políticas adequadas para cada serviço. `Domain` é a unidade lógica de negócio, ownership e consumo de Capabilities e aplicações; `Environment` é o registro declarativo do destino UAT/PROD associado a uma conta AWS. Ambos são conceitos representados inicialmente por configuração Git, **não XRDs**.
 
 Um catálogo poderá apontar para essas opções e suas versões. O portal não define a semântica do recurso nem executa a reconciliação; o API Server e seus controllers permanecem responsáveis por isso. Um produto pode ter múltiplos perfis suportados sem exigir um XRD novo para cada tamanho de banco.
 
