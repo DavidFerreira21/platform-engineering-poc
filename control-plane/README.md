@@ -1,18 +1,18 @@
 # 🧩 Control Plane
 
-O **Kubernetes API Server** é a API oficial; os reconciliadores implementam os contratos sem criar APIs paralelas.
+O **Kubernetes API Server** é a API da plataforma para produtos técnicos Kubernetes-native. **Crossplane central** implementará XRDs, Compositions e Providers para **Capabilities** AWS.
 
-| Contrato | Responsabilidade |
+| Conceito | Forma na POC |
 | :--- | :--- |
-| `AWSEnvironment` | CRD nativo + Environment Controller próprio (a implementar) |
-| `Domain` | XRD + Crossplane Composition (a implementar) |
-| `Database`, `ObjectStorage`, `ComputeInstance`, `Messaging` | XRDs + Crossplane Compositions/Providers (a implementar) |
+| Entity | Registro de organização no Git |
+| Environment | Registro YAML de UAT/PROD e conta/região AWS, não CRD |
+| Domain | Registro lógico de ownership/consumo, não XRD |
+| `ObjectStorage` | Primeira Capability via XRD + Composition + Provider |
+| `Database`, `Messaging`, `ComputeInstance` | Capabilities futuras |
 
-**Atenção:** Domain remoto e permissões exigem validação. Criação automática de conta AWS é etapa futura.
+Crossplane **não observa diretamente Git**. Argo CD central sincroniza somente CRs de Capability com a API. A definição dos **perfis versionados de Domain Bootstrap** e dos contratos de Capability pertence à plataforma. O Workflow Plane gera os manifests obrigatórios por Domain/Environment; Crossplane continua sendo o reconciliador de AWS, e não o executor do Bootstrap. A seleção de credenciais precisa vir de mapeamento validado; Domain não escolhe uma role arbitrária. O Argo CD local possui os objetos Kubernetes dos workloads e namespaces.
 
 > [!NOTE]
-> **Situação:** estrutura de documentação e planejamento. Nenhum componente desta pasta está implantado por padrão.
+> **Estado:** desenho/documentação; nada instalado automaticamente.
 
----
-
-[← Página inicial](../README.md) · [Arquitetura](../docs/architecture.md) · [Roteiro prático](../docs/learning-roadmap.md)
+[← Início](../README.md) · [Arquitetura](../docs/architecture.md)

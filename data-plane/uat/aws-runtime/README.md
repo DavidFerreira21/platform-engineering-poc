@@ -1,6 +1,6 @@
 # ☁️ UAT · AWS Runtime
 
-Serviços **AWS Runtime** da conta, como VPC, S3, RDS/Aurora e mensageria, com ownership explícito entre Terraform e Crossplane.
+Inventário **conceitual** de recursos AWS no Environment. **Foundation** (por exemplo VPC/rede) é central; **Core** contém recursos comuns; **Domain Infrastructure** possui Capabilities como S3/RDS. Terraform e Crossplane possuem recursos distintos, sem disputa.
 
 | Atributo | Definição |
 | :--- | :--- |
@@ -13,4 +13,4 @@ Nenhuma execução AWS é autorizada apenas por este documento. Recursos devem s
 
 ---
 
-[← UAT](../README.md) · [Data Plane](../../README.md) · [Arquitetura](../../../docs/architecture.md) · [ADR EKS Auto Mode](../../../docs/adr/0011-eks-auto-mode.md)
+[← UAT](../README.md) · [Data Plane](../../README.md) · [Arquitetura](../../../docs/architecture.md)

@@ -1,58 +1,31 @@
-# AGENTS.md — Instruções aos agentes
+# AGENTS.md — Instruções de implementação
 
-## Idioma
-**Português brasileiro (pt-BR) é obrigatório** para README, ADRs, arquitetura, roadmap, tutoriais, descrições de PR e explicações. Preservar nomes técnicos/identificadores: Kubernetes, Argo CD, `AWSEnvironment`, `spec`, `status`, `kind`, nomes de pastas e comandos.
+## Fonte da verdade e idioma
 
-## Fonte de verdade
-Ler [arquitetura](docs/architecture.md), [ADRs](docs/adr/README.md) e [estrutura do repositório](docs/repository-structure.md) antes de implementar. Esta baseline substitui os ADRs antigos baseados em FastAPI como API principal e em apenas dois clusters kind.
+Consultar [arquitetura](docs/architecture.md), [decisões](docs/adr/README.md), [estrutura](docs/repository-structure.md) e [roadmap](docs/learning-roadmap.md) antes de implementar. Documentar em **português brasileiro**, preservando nomes técnicos. Não reintroduzir modelos superados do histórico Git.
 
-## Arquitetura obrigatória
-- **Experience Layer:** Backstage, CLI, GitOps e AI/MCP. Para alterações persistentes, preferir PR no Git; leitura de estado pode acessar Kubernetes API sob RBAC.
-- **Control Plane:** Kubernetes API Server como API da plataforma, CRD nativo `AWSEnvironment` com Environment Controller próprio, XRDs `Domain` e Capabilities com Crossplane Core/Compositions/Providers, validação e status.
-- **Famílias de CRDs:** `AWSEnvironment` (uma conta AWS + foundation), `Domain` (ecossistema de aplicações) e Capabilities especializadas (por exemplo `Database`, `ObjectStorage`, `ComputeInstance`). Capability é categoria, não necessariamente um recurso de kind Capability. Não criar Claim genérico na primeira versão.
-- **Workflow Plane:** Argo Workflows, Terraform Executor, Argo CD e gates manuais; Crossplane pertence ao Control Plane, não ao Workflow Plane. Não usar Argo CD para executar etapas imperativas Terraform.
-- **Observability Plane:** telemetria, métricas, logs, traces, eventos e auditoria transversal.
-- **Data Plane:** inicialmente uma entidade lógica simulada, com dois ambientes-alvo, UAT e PROD, cada qual uma conta AWS com Environment Management EKS, EKS PCI e EKS Non-PCI usando **Amazon EKS Auto Mode por padrão**, além de AWS Runtime. O Hub continua em kind local na primeira fase. Não usar nomes reais de países/empresas: a entidade fictícia `entity-a` serve apenas à organização didática.
-- **Platform Management Cluster:** hospeda Control, Workflow e Observability Planes; estes são agrupamentos lógicos, não três clusters.
-- **Hub-and-Spoke:** apenas conceito de topologia de gerenciamento, documentado sem substituir os nomes das camadas. Não implica topologia de rede ou Transit Gateway.
-- Operadores podem exigir execução no próprio cluster de workload. Compartilhar controle entre PCI e Non-PCI depende da avaliação de segurança.
+## Modelo vigente
 
-## Responsabilidades do monorepo
-- `control-plane/`: CRD/controller AWSEnvironment, XRDs/Compositions/Providers Crossplane para Domain/Capabilities e políticas.
-- `workflow-plane/`: Argo Workflows, Terraform Executor, gates e GitOps, sem Crossplane.
-- `observability-plane/`: configurações transversais de telemetria.
-- `platform/hub/`: bootstrap do Platform Management Cluster.
-- `data-plane/uat/`, `data-plane/prod/`: configuração específica do ambiente e de seus clusters e AWS Runtime.
-- `docs/`, `labs/`, `tests/`: documentação, aprendizado e validação.
+- **Experience Layer:** Backstage, CLI, GitOps e AI/MCP são canais paralelos. Alterações persistentes preferencialmente via PR.
+- **Control Plane:** Kubernetes API Server central, Crossplane Core + XRDs/Compositions/Providers para **Capabilities**; começar `ObjectStorage`. Crossplane único central, sem cascata.
+- **Domain Bootstrap:** **fluxo padrão na criação de um Domain**, usando perfil de baseline versionado e Environments selecionados; não é uma obrigação independente por ambiente. Perfil completo de referência exige Database, ObjectStorage, namespace e quotas/policies. Geração idempotente de manifests no Git + PR, Crossplane central aplica recursos AWS e Argo CD local os objetos Kubernetes. Validar `Ready` a partir das dependências; sem banco ainda implantado, não declarar perfil completo pronto. Perfil novo não altera os Domains existentes sem migração deliberada.
+- **Entity / Environment / Domain:** conceitos lógicos e **registros declarativos no Git**. Entity organiza; Environment mapeia UAT/PROD à conta AWS/região; Domain é unidade de negócio, consumo, políticas e ownership de aplicações, namespaces e Capabilities. **Não criar CRD/XRD** para esses três na primeira etapa.
+- **Workflow Plane:** Argo CD central aplica CRs de Capability na Kubernetes API; Argo Workflows e Terraform Executor realizam Foundation e EKS via execução autorizada. Argo CD não executa Terraform. **Não implementar Environment Controller próprio como dependência inicial**.
+- **Observability Plane:** métricas, logs, traces, eventos e auditoria.
+- **Data Plane:** `data-plane/<entity>/core-infrastructure/{uat,prod}/` organiza recursos comuns; `data-plane/<entity>/domains/<domain>/` organiza uma identidade única e recursos/aplicações por ambiente. Ambos pertencem ao Data Plane; **Environment não equivale a Core**.
+- **Applications:** Argo CD local do Management EKS aplica namespaces, policies e workloads em PCI/Non-PCI **somente se o isolamento permitir**.
+- **Topologia-alvo:** UAT e PROD são contas AWS separadas; cada uma inclui Management EKS, EKS PCI, EKS Non-PCI e AWS Runtime. EKS Auto Mode preferido, sob validação de custo/operadores/PCI. Hub é `kind` inicialmente. Sem MSK na primeira versão.
 
-## Qualidade e segurança
-Implementar progressivamente, com testes observáveis, falhas controladas e limpeza. Usar mocks para testes automatizados e validação inicial, mas implementar **provisionamento AWS real** nos labs autorizados. Hub local pode usar kind. Confirmar conta e região com STS; usar sessões/roles temporárias, least privilege, plano, estimativa de custos, autorização por execução, state protegido e cleanup. Nunca publicar credenciais, IDs reais, certificados privados, estado Terraform ou dados corporativos. Mudanças no Git devem ocorrer via branches e PRs. Reconciliação idempotente, status confiável, aprovações autorizadas, auditoria e proteção contra exclusão destrutiva são requisitos. Distinguir claramente **planejado**, **mockado**, **implementado** e **adiado**.
+## Ownership e contratos
 
-## Fases aprovadas para a arquitetura
-1. Conta AWS real preexistente e autenticada para Capabilities, sem criar conta.
-2. UAT e PROD em contas reais preexistentes e separadas.
-3. Automação de criação de contas com AWSEnvironment como evolução futura.
+**Foundation** é central (conta, landing zone, rede, IAM e Terraform Bootstrap). **Entity Core** é compartilhado, federado pode solicitar mas lifecycle de EKS é governado. **Domain Infrastructure** é federada e usa Crossplane para Capabilities AWS. **Applications** é operada localmente.
 
-O escopo real de cada execução AWS deve ser aprovado antes de qualquer apply. Crossplane é escolhido desde já para Domain/Capabilities; não manter referência a Crossplane como motor opcional do Workflow Plane. Ler [ADR-0009](docs/adr/0009-crossplane-e-reconciliacao.md) e [ADR-0010](docs/adr/0010-aws-real-e-ambientes.md).
+Os YAMLs `domain.yaml` e `environment.yaml` **não são CRs**; validar e resolver destino autorizado antes de provisionar Capability. Nunca permitir que consumidor selecione role/ProviderConfig de outra conta livremente. Um recurso externo tem um único owner: Terraform para Foundation/EKS, Crossplane para Capabilities delegadas. Não criar `CapabilityClaim` genérico.
 
-## Padrão de clusters EKS
-Usar **Amazon EKS Auto Mode** como padrão para clusters reais nos diretórios `data-plane/{uat,prod}/{management-eks,eks-pci,eks-non-pci}`. Não instalar Karpenter autogerenciado, AWS Load Balancer Controller ou drivers de storage equivalentes indiscriminadamente quando essas funções forem gerenciadas pelo Auto Mode. Validar compatibilidade de operators, DaemonSets, Pod Identity/IAM, políticas, requisitos PCI, custos e controles de nó antes de executar. O Hub local em `kind` não é EKS Auto Mode. Ver [ADR-0011](docs/adr/0011-eks-auto-mode.md).
+## Monorepo e labs
 
-## Fundamentos antes dos labs
+Um único monorepo simula limites. Criar pastas Domain/Foundation somente com conteúdo real dos labs. Manter navegação e links válidos; preservar as 24 aulas em [fundamentos](docs/fundamentos/README.md). O aprendizado exige laboratório observável: pré-requisitos, comandos, falha controlada, diagnóstico, recuperação e cleanup. Preferir Markdown/Mermaid nativo legível. CODEOWNERS sem rulesets não é barreira de acesso.
 
-A pasta [docs/fundamentos/](docs/fundamentos/README.md) contém a **base conceitual em pt-BR** (24 artigos), com explicações autorais inspiradas pelos temas dos capítulos 1–3 de *Platform Engineering in Practice*, Zebb Wright. Não traduzir/reproduzir texto ou diagramas protegidos do livro. Não misturar artigos conceituais com labs de implementação. Cada artigo deve explicar o conceito com profundidade e texto contínuo, trazer exemplos da POC e referências confiáveis, sem seções artificiais de objetivos, exercícios ou fixação. Manter navegação anterior/próxima. Novos labs devem linkar os fundamentos pré-requisito.
+## Segurança
 
-
-## Documentação e navegabilidade
-
-Manter o README principal como página de entrada, as 24 páginas em `docs/fundamentos/` como referência conceitual e os labs separados em `labs/`. Revisar todos os links relativos antes de enviar PRs. Diagramas do GitHub devem representar os **três EKS por ambiente** (Environment Management EKS, EKS PCI e EKS Non-PCI), além de AWS Runtime. Preferir títulos curtos, hierarquia de headings, ícones discretos e Markdown/Mermaid nativos; evitar badges ou estados não verificados. Não confundir integração lógica e rede AWS.
-
-
-## Ownership federado e monorepo — ADR-0012
-
-- Organizar a POC nas quatro camadas lógicas **Foundation (central), Entity Core Infrastructure (federada com governança central), Domain Infrastructure (federada), Applications (local)**. Não confundir com os planos físicos/lógicos da plataforma.
-- **Um único monorepo**; repositórios por entidade/Domain são somente analogias. Pastas `foundation/` e `data-plane/entity-a/{uat,prod}/...` são **propostas para futuros labs**, não criar diretórios vazios ou migrar `data-plane/uat` e `data-plane/prod` nesta revisão.
-- **Argo CD central** sincroniza CRs de infraestrutura no Hub. **Crossplane único central** reconcilia Capabilities AWS, sem cascata. **Argo CD local** gerencia aplicações e configuração Kubernetes em EKS autorizados; não supor acesso PCI automático.
-- **Foundation e EKS por Terraform** via workflow/gates autorizados. `AWSEnvironment` atua como contrato central de lifecycle futuramente; pastas Git, CODEOWNERS e namespaces não bastam para isolamento.
-- **MSK fora do escopo inicial**. Não acrescentar um recurso compartilhado hipotético como requisito funcional.
-- Fonte oficial: [arquitetura consolidada](docs/architecture.md) e [ADR-0012](docs/adr/0012-federated-ownership-and-gitops.md).
+Cada alteração AWS exige `sts get-caller-identity`, conta/região conferidas, credenciais temporárias, IAM mínimo, custo e autorização por operação. Terraform state fora do Git e segregado. Nunca commitar segredos, dados corporativos, certificados, kubeconfigs ou identificadores AWS reais. Destruição de conta nunca é efeito de remover YAML; aprovar docs não autoriza `apply`/`destroy`. Validar isolamento entre Domain, UAT/PROD e PCI. Trabalhar via branch e PR, **sem merge automático**.

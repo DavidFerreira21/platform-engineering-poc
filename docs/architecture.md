@@ -1,267 +1,262 @@
 # 🏗️ Arquitetura da Platform Engineering POC
 
-[← Página inicial](../README.md) · [Decisões arquiteturais](adr/README.md) · [Estrutura do monorepo](repository-structure.md) · [Roteiro prático](learning-roadmap.md)
+[← Início](../README.md) · [Decisões atuais](adr/README.md) · [Monorepo](repository-structure.md) · [Roadmap](learning-roadmap.md)
 
 > [!NOTE]
-> **Estado: arquitetura-alvo aprovada para estudo, ainda não implementada.** Este documento é a referência consolidada da POC. Diretórios e fluxos abaixo são propostas de implementação, não comprovação de recursos implantados. Nenhuma alteração AWS está autorizada por esta documentação.
+> **Arquitetura-alvo, não implementada.** Um monorepo de laboratório simula ownership e autonomia federada. Nenhuma operação AWS está autorizada por este documento. Nomes de entidades e Domains são fictícios.
 
-## 1. Visão e princípios
+## 1. Modelo arquitetural
 
-Construir uma **Internal Developer Platform Kubernetes-native**, com contratos declarativos, governança central e autonomia federada para infraestruturas de Domain e aplicações. O laboratório utiliza **um único monorepo**: suas pastas representam as fronteiras que, numa plataforma real, poderiam ser mantidas por equipes ou repositórios distintos.
+A POC demonstra uma plataforma **Kubernetes-native** de governança central e consumo federado. Existem duas dimensões distintas:
 
-Os princípios são:
+- **Planos:** Experience Layer, Control Plane, Workflow Plane, Observability Plane e Data Plane. Os três planos técnicos centrais coexistem no **Platform Management Cluster**, inicialmente `kind`.
+- **Quatro camadas de ownership:** **Foundation → Entity Core Infrastructure → Domain Infrastructure → Applications**. Elas classificam responsabilidade de mudança e lifecycle, **não** representam planos ou clusters adicionais.
 
-1. **Uma API de plataforma:** o Kubernetes API Server central expõe contratos tipados e estados operacionais; Crossplane e controllers são reconciliadores, não APIs paralelas.
-2. **Git como fonte do estado desejado:** alterações persistentes preferencialmente por PR; GitOps sincroniza manifests, enquanto `status`, eventos, logs e Terraform state não são versionados.
-3. **Governança central, consumo federado:** Foundation e contratos/políticas globais são da equipe central; equipes federadas alteram somente os escopos de Core/Domain autorizados; aplicações têm entrega local.
-4. **Ownership explícito:** um recurso externo tem um único reconciliador responsável. Terraform mantém Foundation e EKS; Crossplane mantém as Capabilities AWS atribuídas a ele.
-5. **Execução progressiva e segura:** Hub em `kind`, primeira Capability em conta AWS existente, depois UAT/PROD em contas distintas, EKS Auto Mode incremental e criação automatizada de contas somente no futuro.
-6. **A configuração do repositório não substitui autorização:** pastas, namespaces e CODEOWNERS não equivalem isoladamente a controles de acesso AWS/Kubernetes.
+A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) é o contexto de uma conta AWS. O **Domain** é a unidade lógica de negócio, consumo, ownership e governança: possui Capabilities e aplicações em um ou mais Environments. **Capability** é o produto técnico provisionável, como `ObjectStorage`.
 
-## 2. Planos da plataforma e topologia
+**Environment não é sinônimo de Core Infrastructure**: o ambiente é a conta toda, incluindo Core e os recursos dos Domains.
 
-Os planos são **responsabilidades lógicas**, não uma regra de um cluster por plano. O **Platform Management Cluster** (Hub, inicialmente `kind`) hospeda Control, Workflow e Observability. Cada ambiente AWS possui seu **Environment Management EKS**, **EKS PCI** e **EKS Non-PCI**, com **Amazon EKS Auto Mode** como padrão sujeito a validação.
+## 2. Visão geral
 
 ```mermaid
 flowchart TB
-    EXP["EXPERIENCE LAYER<br/>Backstage · CLI · GitOps · AI/MCP"]
-
-    subgraph HUB["PLATFORM MANAGEMENT CLUSTER · kind inicial"]
-      direction TB
-      API["Kubernetes API Server<br/>CRDs · RBAC · políticas"]
-      CTRL["CONTROL PLANE<br/>Environment Controller · Crossplane<br/>XRDs · Compositions · Providers"]
-      WF["WORKFLOW PLANE<br/>Argo CD central · Argo Workflows<br/>Terraform Executor · gates"]
-      OBS["OBSERVABILITY PLANE<br/>OpenTelemetry · métricas · logs<br/>traces · eventos · auditoria"]
-      API --> CTRL
-      CTRL --> WF
+  E["Experience Layer<br/>Backstage · CLI · GitOps · AI/MCP"]
+  subgraph HUB["Platform Management Cluster · kind inicial"]
+    direction TB
+    CP["Control Plane<br/>Kubernetes API · Crossplane central · políticas"]
+    WF["Workflow Plane<br/>Argo CD central · Argo Workflows · Terraform"]
+    OB["Observability Plane<br/>métricas · logs · traces · auditoria"]
+    CP --> WF
+  end
+  subgraph DP["Data Plane · Entity A"]
+    direction TB
+    subgraph U["UAT · conta AWS"]
+      UM["Management EKS<br/>Argo CD local"]
+      UP["EKS PCI"]
+      UN["EKS Non-PCI"]
+      UR["AWS Runtime<br/>Core + Domains"]
+      UM --> UP
+      UM --> UN
     end
-
-    subgraph UAT["DATA PLANE · UAT · Conta AWS"]
-      direction TB
-      UMG["Environment Management EKS<br/>Argo CD local"]
-      UPC["EKS PCI"]
-      UNC["EKS Non-PCI"]
-      UR["AWS Runtime<br/>recursos de Core e Domain"]
-      UMG --> UPC
-      UMG --> UNC
+    subgraph P["PROD · conta AWS"]
+      PM["Management EKS<br/>Argo CD local"]
+      PP["EKS PCI"]
+      PN["EKS Non-PCI"]
+      PR["AWS Runtime<br/>Core + Domains"]
+      PM --> PP
+      PM --> PN
     end
-
-    subgraph PROD["DATA PLANE · PROD · Conta AWS"]
-      direction TB
-      PMG["Environment Management EKS<br/>Argo CD local"]
-      PPC["EKS PCI"]
-      PNC["EKS Non-PCI"]
-      PR["AWS Runtime<br/>recursos de Core e Domain"]
-      PMG --> PPC
-      PMG --> PNC
-    end
-
-    EXP --> API
-    WF -. "bootstrap / GitOps" .-> UMG
-    WF -. "bootstrap / GitOps" .-> PMG
-    CTRL -. "AWS APIs" .-> UR
-    CTRL -. "AWS APIs" .-> PR
-    OBS -. "telemetria" .-> UMG
-    OBS -. "telemetria" .-> PMG
+  end
+  E --> CP
+  CP -. "Capabilities" .-> UR
+  CP -. "Capabilities" .-> PR
+  WF -. "Foundation e EKS" .-> UM
+  WF -. "Foundation e EKS" .-> PM
 ```
 
-**Como ler:** setas tracejadas representam dependências e interações lógicas, não rotas VPC nem permissões já concedidas. Os vínculos do Management EKS aos clusters PCI/Non-PCI indicam gestão pretendida, **condicionada a aprovação de isolamento administrativo PCI**. Não pressupõem que um Argo CD tenha acesso irrestrito a ambos. O modelo é reproduzível para novas entidades, mas a POC começa com **uma entidade lógica fictícia**, dois ambientes-alvo (UAT/PROD) e uma conta real preexistente nos primeiros labs; o diagrama não implica contas/clusters já criados.
+Linhas tracejadas representam integração lógica, **não redes AWS nem permissões concedidas**. A arquitetura permite várias entidades. Cada entidade-alvo contém UAT e PROD em **contas AWS distintas**, cada uma com **Management EKS, EKS PCI, EKS Non-PCI** e serviços AWS. Na representação de **uma entidade** são sete clusters no total (Hub + 2×3), não um limite global. EKS Auto Mode é a preferência para EKS reais, **sob validação de custos, operadores e PCI**; criar um cluster de cada vez. O Argo CD local pode exigir segregação de instâncias/credenciais para PCI.
 
-### Responsabilidades de cada plano
+| Plano | Responsabilidade |
+| :--- | :--- |
+| **Experience Layer** | Consumidores independentes: Backstage, CLI, PR GitOps, AI/MCP; Backstage não é gateway obrigatório |
+| **Control Plane** | Kubernetes API Server central, XRDs/Compositions/Providers de Capabilities, Crossplane e políticas |
+| **Workflow Plane** | Argo CD central, Argo Workflows, Terraform Executor, aprovações |
+| **Observability Plane** | Métricas, logs, traces, status, eventos e auditoria |
+| **Data Plane** | Contas AWS das Entities, Core compartilhado, Domains, workloads e Argo CD local |
 
-| Plano | Componentes e objetos | Responsabilidade |
+## 3. Quatro conceitos e seus contratos
+
+| Conceito | Definição | Implementação **inicial** |
 | :--- | :--- | :--- |
-| **Experience Layer** | Backstage, CLI, PR GitOps, agentes AI/MCP | Descoberta e solicitação; não exige Backstage como único ponto de entrada |
-| **Control Plane** | Kubernetes API, `AWSEnvironment`, `Domain`, XRDs de Capabilities, Environment Controller, Crossplane Core, Compositions/Providers, RBAC/políticas | Contratos, validação, reconciliação e `status.conditions` |
-| **Workflow Plane** | Argo CD central, Argo Workflows, Terraform Executor, gates | Sincronização de contratos e execução/auditoria de processos de longa duração |
-| **Observability Plane** | OTel, logs, métricas, traces, eventos e auditoria | Correlação de solicitações, reconciliação e falhas; backends ainda a definir |
-| **Data Plane** | Contas AWS UAT/PROD, três EKS por conta, AWS Runtime | Execução de workloads e materialização de recursos externos |
+| **Entity** | Identidade organizacional que contém Environments e Domains | Organização declarativa no Git |
+| **Environment** | Ambiente UAT/PROD da Entity associado a conta AWS, região e perfis | Registro `environment.yaml` versionado/validado, **não CRD** |
+| **Domain** | Unidade lógica de negócio que possui aplicações, namespaces, Capabilities, owners, padrões e políticas | Registro **único** `domain.yaml` por Domain, **não XRD** |
+| **Capability** | Produto técnico consumível, com tipo, schema, lifecycle e status próprios | **Crossplane XRD + Composition + Provider** por produto |
 
-**Hub-and-Spoke** descreve a topologia de gerenciamento, não substitui os planos nem define automaticamente uma topologia de rede AWS.
+A mesma identidade de Domain pode ter recursos diferentes em UAT e PROD. Um bucket, banco ou aplicação pertence ao par **Domain + Environment**. O namespace é a materialização do Domain em um cluster, não sua definição. O Core pertence ao Environment, nunca ao lifecycle de um Domain específico. **MSK está fora do escopo inicial**.
 
-## 3. Quatro camadas de ownership da infraestrutura
+Exemplo **ilustrativo** de Environment, sob gestão da Foundation central:
 
-Essas quatro camadas descrevem **escopo de gestão e organização Git**, não são novos Kubernetes clusters nem substituem os planos acima. `Entity Core Infrastructure` inclui recursos comuns à entidade mesmo quando nenhum Domain individual é seu proprietário.
+```yaml
+# foundation/config/entity-a/uat/environment.yaml
+entity: entity-a
+environment: uat
+aws:
+  accountId: "111122223333" # fictício
+  region: us-east-1
+foundation:
+  profile: standard
+core:
+  profile: eks-standard
+```
 
-| Camada | Owner | Escopo | Provisionamento / reconciliação |
+Exemplo **ilustrativo** de Domain (identidade única):
+
+```yaml
+# data-plane/entity-a/domains/payments/domain.yaml
+domain: payments
+entity: entity-a
+owners: [team-payments]
+environments: [uat, prod]
+policies:
+  profile: standard
+```
+
+Esses YAMLs **não são manifests Kubernetes** e não devem ser sincronizados diretamente pelo Argo CD central. Inicialmente são lidos por validações e ferramentas de workflow. A vinculação confiável **Entity + Environment + Domain → conta/IAM/namespace** precisa ser construída e testada: consumidores não podem escolher credenciais AWS arbitrárias.
+
+**`ObjectStorage` é a primeira Capability**; `Database`, `Messaging` e `ComputeInstance` ficam no roadmap. **Não criar `CapabilityClaim` genérico.** Na **criação do Domain**, o **Domain Bootstrap** aplica o padrão inicial definido pelo perfil versionado e gera as Capabilities e configurações previstas para os Environments selecionados, usando os contratos existentes; Capabilities adicionais e Deployments de aplicações continuam solicitações independentes. Ver [Domain Bootstrap](#6-domain-bootstrap-criação-padronizada-do-domain).
+
+## 4. Quatro camadas de ownership
+
+| Camada | Quem solicita | Quem controla execução e lifecycle | Recursos / motor |
 | :--- | :--- | :--- | :--- |
-| **1. Foundation** | **Plataforma central** | Conta AWS, landing zone, conectividade, VPC, IAM e segurança base | Terraform orquestrado no Workflow Plane; lifecycle via `AWSEnvironment` posteriormente |
-| **2. Entity Core Infrastructure** | **DevOps federado dentro dos contratos permitidos**, com políticas/aprovação central | Três EKS por ambiente e capacidades compartilhadas da entidade | Terraform para EKS; Crossplane central para Capabilities AWS compartilhadas que venham a ser necessárias |
-| **3. Domain Infrastructure** | **DevOps federado / responsável pelo Domain** | Recursos de infraestrutura exclusivos de um Domain | Crossplane **central** via XRDs, Compositions e AWS Providers |
-| **4. Applications** | **Time de aplicação / operação local** | Código, Deployment, Service, ConfigMap, configuração e release de workloads | Argo CD **local** do Environment Management EKS, sujeito às restrições PCI |
+| **Foundation** | Plataforma central; federado pode propor PR | Plataforma central | Conta, landing zone, rede, IAM; **Terraform** e configurações por Entity/Environment |
+| **Entity Core Infrastructure** | DevOps federado nos limites autorizados | Plataforma governa componentes críticos | Três EKS e recursos comuns por Environment; **Terraform para EKS** |
+| **Domain Infrastructure** | DevOps federado / Domain | Crossplane central sob políticas | Capabilities de Domain/Environment via **XRDs** |
+| **Applications** | Time de aplicação | Argo CD local com destinos restritos | Namespace, policies e workloads Kubernetes |
 
-**MSK não faz parte do escopo inicial.** Qualquer recurso compartilhado futuro deve ter owner, consumidores e política de exclusão próprios; não deve pertencer artificialmente ao primeiro Domain que o consome.
+Um recurso externo tem **um único owner de reconciliação**. Terraform administra Foundation/EKS; Crossplane as Capabilities que lhe forem atribuídas. Core futuro pode conter Capability compartilhada, desde que tenha owner explícito e não seja excluída pela remoção de um Domain consumidor.
 
-**Separação de responsabilidades:** a equipe central controla módulos, plataformas e políticas, inclusive Foundation. A equipe federada pode propor alterações via Git e administrar o estado desejado que seu contrato autoriza. Alterar YAML de um EKS **não concede** autorização automática para reprovisionar ou destruir clusters. Recursos estruturais exigem gate de acordo com risco, custo e fronteira de segurança.
-
-## 4. Monorepo: representação das fronteiras
-
-**Decisão para a POC:** um GitHub monorepo. Não criar repositórios reais `entity-foundation`, `entity-core-infra` ou `domain-*-infra` nesta fase. Diretórios representam essas fronteiras, enquanto `CODEOWNERS`, validações e aplicações GitOps por caminho demonstram controles de governança. O desenho a seguir é **proposto**, não a árvore atualmente criada:
+## 5. Organização do monorepo
 
 ```text
 platform-engineering-poc/
-├── platform/hub/                  # bootstrap do Hub local
-├── control-plane/                 # contratos, Crossplane e controllers
-├── workflow-plane/                # Argo CD central, Argo Workflows, Terraform
+├── platform/hub/                        # bootstrap kind
+├── control-plane/                       # Crossplane, Capabilities e políticas
+├── workflow-plane/                      # GitOps central, Workflows, Terraform
 ├── observability-plane/
-├── foundation/                    # ownership central
-│   ├── modules/                   # fundação Terraform reutilizável
-│   └── config/                    # variações por entidade e ambiente
-│       └── entity-a/
-│           ├── uat/
-│           └── prod/
+├── foundation/                          # central, a criar no lab
+│   ├── modules/
+│   └── config/entity-a/
+│       ├── uat/environment.yaml
+│       └── prod/environment.yaml
 ├── data-plane/
-│   └── entity-a/                  # segmentação lógica da entidade
-│       ├── uat/
-│       │   ├── core-infra/        # 3 EKS e recursos comuns
-│       │   ├── domains/
-│       │   │   └── domain-a/
-│       │   │       └── infra/     # CRs de Domain/Capabilities
-│       │   └── applications/      # manifests/apps locais
-│       └── prod/
-│           ├── core-infra/
-│           ├── domains/
-│           └── applications/
-├── docs/                          # conceitos, arquitetura, ADRs
-├── labs/                          # exercícios por fase
+│   └── entity-a/
+│       ├── core-infrastructure/         # compartilhado por ambiente
+│       │   ├── uat/
+│       │   │   ├── management-eks/
+│       │   │   ├── eks-pci/
+│       │   │   └── eks-non-pci/
+│       │   └── prod/
+│       │       ├── management-eks/
+│       │       ├── eks-pci/
+│       │       └── eks-non-pci/
+│       └── domains/
+│           ├── payments/
+│           │   ├── domain.yaml          # identidade única
+│           │   ├── uat/
+│           │   │   ├── infrastructure/  # XRs de Capability
+│           │   │   └── applications/    # Argo CD local
+│           │   └── prod/
+│           │       ├── infrastructure/
+│           │       └── applications/
+│           └── orders/
+├── docs/
+├── labs/
 └── tests/
 ```
 
-**Compatibilidade com o repositório atual:** os diretórios existentes `data-plane/uat/` e `data-plane/prod/` com `management-eks/`, `eks-pci/`, `eks-non-pci/` e `aws-runtime/` continuam como marcadores iniciais. A migração para `data-plane/entity-a/{uat,prod}/` só acontecerá quando surgirem os primeiros manifests; **não renomear ou duplicar diretórios nesta revisão documental**. O exemplo `entity-a` é uma entidade fictícia do laboratório, sem associação corporativa ou geográfica.
+**Esta é a árvore-alvo, não a estrutura inteiramente criada.** Diretórios de Domain/Foundation serão adicionados somente com conteúdo real dos labs. Os README de infraestrutura preexistentes podem permanecer como documentação temporária até a implementação; não são fontes de configuração runtime. A [estrutura](repository-structure.md) especifica essa transição.
 
-A pasta **`foundation/modules/`** representa código reutilizável; **`foundation/config/`** representa valores de entrada por entidade/ambiente. O Terraform **state fica fora do Git**, isolado por conta/ambiente/componente. É possível evoluir a configuração para manifests `AWSEnvironment`, mas o contrato exato e a migração dos YAMLs serão definidos no lab correspondente.
+O monorepo demonstra autonomia via PR, revisão de paths e eventualmente CODEOWNERS. **CODEOWNERS sem regras de proteção não basta;** também são necessários RBAC Kubernetes, admission, IAM por conta e AppProjects Argo CD. Terraform state fica fora do Git.
 
-### Política de contribuição
 
-- **Foundation:** alterações sob aprovação da equipe central; um DevOps federado pode propor PR, mas não alterar o ownership.
-- **Core:** DevOps federado propõe alterações em caminhos da entidade; mudanças sensíveis passam por políticas, revisão e gates centrais.
-- **Domain:** o federado mantém as declarações do Domain, respeitando schema, conta/ambiente, quota e permissões.
-- **Applications:** configuração de deploy das aplicações gerenciada pelo time local via Argo CD local.
-- Em monorepo, **`CODEOWNERS` só impõe revisão se combinado com as proteções de branch/rulesets apropriadas**; não substitui IAM/RBAC ou política de admissão.
+## 6. Domain Bootstrap: criação padronizada do Domain
 
-## 5. Contratos da Kubernetes API e suas responsabilidades
+O **Domain é uma identidade lógica única na Entity**. **Quando ele é criado**, a plataforma usa o **Domain Bootstrap** como fluxo padrão de inicialização: escolhe e valida um perfil versionado, gera sua estrutura e as declarações dos recursos previstos nesse perfil. O processo é iniciado **pela criação do Domain**, não como uma obrigação de executar um Bootstrap independente para cada Environment. O Domain pode solicitar Capabilities adicionais depois. **Cadastrar um Domain não equivale a concluir seu Bootstrap**.
 
-O contrato público usa **o mesmo Kubernetes API Server do Hub**, mesmo quando reconciliadores diferentes implementam recursos distintos.
+### O que o perfil `standard` cria (exemplo da POC)
 
-| Recurso / família | Mecanismo | Owner do reconciliador | Resultado esperado |
-| :--- | :--- | :--- | :--- |
-| `AWSEnvironment` | CRD nativo | Environment Controller próprio (Go/controller-runtime planejado) | Adotar/criar ambiente, coordenar Foundation e EKS, publicar `status.conditions` |
-| `Domain` | XRD Crossplane + Composition | Crossplane central | Registrar o escopo lógico e produzir configurações permitidas do Domain |
-| `ObjectStorage`, `Database`, `ComputeInstance`, `Messaging` | XRDs tipados, Compositions, Providers | Crossplane central | Recursos AWS sob ownership do Domain ou da entidade |
-| Workloads Kubernetes | Manifests Kubernetes | Argo CD local | Aplicações e configuração do cluster de destino |
+| Recurso inicial definido pelo perfil | Motor de entrega | Destino / ownership |
+| :--- | :--- | :--- |
+| `Database` | Manifest de Capability → Argo CD **central** → Crossplane → AWS | Domain, no Environment |
+| `ObjectStorage` | Manifest de Capability → Argo CD **central** → Crossplane → AWS | Domain, no Environment |
+| Namespace(s) nos destinos Kubernetes permitidos | Manifest Kubernetes → Argo CD **local** | Domain, por cluster/destino |
+| Quotas, políticas de rede/segurança, permissões e labels/tags aplicáveis | GitOps local para Kubernetes; políticas de Capability para AWS | Governança da plataforma, instanciada para Domain |
 
-`Capability` é uma **família lógica**, não um `CapabilityClaim` genérico. Referências como `environmentRef` e `domainRef` são **contratos planejados**, não integridade relacional garantida nativamente: validar identidade, namespace, destino, status da conta, permissões e ciclo de vida antes de admitir mudanças.
+**Nota de fases:** o perfil `standard` de referência cria banco, bucket, namespace e políticas como padrão de nascimento do Domain. `ObjectStorage` continua sendo o primeiro **produto técnico implementado** no lab; `Database` será incorporado depois, conforme autorização/custo e integração. Um perfil de laboratório reduzido pode demonstrar o mecanismo antes disso. **Não declarar um Domain com perfil `standard` como `Ready` enquanto os recursos previstos por esse perfil não estiverem provisionados e verificados**.
 
-**Decisão para `Domain`:** preservar contrato central; **preferir Argo CD local como aplicador de namespace, quota e políticas Kubernetes nos EKS remotos**, evitando dois controladores como owners do mesmo objeto. Ainda é necessário validar o mecanismo de entrega do estado desejado do Hub/Git para o Argo local e a devolução de status. A Composition no Hub **não cria automaticamente namespaces em clusters remotos**.
+### Processo de criação
 
-## 6. GitOps e reconciliação: fluxos separados
+```mermaid
+flowchart TB
+    R["Criar Domain<br/>identidade + perfil + destinos selecionados"] --> V["Validação de identidade, escopo,<br/>permissões e perfil"]
+    V --> B["Domain Bootstrap<br/>renderização declarativa idempotente"]
+    B --> I["Manifests de Capabilities<br/>por Domain + Environment"]
+    B --> K["Manifests Kubernetes<br/>por Domain + Environment"]
+    I --> C["Argo CD central → Kubernetes API → Crossplane → AWS"]
+    K --> L["Argo CD local → EKS autorizado"]
+    C --> S["Verificação das dependências obrigatórias"]
+    L --> S
+    S --> READY["Domain Environment Ready"]
+```
 
-### 6.1 Domain Infrastructure — mudança feita pelo federado
+**Local da definição:** `data-plane/<entity>/domains/<domain>/domain.yaml` (identidade, perfil e versão desejados, Environments selecionados). O **perfil versionado**, com template e requisitos, pertence ao **Control Plane** (catálogo/padrões da plataforma), enquanto o **mecanismo de execução do Bootstrap** pertence ao **Workflow Plane**. Os manifests gerados ficam sob `domains/<domain>/<env>/{infrastructure,applications}/`, revisados e versionados no **mesmo monorepo**. **A aplicação é feita somente pelo GitOps**; o Bootstrap **não cria recursos diretamente** na AWS ou nos EKS, evitando dois escritores.
+
+**Disparo proposto para a POC:** solicitação de **criação de Domain** com perfil e ambientes de destino → geração idempotente da estrutura e dos manifests iniciais → validação/revisão/merge → reconciliadores existentes. **Um único processo de Bootstrap do Domain** pode preparar recursos para UAT, PROD ou ambos, de acordo com a solicitação e suas autorizações. A posterior inclusão de um novo Environment é uma **evolução do Domain** e pode reutilizar o mesmo mecanismo de geração, sem representar um novo nascimento. Não supor que gravar o YAML dispara um controller: gatilho de CI/workflow e gerador são **componentes ainda a implementar**. O Bootstrap não executa `apply` AWS só por aprovação documental.
+
+**Prontidão e falhas:** após sincronização, uma verificação independente consolida evidências de execução **para o Domain e seus destinos (Domain + Environment)** (XRs `Ready`, Argo CD Sync/Health, namespace/políticas). Estado como `Pending`, `Provisioning`, `Ready` ou `Failed` é **derivado de evidências**, não `status` magicamente escrito no `domain.yaml`. Falhas permitem reexecução idempotente sem duplicar buckets, bancos ou namespaces; se faltar um recurso do padrão num destino, o Bootstrap daquele destino não está concluído. A checagem por Environment é apenas uma dimensão operacional do mesmo Domain.
+
+**Evolução:** perfis possuem versão imutável/referenciada; novo perfil **não altera automaticamente** Domains existentes. Migração exige PR/avaliação de mudanças, especialmente recursos stateful e PROD. A remoção de um Domain não dispara automaticamente `destroy`: exige descomissionamento explícito, políticas de retenção, dependências e gates. Recursos de **Entity Core Infrastructure** nunca são excluídos com o Domain.
+
+## 7. Três fluxos sem sobreposição
+
+### Foundation / Entity Core: Terraform orquestrado
+
+```text
+foundation/config/ ou core-infrastructure/ (Git)
+  → validação + PR/aprovação
+  → Argo Workflows (quando implantado)
+  → Terraform plan → gate → apply → verificação
+  → AWS Foundation / EKS
+```
+
+O Bootstrap Terraform central é reutilizado por configuração de Entity/Environment, com **state segregado**. Inicialmente pode rodar em um lab manual e auditável. **Argo CD não executa Terraform**. Criar conta AWS automaticamente é possibilidade futura, **não exige `AWSEnvironment` CRD/controller próprio agora**.
+
+### Domain Infrastructure: Argo CD central + Crossplane
 
 ```mermaid
 flowchart LR
-    D["DevOps federado"] --> PR["PR em data-plane/.../domains/.../infra"]
-    PR --> CHECK["Revisão · schema · políticas · merge"]
-    CHECK --> ACD["Argo CD central"]
-    ACD --> API["Kubernetes API do Hub"]
-    API --> XP["Crossplane central"]
-    XP --> AWS["AWS da conta permitida"]
-    XP -. "status / conditions" .-> API
+  D["DevOps federado"] --> G["PR: Domain/Environment/infrastructure"]
+  G --> V["Validações e merge"]
+  V --> CD["Argo CD central"]
+  CD --> API["Kubernetes API do Hub"]
+  API --> XP["Crossplane central"]
+  XP --> AWS["AWS validada"]
+  XP -. "status / conditions" .-> API
 ```
 
-A sincronização do Git **é realizada pelo Argo CD**, não pelo Crossplane. O Crossplane observa o CR na Kubernetes API e reconcilia o recurso AWS. O DevOps federado pode fazer alterações autorizadas no Git de seu Domain, sem operar o Crossplane. O status operacional deve ser consultado na API/observabilidade, não gravado como `status` no Git.
+Argo CD central **sincroniza somente manifests Kubernetes de Capability**. Os registros de Domain/Environment informam ownership/destino após validação; **Crossplane não observa Git diretamente**. Em cada Capability validar schema, escopo, credenciais e política de deletion.
 
-### 6.2 Applications — reconciliação local
+### Applications: GitOps local
 
 ```text
-data-plane/.../applications/ (Git, após PR/merge)
-    → Argo CD no Environment Management EKS
-    → EKS PCI ou EKS Non-PCI permitido
-    → Deployments / Services / ConfigMaps / aplicações
+data-plane/entity-a/domains/<domain>/<env>/applications/
+  → Argo CD no Management EKS daquele Environment
+  → EKS PCI ou Non-PCI permitido
+  → Namespaces / quotas / policies / Deployments / Services
 ```
 
-O Argo CD local opera declarativamente sobre recursos Kubernetes **dos clusters autorizados**. A instalação local não implica acesso cruzado irrestrito a PCI; se necessário, teremos instâncias/credenciais segregadas por fronteira de segurança. O Crossplane central **não** gerencia Deployments das aplicações.
+O Domain continua lógico, enquanto **Argo CD local aplica objetos Kubernetes**. Uma Composition Crossplane central não deve possuir esses mesmos namespaces. O controle PCI requer avaliação das permissões de acesso e eventual segregação do GitOps local.
 
-### 6.3 Foundation e Entity Core — workflows controlados
+## 8. Segurança, exclusão, drift e falhas
 
-```text
-foundation/config/ ou data-plane/.../core-infra/ (Git)
-    → revisão e validações centrais/federadas
-    → workflow autorizado (Argo Workflows)
-    → Terraform Executor: plan → aprovação → apply → verificação
-    → conta AWS / EKS → status e evidências
-```
+- **AWS real:** primeiro conta preexistente; STS comprova conta/região, credenciais temporárias, IAM mínimo, orçamento/custos e aprovação explícita **a cada execução**. Segunda etapa: UAT/PROD em contas distintas; terceira etapa opcional: automação de criação de contas.
+- **Isolamento:** validar negativa para tentativas de Domain A acessar Domain B ou UAT selecionar role/conta PROD. Paths Git e namespaces não equivalem a isolamento de contas AWS.
+- **Exclusão:** conta AWS **nunca** é apagada por excluir YAML; EKS só com gate e análise de dependências. Capabilities devem ter políticas de retenção/deletion testadas. Finalizer **não é aprovação humana**.
+- **Drift:** Crossplane reconcilia Capabilities continuamente enquanto o Hub estiver disponível; Terraform não reconcilia sem execução; Argo CD local continua operando aplicações se seu acesso ao Git e clusters permanecer válido.
+- **Observabilidade:** correlacionar revisão Git, aplicação Argo CD, execução Terraform, XR, condições `Ready` e eventos AWS.
 
-**Argo CD não é executor Terraform.** O `AWSEnvironment` passa a ser a interface de ciclo de vida quando seu controller for implementado, coordenando a execução dos mesmos módulos. Inicialmente os labs podem invocar Terraform de maneira controlada antes da existência desse controller. Mudanças de Foundation e EKS exigem aprovações explícitas por operação e isolamento de state.
+## 9. Nascimento de uma entidade versus ordem pedagógica
 
-### 6.4 Recursos compartilhados da entidade
+**Fluxo operacional real:** Foundation cria/adota contas e rede → Core prepara EKS e Argo CD local nos destinos necessários → **solicitação de criação do Domain dispara seu Bootstrap padrão** (gera estrutura, Capabilities AWS e namespace/policies nos Environments selecionados) → reconciliadores provisionam e a plataforma verifica o resultado → aplicações são implantadas pelo Argo CD local.
 
-Uma Capability compartilhada reside em `core-infra/` e é reconciliada pelo **Crossplane central** quando sua classe for delegada a esse motor. Seus consumidores podem estar em múltiplos Domains, mas **um Domain não pode excluir o recurso compartilhado por remover suas próprias declarações**. A escolha do motor é por recurso, não apenas pela pasta Git.
+**POC pedagógica:** baseline → Hub `kind` → acesso AWS existente → Crossplane/`ObjectStorage` → registro de Domain/Environment + GitOps central → **Bootstrap mínimo demonstrativo e progressão até perfil completo** → Terraform/Argo Workflows → Core/EKS incremental → Argo CD local → UAT/PROD segregados → eventual criação de contas. **Não criar seis EKS simultaneamente**, nem implementar um controller de lifecycle apenas para manter uma ideia anterior.
 
-## 7. Modelo de segurança, identidade e isolamento
+## 10. Decisões vigentes e pontos abertos
 
-| Fronteira | Mecanismos | O que não garantem sozinhos |
-| :--- | :--- | :--- |
-| Git | CODEOWNERS, PRs, branch protection/rulesets, validação de paths | IAM AWS ou isolamento entre contas |
-| Kubernetes central | Namespaces, RBAC, políticas de admissão, validação de referências | Restringir automaticamente credenciais do Provider |
-| AWS | IAM Roles por conta/ambiente, STS, privilégio mínimo, perfis explícitos | Evitar selecionar a role errada sem validação de contrato |
-| Execução | State Terraform separado, gates, trilha de auditoria, controle de concorrência | Recuperação de falhas sem projeto de idempotência |
-| PCI | Credenciais, destinos e fronteiras administrativas avaliadas por cluster | Conformidade automática apenas por separar EKS |
+**Fechado:** Domain como unidade lógica de consumo/ownership **com processo padronizado de criação por perfil versionado**, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas, monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência.
 
-O Crossplane central utiliza **configurações de autenticação por escopo de conta/ambiente**, de acordo com o Provider AWS efetivamente selecionado; o contrato `Domain` não deve permitir que um consumidor escolha arbitrariamente uma credencial mais privilegiada. O teste de um segundo Domain e de uma conta distinta deve demonstrar tentativas de acesso indevido **negadas**.
+**A validar nos labs:** implementação e gatilho do gerador de Bootstrap, versionamento dos perfis, verificação agregada de prontidão, schema dos YAMLs, transformação segura de registros lógicos em escopo/credenciais, autenticação Crossplane a partir do `kind`, distribuição de namespaces/quotas ao GitOps local, gates, observabilidade, PCI e necessidade eventual de uma API/controller de ciclo de vida de contas.
 
-**Credenciais no Hub `kind`:** usar credenciais temporárias ou federação apropriada, sem presumir IRSA ou EKS Pod Identity. Confirmar via AWS STS identidade e região antes de executar um lab real.
-
-## 8. Exclusão, drift e recuperação
-
-- **Conta AWS / Foundation:** remoção de CR, pasta ou branch **nunca** destrói conta automaticamente; descomissionamento é processo separado sob owner central.
-- **EKS / Entity Core:** executar destroy somente com aprovação explícita, análise de dependências (incluindo Domains e apps), backup quando necessário e plano de recuperação.
-- **Capabilities do Domain:** definir previamente política de exclusão/retenção, `managementPolicies`/`deletionPolicy` compatíveis com o Provider e comportamento de limpeza. Testar primeiro com `ObjectStorage` descartável e vazio.
-- **Recursos compartilhados:** owner e dependentes explícitos; a exclusão de um único Domain não remove a infraestrutura de uso comum.
-- **Finalizers:** servem para coordenar limpeza antes da exclusão do objeto; **não constituem aprovação humana**.
-- **Drift:** Argo CD reconcilia manifests declarativos Kubernetes; Crossplane reconcilia os recursos AWS que administra; Terraform só atua quando seu ciclo de execução/plan é acionado, não oferece reconciliação contínua automática por si só.
-- **Falha do Hub:** workloads existentes podem continuar executando; novas mudanças ou correções Crossplane ficam pendentes, e o Argo CD local pode continuar operando enquanto permanecer autônomo e conectado ao Git e aos clusters autorizados.
-
-## 9. Sequência de nascimento de uma entidade e ordem dos labs
-
-### Sequência lógica de uma entidade completa
-
-1. **Foundation:** equipe central cria ou adota contas AWS, landing zone, rede e IAM base.
-2. **Entity Core:** workflow provisiona Management EKS, EKS PCI, EKS Non-PCI; adiciona recursos comuns que forem realmente necessários.
-3. **GitOps local:** implanta/configura Argo CD no Management EKS e autorizações dos clusters de workload.
-4. **Domain:** registra o contrato central, relações, owner, escopo Git e parâmetros autorizados.
-5. **Domain Infra:** DevOps federado altera CRs no monorepo, Argo CD central sincroniza e Crossplane provisiona recursos AWS.
-6. **Applications:** Argo CD local implanta workloads e configurações em PCI/Non-PCI autorizados.
-
-### Ordem pedagógica da POC (diferente do lifecycle completo)
-
-1. **Baseline e Hub `kind`** com testes e documentação.
-2. **Crossplane e primeira Capability `ObjectStorage` na AWS real** numa conta existente autorizada.
-3. **Argo CD central + dois Domains simulados**, demonstrando PR, reconciliação, RBAC e isolamento.
-4. **Terraform / Argo Workflows / `AWSEnvironment`** inicialmente usando conta existente e fundação controlada.
-5. **Entity Core + EKS Auto Mode** criado um cluster de cada vez, após validação de custo e requisitos.
-6. **Argo CD local e workloads**, depois ambientes UAT/PROD em contas reais distintas.
-7. **Automação de criação de contas** apenas na etapa avançada.
-
-A ordem pedagógica **não significa** que possamos criar um EKS sem Foundation, ou que a automação de contas deva existir antes da primeira Capability. É uma forma de construir e observar o sistema por fatias verticais.
-
-## 10. Decisões fechadas e pontos de validação
-
-**Definido nesta baseline:**
-
-- Um monorepo; pastas simulam equipes/repositórios federados.
-- **Foundation → Entity Core Infrastructure → Domain Infrastructure → Applications** como fronteiras de ownership.
-- Foundation central com módulos Terraform compartilhados e configuração por entidade/ambiente.
-- Crossplane **único e central** inicialmente, sem Crossplane em cascata.
-- **Argo CD central** para sincronizar CRs de infraestrutura; **Argo CD local** para aplicações e configuração Kubernetes.
-- EKS da Entity Core via **Terraform**; Capabilities de Domain e eventuais Capabilities compartilhadas via **Crossplane central**.
-- Contratos `AWSEnvironment` CRD/controller e `Domain`/Capabilities XRD/Compositions.
-- Sem MSK no escopo inicial. Hub local `kind`, AWS real autorizada, EKS Auto Mode como padrão.
-
-**A validar ao implementar:** schema/versionamento dos CRs, caminhos e formato YAML exatos, bootstrap GitOps, permissões por paths, associação automática de Domain/Environment e credenciais, mecanismo de propagação para Argo CD local, segregação PCI, `status.conditions`, backend de observabilidade, custo e política de exclusão de cada produto.
-
-**ADRs relacionados:** [0001 — API](adr/0001-kubernetes-native-platform-api.md), [0008 — Monorepo](adr/0008-monorepo-and-learning.md), [0009 — Crossplane](adr/0009-crossplane-e-reconciliacao.md), [0010 — AWS real](adr/0010-aws-real-e-ambientes.md), [0011 — EKS Auto Mode](adr/0011-eks-auto-mode.md) e [0012 — Ownership federado e GitOps](adr/0012-federated-ownership-and-gitops.md).
-
----
-
-[← Página inicial](../README.md) · [ADRs](adr/README.md) · [Estrutura](repository-structure.md) · [Roteiro prático](learning-roadmap.md)
+[Decisões](adr/README.md) · [Monorepo](repository-structure.md) · [Roteiro](learning-roadmap.md)

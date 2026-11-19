@@ -1,17 +1,30 @@
 # ☁️ Data Plane
 
-O Data Plane reúne **dois ambientes isolados**, cada um associado a uma **conta AWS própria** na arquitetura-alvo. A implementação é gradual; nenhum ambiente está provisionado automaticamente por esta documentação.
+O Data Plane é composto de **Entities**, com Environments UAT/PROD e duas áreas de infraestrutura: **Core Infrastructure** (compartilhada) e **Domains** de negócio/aplicação. Ambos pertencem ao Data Plane.
 
-| Ambiente | Gerenciamento local | Workloads | Serviços AWS |
-| :--- | :--- | :--- | :--- |
-| [**UAT**](uat/README.md) | [Management EKS](uat/management-eks/README.md) | [PCI](uat/eks-pci/README.md) · [Non-PCI](uat/eks-non-pci/README.md) | [AWS Runtime](uat/aws-runtime/README.md) |
-| [**PROD**](prod/README.md) | [Management EKS](prod/management-eks/README.md) | [PCI](prod/eks-pci/README.md) · [Non-PCI](prod/eks-non-pci/README.md) | [AWS Runtime](prod/aws-runtime/README.md) |
+**Environment é a conta AWS inteira**, não sinônimo de Core. Uma Entity pode ter diversos Domains; cada Domain é identidade única que possui Capabilities e aplicações em UAT e/ou PROD. **A criação de um Domain utiliza Domain Bootstrap**: o perfil versionado gera sua estrutura e os manifests iniciais de Capabilities/namespace/policies para os Environments selecionados; Crossplane central e Argo CD local reconciliam os recursos.
 
-Os **seis clusters EKS** previstos nos dois ambientes adotam **EKS Auto Mode** inicialmente, sujeitos a custo, compatibilidade e requisitos de segurança.
+## Organização proposta
 
-> [!NOTE]
-> **Situação:** estrutura de documentação e planejamento. Nenhum componente desta pasta está implantado por padrão.
+```text
+data-plane/
+└── entity-a/
+    ├── core-infrastructure/
+    │   ├── uat/                 # 3 EKS e infraestrutura comum
+    │   └── prod/
+    └── domains/
+        └── payments/
+            ├── domain.yaml      # owners e políticas comuns
+            ├── uat/
+            │   ├── infrastructure/
+            │   └── applications/
+            └── prod/
+                ├── infrastructure/
+                └── applications/
+```
 
----
+Por enquanto, os diretórios históricos [UAT](uat/README.md) e [PROD](prod/README.md) são **marcadores documentais**, sem recursos implantados. Migraremos para a organização por entidade durante os labs, evitando duplicação de configurações.
 
-[← Página inicial](../README.md) · [Arquitetura](../docs/architecture.md) · [Roteiro prático](../docs/learning-roadmap.md)
+Três clusters EKS por Environment na arquitetura-alvo: Management EKS com Argo CD local, EKS PCI e EKS Non-PCI; Auto Mode é preferência sob validação de custo/segurança.
+
+[← Início](../README.md) · [Arquitetura](../docs/architecture.md) · [Estrutura](../docs/repository-structure.md)

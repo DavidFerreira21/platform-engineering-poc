@@ -8,9 +8,9 @@ Construir internamente oferece controle sobre a interface, mas traz manutenção
 
 ## A escolha da nossa POC
 
-Na POC, adotamos Crossplane para Capabilities e construiremos um Environment Controller apenas para lifecycle complexo; Backstage é alternativa de experiência, não a API canônica.
+Na POC, adotamos Crossplane para Capabilities. Entity, Environment e Domain são inicialmente registros lógicos no Git; não construiremos um controller próprio antes de identificar necessidade real. Backstage é alternativa de experiência, não a API canônica.
 
-Usamos a API Kubernetes e Crossplane para Capabilities porque oferecem contratos e reconciliação sem exigir um controller customizado por serviço. Para AWSEnvironment, processos humanos e fluxos de duração longa justificam avaliar um controller próprio coordenando Argo Workflows.
+Usamos a API Kubernetes e Crossplane para Capabilities porque oferecem contratos e reconciliação sem exigir um controller customizado por serviço. Para a criação futura de contas AWS, avaliaremos Argo Workflows e, somente se necessário, um contrato e controller de lifecycle dedicado.
 
 ## Leitura complementar
 
