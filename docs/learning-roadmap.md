@@ -2,13 +2,14 @@
 
 [← Início](../README.md) · [Arquitetura](architecture.md) · [Fundamentos](fundamentos/README.md)
 
-Construção incremental e observável: cada lab terá pré-requisitos, comandos, evidências, falha controlada, diagnóstico, recuperação, custo e limpeza. **Primeira implementação: Lab 01 (kind, namespaces, rede local e Traefik)**, seguido por **Lab 02 (Argo CD central)** e **Lab 03 (Crossplane instalado via GitOps)**, depois `ObjectStorage` e **`Database` com Aurora PostgreSQL**. A conta inicial será apenas UAT. A decisão de autenticação AWS fica para uma fase posterior; não é necessária para criar o kind. **A ordem pedagógica difere da sequência de provisionamento de uma entidade completa.**
+Construção incremental e observável: cada lab terá pré-requisitos, comandos, evidências, falha controlada, diagnóstico, recuperação, custo e limpeza. **Primeira implementação: Lab 01 (kind, namespaces, rede local e Traefik)**, seguido por **Lab 02 (Argo CD central)**, **Lab 02B (Argo Workflows instalado via GitOps)** e **Lab 03 (Crossplane instalado via GitOps)**, depois `ObjectStorage` e **`Database` com Aurora PostgreSQL**. A conta inicial será apenas UAT. A decisão de autenticação AWS fica para uma fase posterior; não é necessária para criar o kind. **A ordem pedagógica difere da sequência de provisionamento de uma entidade completa.**
 
 | Fase | Tema | Evidência |
 | :--- | :--- | :--- |
 | **00** | Documentação e monorepo | Conceitos e decisões consistentes |
 | **01** | Hub `kind` + Traefik | API, CoreDNS, namespaces, mapeamento de portas, Ingress HTTP e verificações locais |
 | **02** | Argo CD central (GitOps) | Bootstrap do Argo CD, acesso local, Git como fonte da verdade e aplicações da plataforma |
+| **02B** | Argo Workflows no Hub por GitOps | Argo CD instala Argo Workflows e CRDs; executar um Workflow local inofensivo, observar Pods/logs/status e validar reexecução e limpeza, sem AWS ou Terraform |
 | **03** | Crossplane Core por GitOps | Argo CD instala o Crossplane; observar CRDs, XRDs, Compositions e status sem AWS |
 | **03B** | UAT: registro de conta e autenticação AWS | Configurar arquivo de Environment e método de autenticação a definir; validar STS **antes de qualquer operação** |
 | **04** | `ObjectStorage` real | XRD/Composition/Provider AWS, bucket de laboratório, `Ready`, drift e teardown |
@@ -16,7 +17,7 @@ Construção incremental e observável: cada lab terá pré-requisitos, comandos
 | **05** | Entity, Environment e criação padronizada de Domain | Registro único, perfil versionado, destinos selecionados e geração idempotente de estrutura/manifests |
 | **06** | Argo CD central + primeiro Domain Bootstrap | Criar Domain gera manifest de `ObjectStorage` conforme perfil de lab → Crossplane → AWS; demonstrar validação e isolamento |
 | **07** | Foundation Terraform reutilizável | Config central por Entity/Environment, plan/state isolado |
-| **08** | Argo Workflows, gates e Terraform Executor | Aprovação e execução auditáveis |
+| **08** | Integração Argo Workflows + gates + Terraform Executor | Reutilizar o Argo Workflows instalado no Lab 02B; separar `plan` e `apply`, validar aprovações e execução auditável |
 | **09** | Entity Core e EKS Auto Mode incremental | Um EKS por vez, verificando custo, identidade e PCI |
 | **10** | Argo CD local + perfil de Bootstrap completo | Criação de Domain gera Database, ObjectStorage, namespace e policies nos destinos escolhidos; evidências de entrega antes do Deployment |
 | **11** | Duas contas AWS UAT/PROD | Credenciais e recursos segregados |
@@ -24,6 +25,8 @@ Construção incremental e observável: cada lab terá pré-requisitos, comandos
 | **13** | Backstage / CLI / AI-MCP | Consumo dos contratos sem API paralela |
 | **14** | Extensão opcional: criação de contas | Justificar contrato/controlador de lifecycle se necessário |
 | **15** | Segurança, custo e recuperação | Testes de isolamento e cleanup |
+
+**Ordem dos componentes no Hub:** `kind` e Traefik → Argo CD central → **Argo Workflows via Argo CD** → Crossplane Core via Argo CD. O Lab 02B instala e observa o motor com um fluxo de teste local; integração com Terraform, gates humanos e permissões AWS fica para o Lab 08. Não confundir instalar o workflow controller com habilitar execução de infraestrutura real.
 
 **Não implementar `AWSEnvironment` CRD ou Environment Controller próprio como pré-requisito inicial.** Environment e Domain são registros lógicos; somente Capabilities precisam de XRD no primeiro ciclo. O **Domain Bootstrap** é o fluxo padrão de **criação de Domain**: gera estrutura e manifests iniciais conforme perfil versionado e Environments selecionados; **o Argo CD local**, e não um controller do Domain, aplica namespaces/policies. `Database` usará **Aurora PostgreSQL** como implementação inicial do produto, após `ObjectStorage`, e será implementado progressivamente e nunca pode ser marcado pronto antes de sua entrega real.
 
