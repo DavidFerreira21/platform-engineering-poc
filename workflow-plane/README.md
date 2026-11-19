@@ -1,6 +1,6 @@
 # ⚙️ Workflow Plane
 
-O Workflow Plane inclui o **Domain Bootstrap**, que valida o perfil versionado e gera manifests obrigatórios para cada Domain/Environment em PR; ele não provisiona recursos diretamente e não concorre com Argo CD/Crossplane. A verificação da prontidão deve agregar evidências de ambos. 
+O Workflow Plane inclui o **Domain Bootstrap**, que valida o perfil versionado e gera a estrutura e os manifests iniciais de cada novo Domain, para os Environments selecionados, em PR; ele não provisiona recursos diretamente e não concorre com Argo CD/Crossplane. A verificação da prontidão deve agregar evidências de ambos. 
 
 O Workflow Plane mantém processos, GitOps central, aprovação e execução, **sem Crossplane**.
 

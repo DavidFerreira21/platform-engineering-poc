@@ -38,7 +38,7 @@ flowchart TB
   W -. "Foundation / EKS" .-> CORE
 ```
 
-**Environment é o contexto UAT/PROD associado à conta AWS inteira, não apenas ao Core.** O Data Plane contém **Core Infrastructure compartilhada** e **Domains** de negócio/aplicação. Um Domain pode possuir Capabilities, namespaces e apps em ambos os ambientes. **O Domain Bootstrap aplica um perfil versionado por Environment**: o perfil completo exige Database, ObjectStorage, namespace e políticas. O Bootstrap gera manifests no Git; Crossplane central e Argo CD local entregam os recursos. Nada é marcado pronto antes de verificar todas as dependências obrigatórias.
+**Environment é o contexto UAT/PROD associado à conta AWS inteira, não apenas ao Core.** O Data Plane contém **Core Infrastructure compartilhada** e **Domains** de negócio/aplicação. Um Domain pode possuir Capabilities, namespaces e apps em ambos os ambientes. **A criação do Domain segue um Domain Bootstrap com perfil versionado**: o perfil `standard` prevê Database, ObjectStorage, namespace e políticas nos destinos selecionados. O Bootstrap gera manifests no Git; Crossplane central e Argo CD local entregam os recursos. Nada é marcado pronto antes de verificar todas as dependências obrigatórias.
 
 ## 🧩 Quatro conceitos fundamentais
 
@@ -64,7 +64,7 @@ flowchart TB
 
 ## 🧰 Domain Bootstrap
 
-Criar/ativar um Domain em UAT ou PROD requer um **perfil de Bootstrap versionado**, que define seu baseline obrigatório. O gerador produz os manifests de Capabilities (`infrastructure/`) e de namespaces/policies (`applications/`) para revisão em PR. O **Argo CD central** aplica os CRs de Capability, o **Crossplane** entrega AWS e o **Argo CD local** configura Kubernetes. A prontidão é avaliada por **Domain + Environment**, sem autoprovisionar PROD quando apenas UAT foi ativado. [Detalhamento](docs/architecture.md#6-domain-bootstrap-padrão-obrigatório-por-environment).
+**Ao criar um Domain**, a plataforma executa o **Domain Bootstrap** como fluxo padrão: o perfil versionado define a estrutura e os recursos iniciais, considerando os Environments escolhidos. Não existe um Bootstrap independente obrigatório por Environment. O gerador produz os manifests de Capabilities (`infrastructure/`) e de namespaces/policies (`applications/`) para revisão em PR. O **Argo CD central** aplica os CRs de Capability, o **Crossplane** entrega AWS e o **Argo CD local** configura Kubernetes. A conclusão é verificada para o Domain, com detalhamento por Environment; criar em UAT não seleciona PROD automaticamente. [Detalhamento](docs/architecture.md#6-domain-bootstrap-criação-padronizada-do-domain).
 
 ## ☁️ Estratégia AWS
 

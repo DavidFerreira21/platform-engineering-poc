@@ -104,7 +104,7 @@ policies:
 
 Esses YAMLs **não são manifests Kubernetes** e não devem ser sincronizados diretamente pelo Argo CD central. Inicialmente são lidos por validações e ferramentas de workflow. A vinculação confiável **Entity + Environment + Domain → conta/IAM/namespace** precisa ser construída e testada: consumidores não podem escolher credenciais AWS arbitrárias.
 
-**`ObjectStorage` é a primeira Capability**; `Database`, `Messaging` e `ComputeInstance` ficam no roadmap. **Não criar `CapabilityClaim` genérico.** O **Domain Bootstrap** garante as Capabilities e configurações **obrigatórias** para cada Environment habilitado, usando os contratos existentes; Capabilities adicionais e Deployments de aplicações continuam solicitações independentes. Ver [Domain Bootstrap](#6-domain-bootstrap-padrão-obrigatório-por-environment).
+**`ObjectStorage` é a primeira Capability**; `Database`, `Messaging` e `ComputeInstance` ficam no roadmap. **Não criar `CapabilityClaim` genérico.** Na **criação do Domain**, o **Domain Bootstrap** aplica o padrão inicial definido pelo perfil versionado e gera as Capabilities e configurações previstas para os Environments selecionados, usando os contratos existentes; Capabilities adicionais e Deployments de aplicações continuam solicitações independentes. Ver [Domain Bootstrap](#6-domain-bootstrap-criação-padronizada-do-domain).
 
 ## 4. Quatro camadas de ownership
 
@@ -161,26 +161,26 @@ platform-engineering-poc/
 O monorepo demonstra autonomia via PR, revisão de paths e eventualmente CODEOWNERS. **CODEOWNERS sem regras de proteção não basta;** também são necessários RBAC Kubernetes, admission, IAM por conta e AppProjects Argo CD. Terraform state fica fora do Git.
 
 
-## 6. Domain Bootstrap: padrão obrigatório por Environment
+## 6. Domain Bootstrap: criação padronizada do Domain
 
-O **Domain é uma identidade lógica única na Entity**, porém sua **ativação em cada Environment** deve executar um **Domain Bootstrap** idempotente. O perfil versionado define o *baseline mínimo obrigatório*; o Domain pode solicitar Capabilities adicionais depois. **Cadastrar um Domain não equivale a um Domain pronto**.
+O **Domain é uma identidade lógica única na Entity**. **Quando ele é criado**, a plataforma usa o **Domain Bootstrap** como fluxo padrão de inicialização: escolhe e valida um perfil versionado, gera sua estrutura e as declarações dos recursos previstos nesse perfil. O processo é iniciado **pela criação do Domain**, não como uma obrigação de executar um Bootstrap independente para cada Environment. O Domain pode solicitar Capabilities adicionais depois. **Cadastrar um Domain não equivale a concluir seu Bootstrap**.
 
-### Regra de produto do perfil `standard` (exemplo da POC)
+### O que o perfil `standard` cria (exemplo da POC)
 
-| Recurso obrigatório por Domain/Environment | Motor de entrega | Ownership |
+| Recurso inicial definido pelo perfil | Motor de entrega | Destino / ownership |
 | :--- | :--- | :--- |
 | `Database` | Manifest de Capability → Argo CD **central** → Crossplane → AWS | Domain, no Environment |
 | `ObjectStorage` | Manifest de Capability → Argo CD **central** → Crossplane → AWS | Domain, no Environment |
 | Namespace(s) nos destinos Kubernetes permitidos | Manifest Kubernetes → Argo CD **local** | Domain, por cluster/destino |
 | Quotas, políticas de rede/segurança, permissões e labels/tags aplicáveis | GitOps local para Kubernetes; políticas de Capability para AWS | Governança da plataforma, instanciada para Domain |
 
-**Nota de fases:** `ObjectStorage` continua sendo o primeiro **produto técnico implementado** no lab; `Database` é requisito do **perfil completo** de Bootstrap, implementado somente quando houver autorização/custo e integração para a Capability. O teste inicial usa um perfil de laboratório explicitamente reduzido; **não se declara um Domain com perfil `standard` como `Ready` enquanto algum requisito obrigatório não estiver provisionado e verificado**.
+**Nota de fases:** o perfil `standard` de referência cria banco, bucket, namespace e políticas como padrão de nascimento do Domain. `ObjectStorage` continua sendo o primeiro **produto técnico implementado** no lab; `Database` será incorporado depois, conforme autorização/custo e integração. Um perfil de laboratório reduzido pode demonstrar o mecanismo antes disso. **Não declarar um Domain com perfil `standard` como `Ready` enquanto os recursos previstos por esse perfil não estiverem provisionados e verificados**.
 
-### Processo de ativação
+### Processo de criação
 
 ```mermaid
 flowchart TB
-    R["PR: domain.yaml / Environment habilitado<br/>+ versão do perfil"] --> V["Validação de identidade, escopo,<br/>permissões e perfil"]
+    R["Criar Domain<br/>identidade + perfil + destinos selecionados"] --> V["Validação de identidade, escopo,<br/>permissões e perfil"]
     V --> B["Domain Bootstrap<br/>renderização declarativa idempotente"]
     B --> I["Manifests de Capabilities<br/>por Domain + Environment"]
     B --> K["Manifests Kubernetes<br/>por Domain + Environment"]
@@ -191,11 +191,11 @@ flowchart TB
     S --> READY["Domain Environment Ready"]
 ```
 
-**Local da definição:** `data-plane/<entity>/domains/<domain>/domain.yaml` (identidade e perfil desejado) mais configuração de ativação por ambiente. O **perfil versionado**, com template e requisitos, pertence ao **Control Plane** (catálogo/padrões da plataforma), enquanto o **mecanismo de execução do Bootstrap** pertence ao **Workflow Plane**. Os manifests gerados ficam sob `domains/<domain>/<env>/{infrastructure,applications}/`, revisados e versionados no **mesmo monorepo**. **A aplicação é feita somente pelo GitOps**; o Bootstrap **não cria recursos diretamente** na AWS ou nos EKS, evitando dois escritores.
+**Local da definição:** `data-plane/<entity>/domains/<domain>/domain.yaml` (identidade, perfil e versão desejados, Environments selecionados). O **perfil versionado**, com template e requisitos, pertence ao **Control Plane** (catálogo/padrões da plataforma), enquanto o **mecanismo de execução do Bootstrap** pertence ao **Workflow Plane**. Os manifests gerados ficam sob `domains/<domain>/<env>/{infrastructure,applications}/`, revisados e versionados no **mesmo monorepo**. **A aplicação é feita somente pelo GitOps**; o Bootstrap **não cria recursos diretamente** na AWS ou nos EKS, evitando dois escritores.
 
-**Disparo proposto para a POC:** PR de criação/ativação de Domain ou inclusão de Environment → validação e geração idempotente dos manifests → revisão/aprovação → merge → reconciliadores existentes. Não supor que a simples gravação do YAML dispara um controller: o gatilho de CI/workflow e o gerador são **componentes ainda a implementar**. O mesmo perfil pode ser aplicado em UAT e PROD em momentos diferentes, com autorizações próprias. O bootstrap não executa `apply` AWS por aprovação exclusiva da documentação.
+**Disparo proposto para a POC:** solicitação de **criação de Domain** com perfil e ambientes de destino → geração idempotente da estrutura e dos manifests iniciais → validação/revisão/merge → reconciliadores existentes. **Um único processo de Bootstrap do Domain** pode preparar recursos para UAT, PROD ou ambos, de acordo com a solicitação e suas autorizações. A posterior inclusão de um novo Environment é uma **evolução do Domain** e pode reutilizar o mesmo mecanismo de geração, sem representar um novo nascimento. Não supor que gravar o YAML dispara um controller: gatilho de CI/workflow e gerador são **componentes ainda a implementar**. O Bootstrap não executa `apply` AWS só por aprovação documental.
 
-**Prontidão e falhas:** após sincronização, uma verificação independente consolida estado por **Domain + Environment** (XRs `Ready`, Argo CD Sync/Health, namespace/políticas). Estado como `Pending`, `Provisioning`, `Ready` ou `Failed` é **derivado de evidências**, não `status` magicamente escrito no `domain.yaml`. Falhas permitem reexecução idempotente sem duplicar buckets, bancos ou namespaces; se faltar um obrigatório, o Domain Environment não está pronto.
+**Prontidão e falhas:** após sincronização, uma verificação independente consolida evidências de execução **para o Domain e seus destinos (Domain + Environment)** (XRs `Ready`, Argo CD Sync/Health, namespace/políticas). Estado como `Pending`, `Provisioning`, `Ready` ou `Failed` é **derivado de evidências**, não `status` magicamente escrito no `domain.yaml`. Falhas permitem reexecução idempotente sem duplicar buckets, bancos ou namespaces; se faltar um recurso do padrão num destino, o Bootstrap daquele destino não está concluído. A checagem por Environment é apenas uma dimensão operacional do mesmo Domain.
 
 **Evolução:** perfis possuem versão imutável/referenciada; novo perfil **não altera automaticamente** Domains existentes. Migração exige PR/avaliação de mudanças, especialmente recursos stateful e PROD. A remoção de um Domain não dispara automaticamente `destroy`: exige descomissionamento explícito, políticas de retenção, dependências e gates. Recursos de **Entity Core Infrastructure** nunca são excluídos com o Domain.
 
@@ -249,13 +249,13 @@ O Domain continua lógico, enquanto **Argo CD local aplica objetos Kubernetes**.
 
 ## 9. Nascimento de uma entidade versus ordem pedagógica
 
-**Fluxo operacional real:** Foundation cria/adota conta e rede → Core cria três EKS por Environment → instala Argo CD local → registra Domain lógico → **Domain Bootstrap cria e verifica o baseline obrigatório por Environment** (Capabilities AWS + namespace/policies) → aplicações são implantadas pelo Argo CD local.
+**Fluxo operacional real:** Foundation cria/adota contas e rede → Core prepara EKS e Argo CD local nos destinos necessários → **solicitação de criação do Domain dispara seu Bootstrap padrão** (gera estrutura, Capabilities AWS e namespace/policies nos Environments selecionados) → reconciliadores provisionam e a plataforma verifica o resultado → aplicações são implantadas pelo Argo CD local.
 
 **POC pedagógica:** baseline → Hub `kind` → acesso AWS existente → Crossplane/`ObjectStorage` → registro de Domain/Environment + GitOps central → **Bootstrap mínimo demonstrativo e progressão até perfil completo** → Terraform/Argo Workflows → Core/EKS incremental → Argo CD local → UAT/PROD segregados → eventual criação de contas. **Não criar seis EKS simultaneamente**, nem implementar um controller de lifecycle apenas para manter uma ideia anterior.
 
 ## 10. Decisões vigentes e pontos abertos
 
-**Fechado:** Domain como unidade lógica de consumo/ownership **com Bootstrap obrigatório versionado por Environment**, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas, monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência.
+**Fechado:** Domain como unidade lógica de consumo/ownership **com processo padronizado de criação por perfil versionado**, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas, monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência.
 
 **A validar nos labs:** implementação e gatilho do gerador de Bootstrap, versionamento dos perfis, verificação agregada de prontidão, schema dos YAMLs, transformação segura de registros lógicos em escopo/credenciais, autenticação Crossplane a partir do `kind`, distribuição de namespaces/quotas ao GitOps local, gates, observabilidade, PCI e necessidade eventual de uma API/controller de ciclo de vida de contas.
 
