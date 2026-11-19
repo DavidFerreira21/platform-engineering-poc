@@ -1,5 +1,12 @@
-# observability-plane / README.md
+# 📊 Observability Plane
 
-Responsável por definições compartilhadas de OpenTelemetry, métricas, logs, traces, auditoria e alertas. A coleta pode ocorrer no Hub e nos ambientes; localização do backend será definida depois.
+Consolida as definições de **OpenTelemetry**, métricas, logs, traces, eventos, auditoria e alertas. A coleta poderá existir tanto no Hub quanto em UAT e PROD; o posicionamento dos backends ainda será definido.
 
-Consulte a [arquitetura](../docs/architecture.md) para entender as responsabilidades.
+A observabilidade é transversal: deve permitir relacionar uma solicitação de Capability à reconciliação e aos recursos externos, mantendo os limites entre ambientes.
+
+> [!NOTE]
+> **Situação:** estrutura de documentação e planejamento. Nenhum componente desta pasta está implantado por padrão.
+
+---
+
+[← Página inicial](../README.md) · [Arquitetura](../docs/architecture.md) · [Roteiro prático](../docs/learning-roadmap.md)

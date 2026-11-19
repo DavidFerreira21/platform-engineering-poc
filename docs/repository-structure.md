@@ -40,7 +40,7 @@ platform-engineering-poc/
 └── tests/
 ```
 
-## Critérios de organização
+## 🧩 Critérios de organização
 - Código do controller AWSEnvironment e XRDs/Compositions/Providers Crossplane pertencem ao `control-plane/`; instalação do Hub pertence a `platform/hub/`.
 - Argo Workflows, Terraform Executor, gates e Argo CD pertencem a `workflow-plane/`; Crossplane pertence ao **Control Plane**.
 - Telemetria compartilhada fica em `observability-plane/`; overlays específicos do ambiente ficam no respectivo Spoke.
@@ -51,16 +51,19 @@ platform-engineering-poc/
 - Toda a documentação, comentários didáticos e guias devem usar **pt-BR**.
 - Não usar uma API FastAPI própria como requisito; a interface principal é a Kubernetes API.
 
-## Critérios de revisão
+## ✅ Critérios de revisão
 Isolamento UAT/PROD, contratos versionados, referências válidas, ownership do `spec` por GitOps, status reconciliado, privilégio mínimo, limites PCI, ausência de segredos, testes e instruções de limpeza.
 
-## AWS real e separação de fases
+## ☁️ AWS real e separação de fases
 
 Os diretórios `data-plane/uat` e `data-plane/prod` representarão contas AWS **reais** distintas quando disponibilizadas. No início, usar uma única conta preexistente autorizada e evoluir para duas contas. Somente depois implementar a criação automática de contas pelo Environment Controller. Templates reutilizáveis ficam na camada proprietária, não duplicados nos overlays UAT/PROD. O bootstrap `kind` do Hub não implica que os recursos AWS sejam simulados.
 
-## Provisionamento EKS
+## 🚀 Provisionamento EKS
 Os seis clusters EKS previstos nos Spokes serão modelados com **Amazon EKS Auto Mode** por padrão, conforme [ADR-0011](adr/0011-eks-auto-mode.md). Configurações compartilhadas e módulos reutilizáveis ficam em sua camada proprietária; overlays UAT/PROD expressam apenas diferenças de ambiente. O `platform/hub/` local utiliza `kind`.
 
-## Trilha de fundamentos
+## 📖 Trilha de fundamentos
 
 O diretório `docs/fundamentos/` organiza artigos conceituais, separados de `labs/`: os primeiros explicam **por que/para quem/como pensar**; os labs demonstram **como implementar, observar, falhar e recuperar**. Artigos sequenciais com links anterior/próxima devem manter pt-BR, explicações aprofundadas, exemplos da POC e links externos confiáveis. O livro é referência de temas, não texto a reproduzir. [Índice](fundamentos/README.md).
+
+
+[← Página inicial](../README.md) · [Arquitetura](architecture.md) · [Fundamentos](fundamentos/README.md)

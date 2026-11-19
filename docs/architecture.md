@@ -6,34 +6,50 @@
 
 ## 🧱 Camadas arquiteturais
 
-```text
-EXPERIENCE LAYER
-  Backstage | CLI | GitOps | AI/MCP
-                    |
-PLATFORM MANAGEMENT CLUSTER
-  CONTROL PLANE
-    Kubernetes API Server
-    AWSEnvironment: CRD nativo + Environment Controller próprio
-    Domain: XRD Crossplane + Composition
-    Capabilities: XRDs Database | ObjectStorage | ComputeInstance | Messaging
-    Crossplane Core + Compositions + Providers
-    RBAC, admissão, reconciliação e status
-  WORKFLOW PLANE
-    Argo CD | Argo Workflows | Terraform Executor
-    Gates manuais
-  OBSERVABILITY PLANE
-    OpenTelemetry | métricas | logs | traces | auditoria
-                    |
-DATA PLANE
-  UAT — conta AWS                PROD — conta AWS
-    Environment Management EKS     Environment Management EKS
-      (Auto Mode)                    (Auto Mode)
-      Argo CD / Operators / OTel     Argo CD / Operators / OTel
-    EKS PCI (Auto Mode)           EKS PCI (Auto Mode)
-    EKS Non-PCI (Auto Mode)       EKS Non-PCI (Auto Mode)
-    AWS Runtime                    AWS Runtime
-      RDS, S3, EC2, VPC etc.         RDS, S3, EC2, VPC etc.
+```mermaid
+flowchart TB
+    EXP["🧭 Experience Layer<br/>Backstage · CLI · GitOps · AI/MCP"]
+
+    subgraph HUB["Platform Management Cluster · kind local na POC"]
+        direction TB
+        CP["🧩 Control Plane<br/>Kubernetes API · Controllers · Crossplane"]
+        WF["⚙️ Workflow Plane<br/>Argo CD · Argo Workflows · Terraform"]
+        OB["📊 Observability Plane<br/>Métricas · Logs · Traces"]
+    end
+
+    subgraph UAT["☁️ UAT · Conta AWS"]
+        direction TB
+        UM["Environment Management EKS<br/>Auto Mode"]
+        UP["EKS PCI<br/>Auto Mode"]
+        UN["EKS Non-PCI<br/>Auto Mode"]
+        UR["AWS Runtime<br/>S3 · RDS · Rede · Outros"]
+        UM --> UP
+        UM --> UN
+    end
+
+    subgraph PROD["☁️ PROD · Conta AWS"]
+        direction TB
+        PM["Environment Management EKS<br/>Auto Mode"]
+        PP["EKS PCI<br/>Auto Mode"]
+        PN["EKS Non-PCI<br/>Auto Mode"]
+        PR["AWS Runtime<br/>S3 · RDS · Rede · Outros"]
+        PM --> PP
+        PM --> PN
+    end
+
+    EXP --> CP
+    CP --> WF
+    CP -.-> UM
+    CP -.-> PM
+    WF -.-> UM
+    WF -.-> PM
+    CP -.-> UR
+    CP -.-> PR
+    OB -.-> UM
+    OB -.-> PM
 ```
+
+> **Como ler:** os cinco planes são responsabilidades lógicas. Linhas tracejadas representam integração, não topologia de rede AWS nem acesso administrativo já autorizado. Em cada conta há **três EKS distintos** — Management, PCI e Non-PCI — além dos recursos AWS Runtime.
 
 **Control Plane, Workflow Plane, Observability Plane e Data Plane são nomes de responsabilidade arquitetural.** Os três primeiros compartilham um Platform Management Cluster no alvo. Cada ambiente do Data Plane mantém seu gerenciamento local e seus workloads. A nomenclatura Hub-and-Spoke é uma **interpretação complementar da topologia de gerenciamento**, não o nome de uma camada nem uma configuração obrigatória de rede AWS.
 
@@ -63,10 +79,10 @@ spec:
     nonPCI: true
 ```
 
-## Experience Layer e GitOps
+## 🧭 Experience Layer e GitOps
 O Git é fonte da verdade para **estado desejado declarativo**. O Argo CD sincroniza recursos com a Kubernetes API; `status` e resultados operacionais permanecem no Kubernetes e nos sistemas de execução. Backstage, CLI e AI/MCP devem preferencialmente produzir PRs para mudanças persistentes. Consultas podem usar a API diretamente com RBAC. Evitar concorrência de escrita sobre o `spec` entre GitOps e `kubectl`.
 
-## Fluxo de provisionamento AWSEnvironment
+## 🔄 Lifecycle de AWSEnvironment
 1. O Environment Controller observa o recurso e valida autenticação, autorização, parâmetros e identidade da conta.
 2. Aciona um **Argo Workflow versionado**, mantendo as etapas técnicas fora do contrato público.
 3. O workflow cria/adota a conta, aguarda IPs quando necessário, executa Terraform para bootstrap/rede, valida subnets, rotas e conectividade e aguarda certificados ou aprovação humana.
@@ -74,10 +90,10 @@ O Git é fonte da verdade para **estado desejado declarativo**. O Argo CD sincro
 5. O fluxo prepara os clusters e atualiza condições como `AccountReady`, `NetworkReady`, `SecurityReady`, `ClustersReady` e `Ready`. Terraform state e logs não vão para o Git nem para o etcd.
 6. Exclusão de conta requer processo deliberado e separado de descomissionamento.
 
-## Operação de cada ambiente
+## ☁️ Operação de cada ambiente
 O Environment Management EKS é candidato a hospedar Argo CD local, controllers/operators aptos a reconciliação remota e gateway de observabilidade. O Argo CD local gerencia EKS PCI e EKS Non-PCI **somente se o isolamento administrativo PCI permitir**. Operators/agents que exigem acesso local permanecem nos clusters de workload. O AWS Runtime (RDS, S3, EC2, networking etc.) pertence à mesma conta AWS do respectivo ambiente.
 
-## Limites do desenho
+## ⚠️ Limites e riscos
 A indisponibilidade do Hub não deve automaticamente interromper workloads já existentes. O bootstrap e a recuperação do gerenciamento exigem plano próprio. Namespaces não oferecem isolamento equivalente a contas/clusters. Crossplane e Terraform não devem possuir simultaneamente o mesmo recurso AWS. Esta POC não implementa nem integra chamados reais automaticamente.
 
 Leitura complementar: [ADRs](adr/README.md), [estrutura do monorepo](repository-structure.md) e [roteiro de aprendizado](learning-roadmap.md).
@@ -117,3 +133,8 @@ O provisionamento deve declarar explicitamente Auto Mode nos módulos Terraform 
 A POC continua incremental: **não criar seis EKS reais simultaneamente** e manter gates de custo, conta/região verificados e cleanup. Caso um operator ou requisito de segurança precise de capacidade incompatível, registrar ADR de exceção, em vez de trocar silenciosamente o modelo.
 
 Decisão detalhada: [ADR-0011](adr/0011-eks-auto-mode.md).
+
+
+---
+
+[← Página inicial](../README.md) · [ADRs](adr/README.md) · [Roteiro prático](learning-roadmap.md)

@@ -1,5 +1,19 @@
-# prod / README.md
+# 🚀 PROD · Conta AWS
 
-Ambiente PROD, representando uma conta AWS separada de UAT. Possui Management EKS, clusters PCI/Non-PCI e AWS Runtime. Estrutura-alvo, ainda não provisionada.
+Ambiente **PROD**, representado por uma conta AWS independente de UAT. A estrutura abaixo é o **alvo**, ainda não provisionado.
 
-Consulte a [arquitetura](../../docs/architecture.md) para entender as responsabilidades.
+| Componente | Papel |
+| :--- | :--- |
+| [🏗️ Environment Management EKS](management-eks/README.md) | Argo CD local, operators e telemetria |
+| [🔒 EKS PCI](eks-pci/README.md) | Workloads PCI |
+| [📦 EKS Non-PCI](eks-non-pci/README.md) | Workloads não PCI |
+| [☁️ AWS Runtime](aws-runtime/README.md) | S3, RDS, VPC e serviços gerenciados |
+
+**EKS Auto Mode** será o padrão dos três clusters Kubernetes. Avaliar o controle administrativo entre PCI e Non-PCI.
+
+> [!NOTE]
+> **Situação:** estrutura de documentação e planejamento. Nenhum componente desta pasta está implantado por padrão.
+
+---
+
+[← Página inicial](../../README.md) · [Arquitetura](../../docs/architecture.md) · [Roteiro prático](../../docs/learning-roadmap.md)

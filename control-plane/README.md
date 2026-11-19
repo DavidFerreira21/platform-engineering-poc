@@ -1,8 +1,18 @@
-# Control Plane
+# 🧩 Control Plane
 
-O **Kubernetes API Server** é a única API da plataforma. Dois reconciliadores principais:
+O **Kubernetes API Server** é a API oficial; os reconciliadores implementam os contratos sem criar APIs paralelas.
 
-- **Environment Controller próprio:** observa o CRD nativo `AWSEnvironment`, adota inicialmente contas AWS existentes, atualiza conditions e aciona Argo Workflows/Terraform quando necessário. Criação de novas contas somente na terceira etapa.
-- **Crossplane Core:** XRDs independentes de `Domain`, `Database`, `ObjectStorage`, `ComputeInstance` e `Messaging`, com Compositions e Providers. O XRD não cria uma API Server paralela.
+| Contrato | Responsabilidade |
+| :--- | :--- |
+| `AWSEnvironment` | CRD nativo + Environment Controller próprio (a implementar) |
+| `Domain` | XRD + Crossplane Composition (a implementar) |
+| `Database`, `ObjectStorage`, `ComputeInstance`, `Messaging` | XRDs + Crossplane Compositions/Providers (a implementar) |
 
-O gerenciamento remoto de namespaces por Domain precisa de validação técnica e autorização. Crossplane não pertence ao Workflow Plane. Usar AWS real nos labs autorizados. Ver [ADR-0009](../docs/adr/0009-crossplane-e-reconciliacao.md) e [ADR-0010](../docs/adr/0010-aws-real-e-ambientes.md).
+**Atenção:** Domain remoto e permissões exigem validação. Criação automática de conta AWS é etapa futura.
+
+> [!NOTE]
+> **Situação:** estrutura de documentação e planejamento. Nenhum componente desta pasta está implantado por padrão.
+
+---
+
+[← Página inicial](../README.md) · [Arquitetura](../docs/architecture.md) · [Roteiro prático](../docs/learning-roadmap.md)

@@ -27,7 +27,7 @@ Os ADRs registram **por que** a arquitetura foi escolhida, quais alternativas e 
 - **Topologia e operação:** [0003](0003-hub-spoke-topology.md), [0006](0006-observability-and-local-operators.md), [0007](0007-security-and-isolation.md), [0011](0011-eks-auto-mode.md)
 - **Organização:** [0008](0008-monorepo-and-learning.md)
 
-## Convenções
+## 📌 Convenções
 
 Textos em **pt-BR**; nomes técnicos preservados. A taxonomia de referência é **Experience Layer, Control Plane, Workflow Plane, Observability Plane e Data Plane**. Hub-and-Spoke representa a topologia de gerenciamento, **não uma camada adicional** nem uma topologia de rede obrigatória.
 
