@@ -19,13 +19,14 @@ Os ADRs registram **por que** a arquitetura foi escolhida, quais alternativas e 
 | [**0009**](0009-crossplane-e-reconciliacao.md) | Crossplane e ownership de recursos |
 | [**0010**](0010-aws-real-e-ambientes.md) | AWS real em três etapas |
 | [**0011**](0011-eks-auto-mode.md) | EKS Auto Mode nos Data Planes |
+| [**0012**](0012-federated-ownership-and-gitops.md) | Quatro camadas, ownership federado, Crossplane central e GitOps local |
 
 ## 🔎 Como consultar
 
 - **Contratos e reconciliação:** [0001](0001-kubernetes-native-platform-api.md), [0002](0002-contract-families.md), [0009](0009-crossplane-e-reconciliacao.md)
 - **Execução e lifecycle:** [0004](0004-workflow-and-gitops.md), [0005](0005-long-running-environment-lifecycle.md), [0010](0010-aws-real-e-ambientes.md)
 - **Topologia e operação:** [0003](0003-hub-spoke-topology.md), [0006](0006-observability-and-local-operators.md), [0007](0007-security-and-isolation.md), [0011](0011-eks-auto-mode.md)
-- **Organização:** [0008](0008-monorepo-and-learning.md)
+- **Organização:** [0008](0008-monorepo-and-learning.md), [0012](0012-federated-ownership-and-gitops.md)
 
 ## 📌 Convenções
 

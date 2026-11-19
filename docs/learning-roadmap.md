@@ -4,6 +4,8 @@
 
 **Antes de implementar:** consultar a [base de Fundamentos de Platform Engineering](fundamentos/README.md), com 24 artigos conceituais em pt-BR. Os labs não substituem o estudo de problemas, produto, Golden Paths, contratos e reconciliação.
 
+**Organização da POC:** as quatro camadas **Foundation → Entity Core Infrastructure → Domain Infrastructure → Applications** são representadas em pastas do mesmo monorepo, com ownership diferente. O Crossplane é central; Argo CD central sincroniza contratos e Argo CD local entrega aplicações. Ver [arquitetura](architecture.md) e [ADR-0012](adr/0012-federated-ownership-and-gitops.md).
+
 **Objetivo:** construir a plataforma progressivamente, com Hub local em `kind` e **provisionamento AWS real**. A criação de contas é uma fase posterior; os primeiros exercícios usam conta preexistente autenticada. Cada lab apresenta finalidade, pré-requisitos, comandos, evidências de execução, falha controlada, recuperação, custo e limpeza.
 
 | Fase | Tema | Evidência e critérios de saída |
@@ -25,6 +27,8 @@
 | 14 | **Criação automatizada de conta AWS** via AWSEnvironment | Argo Workflows coordena criação, rede, segurança e dependências humanas |
 | 15 | PCI, identidade, custos e recuperação | Revisão de privilégios, restauração e teardown seguro |
 
+**Nota sobre ordem:** a sequência dos labs demonstra primeiro um recurso AWS de baixo custo por Crossplane e só depois implementa o lifecycle completo Foundation → Core → Domain → Applications. A topologia de uma entidade completa não precisa existir para validar a primeira Capability.
+
 ## 🔐 Regras técnicas e pedagógicas
 - Crossplane **é parte do Control Plane** desde os primeiros labs; o Workflow Plane possui Argo Workflows, Terraform Executor e Argo CD.
 - `AWSEnvironment` é CRD nativo com controller próprio, inicialmente operando sobre **contas existentes**; `Domain` e Capabilities são XRDs com Compositions.
@@ -34,7 +38,7 @@
 - Não pressupor integração de chamados, criação de conta na fase inicial ou acesso administrativo compartilhado PCI/Non-PCI.
 
 ## ☁️ Padrão EKS
-O Lab 11 utiliza **Amazon EKS Auto Mode**, não node groups autogerenciados como padrão. O Hub continua em `kind` local. Verificar compatibilidade com DaemonSets, requisitos PCI, identidade de Pods, rede, storage e cobrança antes do provisionamento. Escalar gradualmente de um cluster para a topologia-alvo, sem criação automática de todos os clusters.
+A criação dos três EKS de cada ambiente pertence a **Entity Core Infrastructure** (Terraform). O Lab 11 utiliza **Amazon EKS Auto Mode**, não node groups autogerenciados como padrão. O Hub continua em `kind` local. Verificar compatibilidade com DaemonSets, requisitos PCI, identidade de Pods, rede, storage e cobrança antes do provisionamento. Escalar gradualmente de um cluster para a topologia-alvo, sem criação automática de todos os clusters.
 
 
 ---

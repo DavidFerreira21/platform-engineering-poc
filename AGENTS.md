@@ -12,7 +12,7 @@ Ler [arquitetura](docs/architecture.md), [ADRs](docs/adr/README.md) e [estrutura
 - **Famílias de CRDs:** `AWSEnvironment` (uma conta AWS + foundation), `Domain` (ecossistema de aplicações) e Capabilities especializadas (por exemplo `Database`, `ObjectStorage`, `ComputeInstance`). Capability é categoria, não necessariamente um recurso de kind Capability. Não criar Claim genérico na primeira versão.
 - **Workflow Plane:** Argo Workflows, Terraform Executor, Argo CD e gates manuais; Crossplane pertence ao Control Plane, não ao Workflow Plane. Não usar Argo CD para executar etapas imperativas Terraform.
 - **Observability Plane:** telemetria, métricas, logs, traces, eventos e auditoria transversal.
-- **Data Plane:** dois ambientes, UAT e PROD, cada qual uma conta AWS com Environment Management EKS, EKS PCI e EKS Non-PCI usando **Amazon EKS Auto Mode por padrão**, além de AWS Runtime. O Hub continua em kind local na primeira fase. Não incluir países nem entidades.
+- **Data Plane:** inicialmente uma entidade lógica simulada, com dois ambientes-alvo, UAT e PROD, cada qual uma conta AWS com Environment Management EKS, EKS PCI e EKS Non-PCI usando **Amazon EKS Auto Mode por padrão**, além de AWS Runtime. O Hub continua em kind local na primeira fase. Não usar nomes reais de países/empresas: a entidade fictícia `entity-a` serve apenas à organização didática.
 - **Platform Management Cluster:** hospeda Control, Workflow e Observability Planes; estes são agrupamentos lógicos, não três clusters.
 - **Hub-and-Spoke:** apenas conceito de topologia de gerenciamento, documentado sem substituir os nomes das camadas. Não implica topologia de rede ou Transit Gateway.
 - Operadores podem exigir execução no próprio cluster de workload. Compartilhar controle entre PCI e Non-PCI depende da avaliação de segurança.
@@ -46,3 +46,13 @@ A pasta [docs/fundamentos/](docs/fundamentos/README.md) contém a **base conceit
 ## Documentação e navegabilidade
 
 Manter o README principal como página de entrada, as 24 páginas em `docs/fundamentos/` como referência conceitual e os labs separados em `labs/`. Revisar todos os links relativos antes de enviar PRs. Diagramas do GitHub devem representar os **três EKS por ambiente** (Environment Management EKS, EKS PCI e EKS Non-PCI), além de AWS Runtime. Preferir títulos curtos, hierarquia de headings, ícones discretos e Markdown/Mermaid nativos; evitar badges ou estados não verificados. Não confundir integração lógica e rede AWS.
+
+
+## Ownership federado e monorepo — ADR-0012
+
+- Organizar a POC nas quatro camadas lógicas **Foundation (central), Entity Core Infrastructure (federada com governança central), Domain Infrastructure (federada), Applications (local)**. Não confundir com os planos físicos/lógicos da plataforma.
+- **Um único monorepo**; repositórios por entidade/Domain são somente analogias. Pastas `foundation/` e `data-plane/entity-a/{uat,prod}/...` são **propostas para futuros labs**, não criar diretórios vazios ou migrar `data-plane/uat` e `data-plane/prod` nesta revisão.
+- **Argo CD central** sincroniza CRs de infraestrutura no Hub. **Crossplane único central** reconcilia Capabilities AWS, sem cascata. **Argo CD local** gerencia aplicações e configuração Kubernetes em EKS autorizados; não supor acesso PCI automático.
+- **Foundation e EKS por Terraform** via workflow/gates autorizados. `AWSEnvironment` atua como contrato central de lifecycle futuramente; pastas Git, CODEOWNERS e namespaces não bastam para isolamento.
+- **MSK fora do escopo inicial**. Não acrescentar um recurso compartilhado hipotético como requisito funcional.
+- Fonte oficial: [arquitetura consolidada](docs/architecture.md) e [ADR-0012](docs/adr/0012-federated-ownership-and-gitops.md).
