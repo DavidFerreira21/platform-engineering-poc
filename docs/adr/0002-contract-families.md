@@ -14,3 +14,7 @@ São necessários schemas próprios por Capability, regras claras de lifecycle e
 
 ## Validação
 Validar a decisão em labs incrementais e atualizar a documentação se surgir um requisito incompatível. Não executar mudanças reais na AWS sem autorização.
+
+## Evolução da implementação (ADR-0009)
+
+`AWSEnvironment` será CRD Kubernetes nativo com Environment Controller próprio; `Domain` e cada Capability serão XRDs Crossplane que expõem recursos pela **mesma Kubernetes API**. Os recursos Crossplane serão implementados via Compositions e Providers. A criação de contas será posterior ao suporte a contas AWS preexistentes. Consultar [ADR-0009](0009-crossplane-e-reconciliacao.md) e [ADR-0010](0010-aws-real-e-ambientes.md).

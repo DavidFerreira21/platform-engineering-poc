@@ -14,3 +14,7 @@ Separar Argo CD de Argo Workflows. Evitar concorrência no spec e dupla propried
 
 ## Validação
 Validar a decisão em labs incrementais e atualizar a documentação se surgir um requisito incompatível. Não executar mudanças reais na AWS sem autorização.
+
+## Definição posterior (ADR-0009)
+
+A classificação de Crossplane como reconciliador *futuro* fica **substituída**: a adoção do Crossplane foi decidida para Domain/Capabilities e sua localização lógica é o **Control Plane**. Argo Workflows, Terraform Executor, gates e Argo CD permanecem no Workflow Plane. O Environment Controller próprio aciona workflows; o Crossplane reconcilia seus recursos diretamente. [Detalhamento](0009-crossplane-e-reconciliacao.md).

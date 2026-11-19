@@ -1,29 +1,30 @@
 # Roteiro de aprendizado — Platform Engineering POC
 
-**Método:** construir progressivamente, entender cada conceito, observar os recursos em execução e reproduzir falhas e recuperações. A topologia-alvo de sete clusters não significa que devemos provisioná-los no início.
+**Objetivo:** construir a plataforma progressivamente, com Hub local em `kind` e **provisionamento AWS real**. A criação de contas é uma fase posterior; os primeiros exercícios usam conta preexistente autenticada. Cada lab apresenta finalidade, pré-requisitos, comandos, evidências de execução, falha controlada, recuperação, custo e limpeza.
 
-| Fase | Implementação e conceito | Evidência verificável | Falha e recuperação |
-| --- | --- | --- | --- |
-| 00 | Documentação, ADRs e estrutura do Git | Links e nomenclaturas consistentes | Encontrar referência inválida |
-| 01 | Platform Management Cluster em `kind`, API e RBAC | Observar recursos, eventos e permissões | Manifest inválido e acesso negado |
-| 02 | `AWSEnvironment` CRD e controller com AWS mockada | `uat` evolui condições de status | Erro de validação e retry |
-| 03 | Argo Workflows e Terraform `plan` | Workflow vinculado ao Environment | Falha de execução e retomada |
-| 04 | Gates manuais, espera de IPs, rotas e certificados | Aprovação autorizada + validação técnica | Aprovação indevida bloqueada |
-| 05 | Argo CD e GitOps | Commit → CR → controller → status | Drift do spec corrigido |
-| 06 | UAT/PROD com Management EKS, PCI e Non-PCI simulados | Configurações isoladas por ambiente | Bloqueio de destino incorreto |
-| 07 | Domain, namespaces e relacionamentos | Múltiplos domínios no mesmo ambiente | Acesso cruzado negado |
-| 08 | Capabilities `Database` e `ObjectStorage` | Instâncias e status de recursos tipados | Parâmetros inválidos |
-| 09 | Observability Plane ponta a ponta | Diagnóstico com logs, métricas e traces | Localizar workflow com falha |
-| 10 | Backstage, CLI e AI/MCP | Mesmos contratos consumidos por canais diferentes | Usuário sem permissão rejeitado |
-| 11 | Crossplane e AWS real opcional | Comparar motores sem dupla gestão | Simular conflito de ownership |
-| 12 | Segurança, PCI e recuperação | Procedimento de recuperação testado | Falha do cluster de gerenciamento |
+| Fase | Tema | Evidência e critérios de saída |
+| --- | --- | --- |
+| 00 | Baseline documental, ADRs, Git e segurança | Estrutura e links coerentes; nenhuma credencial versionada |
+| 01 | Hub `kind`, Kubernetes API, RBAC e observação | Acesso controlado, eventos e logs inspecionados |
+| 02 | Conectividade AWS real: perfis/roles, STS e pré-voo | Conta/região explicitadas, permissões mínimas, custos e plano de limpeza |
+| 03 | Crossplane Core, XRD, Composition e Provider AWS | Criar e consultar Custom Resource pela mesma Kubernetes API; reconciliar de verdade |
+| 04 | Capability inicial `ObjectStorage` com AWS real | Bucket de laboratório real, status, drift e limpeza controlada |
+| 05 | Capability `Database` e demais recursos gradualmente | Provisionamento real com limites de custo, confirmação e teardown |
+| 06 | CRD `AWSEnvironment` e Environment Controller próprio | Adotar conta preexistente, status.conditions, reconciliação idempotente |
+| 07 | Argo Workflows, Terraform Executor, gates e aprovações | Workflow vinculado ao Environment, plan/apply autorizado e auditável |
+| 08 | GitOps e Argo CD no Hub | PR → CR → reconciliador → status; correção de drift |
+| 09 | XRD `Domain`: Namespace e políticas | Composition cria recursos no destino permitido; restrições de clusters remotos testadas |
+| 10 | UAT e PROD com **duas contas AWS existentes** | Permissões, workloads e recursos isolados; conta-alvo validada |
+| 11 | Management EKS e PCI/Non-PCI, incremental | GitOps local e separação de gestão avaliados; sem criar todos os clusters por padrão |
+| 12 | Observability Plane ponta a ponta | Correlação de logs, métricas, traces e reconciliação |
+| 13 | Backstage, CLI, AI/MCP | Consumo dos mesmos contratos sem API paralela |
+| 14 | **Criação automatizada de conta AWS** via AWSEnvironment | Argo Workflows coordena criação, rede, segurança e dependências humanas |
+| 15 | PCI, identidade, custos e recuperação | Revisão de privilégios, restauração e teardown seguro |
 
-## Contrato de qualidade de cada lab
-Explicar problema e conceito, arquitetura antes/depois, pré-requisitos, passos manuais, comandos, resultados esperados, observação de eventos e logs, falha proposital segura, diagnóstico, recuperação, critérios de conclusão, automação e limpeza. Referenciar fontes canônicas do monorepo; não duplicar implementação.
-
-## Restrições
-- Começar com `kind` e mocks, evoluindo para papéis de clusters adicionais.
-- Não simular uma integração com chamados como se estivesse implementada.
-- `terraform plan` não significa autorização de `apply`.
-- Qualquer criação de conta AWS, recursos reais, custos e destruição exige aprovação explícita.
-- Backstage, AI/MCP, Crossplane e observabilidade completa são componentes da arquitetura-alvo e podem ser introduzidos depois.
+## Regras técnicas e pedagógicas
+- Crossplane **é parte do Control Plane** desde os primeiros labs; o Workflow Plane possui Argo Workflows, Terraform Executor e Argo CD.
+- `AWSEnvironment` é CRD nativo com controller próprio, inicialmente operando sobre **contas existentes**; `Domain` e Capabilities são XRDs com Compositions.
+- A AWS é real: executar alterações apenas com conta/região conferidas via STS, credenciais temporárias, avaliação de custos e aprovação específica por operação. Preferir recursos baratos e descartáveis antes de banco/compute.
+- Separar `plan` de `apply`, não versionar Terraform state ou credenciais e documentar `destroy` e remoção dos recursos gerenciados com cautela.
+- Ter testes de mocks para lógica interna não significa substituir os labs AWS por simulação.
+- Não pressupor integração de chamados, criação de conta na fase inicial ou acesso administrativo compartilhado PCI/Non-PCI.
