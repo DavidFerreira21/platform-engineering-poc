@@ -1,47 +1,89 @@
 # Platform Engineering POC
 
-Laboratório pessoal para estudar uma plataforma **Kubernetes-native**, com API declarativa, automação e ambientes de execução separados.
+> Uma plataforma **Kubernetes-native**, construída passo a passo para estudar contratos declarativos, reconciliação, self-service e provisionamento real na AWS.
 
-## Arquitetura-alvo
+**`Kubernetes API` · `Crossplane` · `Argo Workflows` · `Terraform` · `Argo CD` · `AWS`**
 
-1. **Experience Layer:** Backstage, CLI, GitOps e AI/MCP.
-2. **Control Plane:** Kubernetes API Server, CRD nativo `AWSEnvironment` com controller próprio, Crossplane Core com XRDs/Compositions/Providers para `Domain` e Capabilities.
-3. **Workflow Plane:** Argo Workflows, Terraform Executor, Argo CD e aprovações. Crossplane pertence ao **Control Plane**.
-4. **Observability Plane:** OpenTelemetry, métricas, logs, traces, auditoria e alertas.
-5. **Data Plane:** ambientes **UAT** e **PROD**, cada um representando uma conta AWS, com Environment Management EKS, EKS PCI e EKS Non-PCI **projetados para Amazon EKS Auto Mode**, além do AWS Runtime.
+> [!NOTE]
+> **Estado atual:** arquitetura e materiais conceituais documentados. Os componentes da POC ainda serão implementados. Os ambientes AWS não foram provisionados por este repositório.
 
-O Control, Workflow e Observability Planes são responsabilidades lógicas hospedadas no **Platform Management Cluster**. O Data Plane contém os ambientes de execução. O padrão **Hub-and-Spoke** ajuda a explicar a relação entre gerenciamento central e ambientes, mas não substitui os nomes das camadas e não significa, por si só, uma topologia de redes AWS.
+## 🧭 Comece por aqui
 
-A topologia-alvo contempla sete clusters, mas o **Hub pode começar localmente em `kind`**. O provisionamento dos labs utilizará **AWS real**, inicialmente em conta existente e autenticada, sem provisionar todos os clusters de uma vez. **A documentação não significa que essa infraestrutura já foi implantada.**
+| Caminho | O que você encontra |
+| :--- | :--- |
+| 📖 **[Fundamentos](docs/fundamentos/README.md)** | 24 artigos conceituais em português: Platform as a Product, Golden Paths, IDP, contratos e reconciliação |
+| 🏗️ **[Arquitetura](docs/architecture.md)** | Camadas, responsabilidades e fluxo entre Kubernetes API, Crossplane e AWS |
+| 🧪 **[Roteiro prático](docs/learning-roadmap.md)** | Implementação progressiva, da preparação local até AWS real |
+| 📝 **[Decisões arquiteturais](docs/adr/README.md)** | ADRs e justificativas das escolhas técnicas |
+| 🗂️ **[Estrutura do repositório](docs/repository-structure.md)** | Onde ficará cada componente |
+| 🤖 **[Orientações para agentes](AGENTS.md)** | Convenções, segurança e critérios de qualidade |
 
-## Documentação
-- [Arquitetura](docs/architecture.md)
-- [Decisões arquiteturais](docs/adr/README.md)
-- [Estrutura do repositório](docs/repository-structure.md)
-- [Fundamentos de Platform Engineering — curso conceitual](docs/fundamentos/README.md)
-- [Roteiro de aprendizado prático](docs/learning-roadmap.md)
-- [Instruções para agentes](AGENTS.md)
+## 🧱 Arquitetura em uma visão
 
-## Regras fundamentais
-- Documentação, ADRs, orientações e explicações em **português brasileiro**; preservar nomes técnicos, comandos e campos de API.
-- Nenhuma associação a empresa, país ou entidade: apenas UAT e PROD.
-- Git é a fonte da verdade do estado desejado; Kubernetes API é a API da plataforma e expõe o estado operacional.
-- Três **famílias** de contratos: `AWSEnvironment`, `Domain` e Capabilities especializadas (`Database`, `ObjectStorage` etc.). Não adotar `CapabilityClaim` genérico inicialmente.
-- Um `AWSEnvironment` corresponde a uma conta AWS; pode haver vários Domains por ambiente.
-- Provisionamento combina automação, validações técnicas e aprovações humanas auditáveis.
-- Proibido versionar segredos, kubeconfigs, Terraform state ou identificadores reais. AWS real faz parte do laboratório: confirmar identidade/conta/região, permissões, custos e plano antes de cada execução; exigir aprovação explícita por operação e limpeza controlada.
+```text
+                      EXPERIENCE LAYER
+                Backstage · CLI · GitOps · AI/MCP
+                              │
+                              ▼
+                 PLATFORM MANAGEMENT CLUSTER
+                         (kind local)
+  ┌────────────────────────────────────────────────────┐
+  │ CONTROL PLANE                                      │
+  │ Kubernetes API · AWSEnvironment Controller         │
+  │ Crossplane · XRDs · Compositions · Providers        │
+  ├────────────────────────────────────────────────────┤
+  │ WORKFLOW PLANE                                     │
+  │ Argo CD · Argo Workflows · Terraform Executor       │
+  ├────────────────────────────────────────────────────┤
+  │ OBSERVABILITY PLANE                                │
+  │ Métricas · Logs · Traces · Auditoria                │
+  └────────────────────────────────────────────────────┘
+                              │
+                              ▼
+                           DATA PLANE
+          UAT (conta AWS)          PROD (conta AWS)
+          EKS Auto Mode            EKS Auto Mode
+          AWS Runtime              AWS Runtime
+```
 
-**Situação atual:** documentação e estrutura inicial para implementação futura.
+**Uma API, diferentes reconciliadores.** O Kubernetes API Server recebe os recursos. O **Environment Controller** cuida de `AWSEnvironment`; o **Crossplane** implementa `Domain` e as Capabilities especializadas. Argo Workflows coordena processos longos e aprovações.
 
-## Fases de integração AWS
-1. **Conta existente autenticada:** acesso AWS real para criar e observar recursos com Crossplane e Terraform, sem criar conta.
-2. **UAT e PROD:** separar a implantação em duas contas AWS preexistentes, com credenciais e estados isolados.
-3. **Criação de contas:** evoluir o `AWSEnvironment` para provisionamento/adoção automatizados, com Argo Workflows e aprovações.
+[Detalhes e limites da arquitetura](docs/architecture.md) · [ADR de reconciliação](docs/adr/0009-crossplane-e-reconciliacao.md)
 
-Decisões: [ADR-0009](docs/adr/0009-crossplane-e-reconciliacao.md) e [ADR-0010](docs/adr/0010-aws-real-e-ambientes.md).
+## 🛤️ Jornada da POC
 
-## Padrão EKS dos ambientes
-Os clusters reais de gerenciamento local, PCI e Non-PCI terão **Amazon EKS Auto Mode** como escolha padrão. Isso reduz a necessidade de operar nós e componentes gerenciados de computação, rede e storage. O **Platform Management Cluster permanece em kind local**, e o uso do Auto Mode nos EKS reais será validado conforme compatibilidade, requisitos PCI e custos. Ver [ADR-0011](docs/adr/0011-eks-auto-mode.md).
+| Etapa | Experiência |
+| :--- | :--- |
+| **01 · Compreender** | Estudar os [fundamentos](docs/fundamentos/README.md) e as decisões de arquitetura |
+| **02 · Preparar** | Montar o Platform Management Cluster em `kind` e configurar acesso seguro à AWS |
+| **03 · Entregar** | Implantar Crossplane e provisionar `ObjectStorage` **real** por XRD + Composition |
+| **04 · Evoluir** | Incorporar GitOps, `Domain`, `AWSEnvironment` e workflows |
+| **05 · Expandir** | Separar UAT e PROD em contas AWS e, gradualmente, usar EKS Auto Mode |
+| **06 · Automatizar** | Evoluir para criação de contas AWS pelo lifecycle de `AWSEnvironment` |
 
-## Antes dos laboratórios
-Comece pelas **[24 artigos de fundamentos](docs/fundamentos/README.md)**, baseadas nos temas conceituais dos primeiros capítulos de *Platform Engineering in Practice* (Zebb Wright), mas com conteúdo autoral em pt-BR e exemplos exclusivos da nossa POC. A trilha de fundamentos **explica conceitos**; o roadmap prático **implementa e valida** esses conceitos.
+[Acompanhar fases, evidências e critérios de saída](docs/learning-roadmap.md)
+
+## 🧩 Contratos da plataforma
+
+| Família | Contrato | Implementação prevista |
+| :--- | :--- | :--- |
+| **Environment** | `AWSEnvironment` | CRD nativo + Environment Controller |
+| **Domain** | `Domain` | XRD + Crossplane Composition |
+| **Capabilities** | `Database`, `ObjectStorage`, `ComputeInstance`, `Messaging` | XRDs + Crossplane Compositions / Providers |
+
+Cada `AWSEnvironment` representa uma conta AWS. Vários Domains podem pertencer a um ambiente. **Capability** é a família lógica, não um recurso genérico `CapabilityClaim`.
+
+## ☁️ Estratégia AWS
+
+1. **Conta existente:** provisionar Capabilities reais numa conta autenticada.
+2. **UAT e PROD:** trabalhar com duas contas preexistentes e isoladas.
+3. **Criação de contas:** automatizar a fundação e o lifecycle futuramente.
+
+O **Hub permanece inicialmente em `kind`**. Os EKS dos Data Planes terão **Amazon EKS Auto Mode** como padrão, sujeitos a validação técnica e financeira.
+
+> [!IMPORTANT]
+> Recursos reais na AWS exigem confirmação de conta/região, privilégios mínimos, avaliação de custos, autorização de execução e estratégia de limpeza. Não versionar credenciais, kubeconfigs ou Terraform state. Documentar uma arquitetura **não autoriza** executar `apply` ou `destroy`.
+
+---
+
+<sub>Laboratório pessoal · Documentação em português brasileiro · [ADR-0010 — AWS real](docs/adr/0010-aws-real-e-ambientes.md) · [ADR-0011 — EKS Auto Mode](docs/adr/0011-eks-auto-mode.md)</sub>
