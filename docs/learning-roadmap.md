@@ -15,7 +15,7 @@
 | 08 | GitOps e Argo CD no Hub | PR → CR → reconciliador → status; correção de drift |
 | 09 | XRD `Domain`: Namespace e políticas | Composition cria recursos no destino permitido; restrições de clusters remotos testadas |
 | 10 | UAT e PROD com **duas contas AWS existentes** | Permissões, workloads e recursos isolados; conta-alvo validada |
-| 11 | Management EKS e PCI/Non-PCI, incremental | GitOps local e separação de gestão avaliados; sem criar todos os clusters por padrão |
+| 11 | **EKS Auto Mode**: Management EKS e PCI/Non-PCI, incremental | Provisionar um cluster real por vez; validar NodePools, integração com Argo CD, operators, custos e isolamento |
 | 12 | Observability Plane ponta a ponta | Correlação de logs, métricas, traces e reconciliação |
 | 13 | Backstage, CLI, AI/MCP | Consumo dos mesmos contratos sem API paralela |
 | 14 | **Criação automatizada de conta AWS** via AWSEnvironment | Argo Workflows coordena criação, rede, segurança e dependências humanas |
@@ -28,3 +28,6 @@
 - Separar `plan` de `apply`, não versionar Terraform state ou credenciais e documentar `destroy` e remoção dos recursos gerenciados com cautela.
 - Ter testes de mocks para lógica interna não significa substituir os labs AWS por simulação.
 - Não pressupor integração de chamados, criação de conta na fase inicial ou acesso administrativo compartilhado PCI/Non-PCI.
+
+## Padrão EKS
+O Lab 11 utiliza **Amazon EKS Auto Mode**, não node groups autogerenciados como padrão. O Hub continua em `kind` local. Verificar compatibilidade com DaemonSets, requirements PCI, identidade de Pods, rede, storage e cobrança antes do provisionamento. Escalar gradualmente de um cluster para a topologia-alvo, sem criação automática de todos os clusters.

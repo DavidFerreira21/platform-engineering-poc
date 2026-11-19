@@ -54,3 +54,6 @@ Isolamento UAT/PROD, contratos versionados, referências válidas, ownership do 
 ## AWS real e separação de fases
 
 Os diretórios `data-plane/uat` e `data-plane/prod` representarão contas AWS **reais** distintas quando disponibilizadas. No início, usar uma única conta preexistente autorizada e evoluir para duas contas. Somente depois implementar a criação automática de contas pelo Environment Controller. Templates reutilizáveis ficam na camada proprietária, não duplicados nos overlays UAT/PROD. O bootstrap `kind` do Hub não implica que os recursos AWS sejam simulados.
+
+## Provisionamento EKS
+Os seis clusters EKS previstos nos Spokes serão modelados com **Amazon EKS Auto Mode** por padrão, conforme [ADR-0011](adr/0011-eks-auto-mode.md). Configurações compartilhadas e módulos reutilizáveis ficam em sua camada proprietária; overlays UAT/PROD expressam apenas diferenças de ambiente. O `platform/hub/` local utiliza `kind`.

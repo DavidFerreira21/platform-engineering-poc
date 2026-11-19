@@ -21,3 +21,6 @@ A POC é um laboratório prático e deverá provisionar recursos **reais na AWS*
 - Especificar autenticação realista do provider AWS a partir de `kind` (credenciais temporárias/role/federação), sem presumir IRSA ou EKS Pod Identity em `kind`.
 - `AWSEnvironment` deve suportar **adoption-first** e gestão de recursos numa conta existente antes de implementar o fluxo de abertura de conta.
 - Documentar impacto de billing, quotas, políticas de conta, state do Terraform e salvaguardas contra `destroy` de recursos permanentes.
+
+## Complemento posterior — ADR-0011
+O provisionamento dos clusters EKS reais em contas existentes adotará inicialmente **EKS Auto Mode**. A decisão não antecipa o provisionamento de contas nem obriga criar todos os clusters no primeiro laboratório. Consultar [ADR-0011](0011-eks-auto-mode.md).

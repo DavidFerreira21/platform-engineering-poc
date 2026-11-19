@@ -21,3 +21,5 @@ Todos os textos explicativos são escritos em **português brasileiro**. Os nome
 - [ADR-0010 — AWS real e adoção progressiva de ambientes](0010-aws-real-e-ambientes.md)
 
 Esses ADRs atualizam decisões anteriores sobre Crossplane e ordem dos labs, sem alterar a nomenclatura dos planes.
+
+- [ADR-0011 — EKS Auto Mode como padrão dos clusters dos Data Planes](0011-eks-auto-mode.md)
