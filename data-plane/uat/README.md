@@ -1,6 +1,6 @@
-# 🧪 UAT · Conta AWS
+# 🧪 UAT · Entity Core (marcador legado)
 
-Ambiente **UAT**, representado por uma conta AWS independente. A estrutura abaixo é o **alvo**, ainda não provisionado.
+Marcador de documentação do **Core Infrastructure** do Environment UAT, associado à sua própria conta AWS. A estrutura abaixo está planejada, ainda não provisionada. No modelo vigente, Core ficará em `data-plane/entity-a/core-infrastructure/`uat``, e Domains estarão em `data-plane/entity-a/domains/`. Environment inclui ambos os escopos.
 
 | Componente | Papel |
 | :--- | :--- |

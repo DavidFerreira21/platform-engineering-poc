@@ -1,18 +1,16 @@
 # ⚙️ Workflow Plane
 
-Coordena **fluxos, aprovações e entrega GitOps**, sem substituir a reconciliação nativa do Crossplane.
+O Workflow Plane mantém processos, GitOps central, aprovação e execução, **sem Crossplane**.
 
 | Componente | Papel |
 | :--- | :--- |
-| Argo Workflows | Etapas, esperas e gates autorizados |
-| Terraform Executor | `plan`/`apply` controlados e state protegido |
-| Argo CD | Sincronização declarativa de Git para Kubernetes |
+| **Argo CD central** | Sincroniza CRs Kubernetes de Capability na API do Hub |
+| **Argo Workflows** | Orquestra passos, gates, espera e auditoria de Foundation/Core |
+| **Terraform Executor** | `plan`, aprovação e `apply` de Foundation/EKS, com state seguro |
 
-O Environment Controller pode iniciar workflows, mas pertence ao **Control Plane**. Crossplane também pertence ao Control Plane.
+`Entity`, `Environment` e `Domain` são registros lógicos no Git. Não exigem Environment Controller próprio ou XRD de Domain nesta fase. A criação de contas será reconsiderada no futuro quando houver necessidade de lifecycle automatizado. O **Argo CD local** roda em cada Management EKS autorizado, junto do Data Plane.
 
 > [!NOTE]
-> **Situação:** estrutura de documentação e planejamento. Nenhum componente desta pasta está implantado por padrão.
+> **Estado:** documentação; nenhum componente provisionado.
 
----
-
-[← Página inicial](../README.md) · [Arquitetura](../docs/architecture.md) · [Roteiro prático](../docs/learning-roadmap.md)
+[← Início](../README.md) · [Arquitetura](../docs/architecture.md)

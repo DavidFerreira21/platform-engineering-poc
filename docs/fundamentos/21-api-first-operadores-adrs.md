@@ -8,9 +8,9 @@ A API Kubernetes expõe Custom Resources, e um CRD descreve a forma de um tipo. 
 
 ## Exemplos do nosso desenho
 
-AWSEnvironment é CRD + Environment Controller próprio; Domain e Capabilities são XRD + Crossplane. Todos são consumidos pelo mesmo Kubernetes API Server, mas executados por reconciliadores diferentes.
+Entity, Environment e Domain são registros lógicos do Git. Somente Capabilities são XRDs do Crossplane inicialmente.
 
-AWSEnvironment será CRD nativo com Environment Controller que coordena Argo Workflows/Terraform. Domain e Database serão XRDs especializados reconciliados pelo Crossplane. Um ADR registra essa divisão com contexto e consequências. O mesmo consumidor consegue consultar os recursos pelo Kubernetes API Server, independentemente do controller responsável.
+`environment.yaml` registra conta/região; `domain.yaml` registra ownership. `ObjectStorage` é XRD/Composition reconciliado pelo Crossplane na Kubernetes API. Terraform prepara Foundation e EKS; Argo Workflows coordena etapas. Nem todo conceito precisa virar um controller ou CRD.
 
 ## Leitura complementar
 
