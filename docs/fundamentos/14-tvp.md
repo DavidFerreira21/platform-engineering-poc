@@ -1,37 +1,22 @@
-# Aula 14 — Thinnest Viable Platform (TVP) e priorização
-
-**Trilha:** Organização e descoberta · **Tipo:** fundamento conceitual · **Pré-requisito:** aula 13
-
-## Objetivos de aprendizagem
-
-Ao terminar, você deve conseguir explicar o conceito com suas palavras, reconhecer o problema que ele resolve e relacioná-lo às decisões da POC.
-
-## Conceito e por que existe
+# Thinnest Viable Platform (TVP) e priorização
 
 TVP é o menor conjunto de capacidades que reduz uma dor relevante e pode evoluir com feedback. Não é a arquitetura completa em miniatura, nem um MVP vazio. Priorize dor, frequência, impacto, risco e esforço. Explicite o que está fora do escopo e só amplie após provar o fluxo ponta a ponta. O objetivo é um produto utilizável, mesmo estreito.
 
-## Como aparece na nossa POC
+## Menor plataforma viável não é menor diagrama
+
+Thinnest Viable Platform (TVP) é a menor oferta integrada que resolve um problema concreto de ponta a ponta. Um catálogo vazio, dez operators instalados ou um cluster disponível são peças de tecnologia; só viram um produto quando alguém consegue realizar uma tarefa importante com confiança. Priorizar uma fatia vertical estreita torna visíveis as lacunas de identidade, reconciliação, documentação e suporte.
+
+## Nossa primeira fatia
 
 Nossa primeira fatia entrega ObjectStorage real numa conta AWS preexistente, com XRD, Composition, status e cleanup. Não exige Backstage nem sete clusters EKS.
 
-## Erro comum
+Um XRD ObjectStorage com Composition que provisiona um bucket real numa conta autenticada, mostra condições de status e permite limpeza segura já demonstra um produto incipiente. Não precisamos aguardar a implementação simultânea de Backstage, dois ambientes completos e seis EKS.
 
-Não confundir o conceito com a simples instalação de uma ferramenta. A evidência de uma capacidade de plataforma está na experiência de consumo, no contrato e na possibilidade de observar e corrigir o resultado.
+## Leitura complementar
 
-## Exercício conceitual
-
-Qual é a menor demonstração que provaria valor do nosso Control Plane antes do Domain e do Environment completos?
-
-**Critério de conclusão:** responder com um exemplo, um trade-off e uma forma de verificar se o conceito foi aplicado.
-
-## Para fixar
-
-Evitar implantação de ferramentas sem comprovação de capacidade.
-
-## Referência e leitura complementar
-
-Inspirado no tema **Capítulo 2 — thinnest viable platform.** do livro *Platform Engineering in Practice*, de Zebb Wright (GitforGits, 2026), com explicações e exemplos **autorais**, adaptados à nossa POC. Consulte o exemplar licenciado para aprofundamento; este texto não o substitui nem reproduz trechos.
+- [CNCF — Maturity Model](https://tag-app-delivery.cncf.io/whitepapers/platform-eng-maturity-model/) — material de referência para aprofundamento.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 2 — thinnest viable platform.. Referência temática; explicação e exemplos autorais.
 
 ---
 
-[Aula anterior](./13-descoberta-e-entrevistas.md) · [Índice da trilha](README.md) · [Próxima aula](./15-metricas-dx.md)
+[Aula anterior](13-descoberta-e-entrevistas.md) · [Índice](README.md) · [Próxima aula](15-metricas-dx.md)
