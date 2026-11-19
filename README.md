@@ -15,6 +15,7 @@
 | [🗂️ Monorepo](docs/repository-structure.md) | Responsabilidades e localização das configurações |
 | [📝 Decisões vigentes](docs/adr/README.md) | ADRs atuais, sem versões contraditórias |
 | [🧪 Roteiro prático](docs/learning-roadmap.md) | Fases de laboratório, AWS real e validações |
+| [▶️ Lab 01: Hub kind](labs/01-platform-management-cluster.md) | Criar, verificar e remover o Platform Management Cluster local |
 | [📖 Fundamentos](docs/fundamentos/README.md) | 24 aulas conceituais pt-BR |
 | [🤖 Orientações para agentes](AGENTS.md) | Padrões de implementação e segurança |
 
@@ -49,7 +50,7 @@ flowchart TB
 | **Domain** | Identidade lógica, ownership, consumo, infraestrutura e aplicações | Um `domain.yaml` por Domain, não XRD |
 | **Capability** | Produto técnico entregue pela plataforma | XRD + Composition + Provider Crossplane |
 
-`ObjectStorage` é a primeira Capability; `Database`, `Messaging` e `ComputeInstance` ficam planejados. Sem MSK inicial ou `CapabilityClaim` genérico.
+`ObjectStorage` é a primeira Capability e **`Database` (Aurora PostgreSQL)** vem em seguida; `Messaging` e `ComputeInstance` ficam planejados. Sem MSK inicial ou `CapabilityClaim` genérico.
 
 ## 🔐 Quatro camadas de ownership
 
@@ -68,7 +69,7 @@ flowchart TB
 
 ## ☁️ Estratégia AWS
 
-Primeiro Hub `kind` e **uma conta AWS existente** para `ObjectStorage` real de baixo custo. Depois contas UAT/PROD distintas, Terraform Foundation/Core, um EKS Auto Mode de cada vez e GitOps local. A criação automatizada de contas é evolução opcional, justificada em lab futuro.
+Primeiro Hub `kind` com [Lab 01 executável](labs/01-platform-management-cluster.md), depois Crossplane no Hub; em seguida preparar a **conta UAT existente** e a autenticação AWS, ainda a definir, para `ObjectStorage` real e `Database` com **Amazon Aurora PostgreSQL**. Depois contas UAT/PROD distintas, Terraform Foundation/Core, um EKS Auto Mode de cada vez e GitOps local. A criação automatizada de contas é evolução opcional, justificada em lab futuro.
 
 > [!IMPORTANT]
 > Executar AWS somente com conta/região verificadas via STS, IAM mínimo, custo, autorização explícita e plano de cleanup. Não publicar credenciais, kubeconfigs ou Terraform state. Aprovar a documentação **não** autoriza `apply`/`destroy`.

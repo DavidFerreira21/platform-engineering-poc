@@ -19,6 +19,12 @@ O **Domain Bootstrap** usa um perfil versionado definido pela plataforma e gera,
 
 **Environment é a conta AWS UAT/PROD inteira**, não a pasta de Core. O Core é a parte compartilhada e o Domain possui os recursos de negócio. Ambos ficam no **Data Plane**. O registro de Environment fica na Foundation por ownership central, mas descreve o destino de todos os recursos do Environment.
 
+### Primeira implementação
+
+- `platform/hub/kind-config.yaml` e `platform/hub/scripts/`: criação, inspeção e remoção **apenas do cluster local kind**.
+- `labs/01-platform-management-cluster.md`: laboratório com pré-requisitos, começo, testes, diagnóstico e teardown.
+- `foundation/config/entity-a/uat/environment.example.yaml`: **template sem conta, região operacional ou credenciais reais**. A autenticação da conta AWS será decidida antes do primeiro provisionamento, não no bootstrap do kind.
+
 ### Situação de migração
 
 Os marcadores originais `data-plane/uat/` e `data-plane/prod/` são **READMEs legados, sem infraestrutura implantada**. A estrutura final será `data-plane/entity-a/core-infrastructure/{uat,prod}/`, além de `data-plane/entity-a/domains/`. Criar diretórios/manifests de infraestrutura apenas durante os labs, sem duplicar recursos ou mover infraestrutura ativa. Não criar repositórios Git separados para Entity ou Domain.

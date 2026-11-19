@@ -7,6 +7,7 @@ Os labs materializarão a arquitetura progressivamente: preparação, instalaç�
 | **Conceitos** | [📖 Fundamentos](../docs/fundamentos/README.md) |
 | **Design** | [🏗️ Arquitetura](../docs/architecture.md) |
 | **Execução** | [🛤️ Roteiro prático](../docs/learning-roadmap.md) |
+| **Lab 01** | [Platform Management Cluster com kind](01-platform-management-cluster.md) |
 
 Cada lab deve apresentar pré-requisitos, passos, evidências, diagnóstico, recuperação e limpeza. Recursos AWS reais exigem autorização por operação.
 
