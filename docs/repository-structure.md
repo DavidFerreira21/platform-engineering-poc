@@ -1,82 +1,26 @@
 # 🗂️ Estrutura do monorepo
 
-[← Página inicial](../README.md) · [🏗️ Arquitetura](architecture.md) · [📝 ADRs](adr/README.md)
+[← Início](../README.md) · [Arquitetura](architecture.md) · [Roadmap](learning-roadmap.md)
 
-**Estado atual:** o diretório abaixo representa as pastas existentes ou os respectivos marcadores de escopo. A organização detalhada por entidade, Domain e quatro camadas está **proposta**, ainda não criada. Consulte a [arquitetura consolidada](architecture.md#4-monorepo-representação-das-fronteiras).
+A POC utiliza **um único repositório** para demonstrar responsabilidades que poderiam ser separadas por equipes/repositórios reais. A estrutura-alvo está detalhada na [arquitetura](architecture.md#5-organização-do-monorepo).
 
-A estrutura do repositório evidencia **Control Plane, Workflow Plane, Observability Plane e Data Plane**, com UAT e PROD como ambientes distintos. Os diretórios existentes com README são marcadores de escopo, não componentes implantados.
+## Divisão por ownership
 
-```text
-platform-engineering-poc/
-├── AGENTS.md
-├── README.md
-├── control-plane/
-│   ├── environment/             # CRD AWSEnvironment + controller próprio
-│   └── crossplane/              # Core, XRDs, Compositions, Providers
-│       ├── domains/             # XRD Domain
-│       └── capabilities/        # XRDs Database, Storage, Compute, Messaging
-├── workflow-plane/
-│   ├── argo-workflows/          # execução e aprovações
-│   ├── terraform-executor/      # plan/apply controlado
-│   └── argocd/                  # GitOps global
-├── observability-plane/         # OTel, métricas, logs, traces, auditoria
-├── platform/hub/                # bootstrap do Platform Management Cluster
-├── data-plane/
-│   ├── uat/
-│   │   ├── management-eks/      # Argo CD, operators, OTel local
-│   │   ├── eks-pci/             # workloads PCI
-│   │   ├── eks-non-pci/         # workloads não PCI
-│   │   └── aws-runtime/         # serviços AWS da conta UAT
-│   └── prod/
-│       ├── management-eks/
-│       ├── eks-pci/
-│       ├── eks-non-pci/
-│       └── aws-runtime/
-├── docs/
-│   ├── adr/
-│   ├── fundamentos/            # 24 artigos conceituais
-│   ├── architecture.md
-│   ├── repository-structure.md
-│   └── learning-roadmap.md
-├── labs/
-└── tests/
-```
+| Caminho-alvo | Camada e gestão |
+| :--- | :--- |
+| `foundation/modules/` + `foundation/config/<entity>/<env>/` | **Foundation** · equipe central, Terraform reutilizável |
+| `data-plane/<entity>/core-infrastructure/<env>/` | **Entity Core** · compartilhado por ambiente, EKS por Terraform |
+| `data-plane/<entity>/domains/<domain>/domain.yaml` | **Domain** · registro lógico único, não CRD |
+| `data-plane/<entity>/domains/<domain>/<env>/infrastructure/` | **Domain Infra** · Capabilities por Crossplane central |
+| `data-plane/<entity>/domains/<domain>/<env>/applications/` | **Applications** · Argo CD local |
+| `control-plane/`, `workflow-plane/`, `observability-plane/`, `platform/hub/` | Código e configuração da plataforma central |
 
-## 🧭 Quatro camadas dentro do mesmo monorepo
+**Environment é a conta AWS UAT/PROD inteira**, não a pasta de Core. O Core é a parte compartilhada e o Domain possui os recursos de negócio. Ambos ficam no **Data Plane**. O registro de Environment fica na Foundation por ownership central, mas descreve o destino de todos os recursos do Environment.
 
-| Camada | Caminho proposto | Gestão |
-| :--- | :--- | :--- |
-| Foundation | `foundation/modules/` e `foundation/config/entity-a/{uat,prod}/` | Central, Terraform |
-| Entity Core Infrastructure | `data-plane/entity-a/{uat,prod}/core-infra/` | Federada com contratos/aprovações centrais |
-| Domain Infrastructure | `data-plane/entity-a/{uat,prod}/domains/<domain>/infra/` | Federada, Crossplane central |
-| Applications | `data-plane/entity-a/{uat,prod}/applications/` | Local, Argo CD local |
+### Situação de migração
 
-`entity-a` é uma entidade fictícia da POC. As pastas **não devem ser criadas vazias** antes dos labs e não correspondem a repositórios separados. Os diretórios atuais `data-plane/uat/` e `data-plane/prod/` serão migrados quando surgir conteúdo real. [ADR-0012](adr/0012-federated-ownership-and-gitops.md).
+Os marcadores originais `data-plane/uat/` e `data-plane/prod/` são **READMEs legados, sem infraestrutura implantada**. A estrutura final será `data-plane/entity-a/core-infrastructure/{uat,prod}/`, além de `data-plane/entity-a/domains/`. Criar diretórios/manifests de infraestrutura apenas durante os labs, sem duplicar recursos ou mover infraestrutura ativa. Não criar repositórios Git separados para Entity ou Domain.
 
-## 🧩 Critérios de organização
-- Código do controller AWSEnvironment e XRDs/Compositions/Providers Crossplane pertencem ao `control-plane/`; instalação do Hub pertence a `platform/hub/`.
-- Argo Workflows, Terraform Executor, gates e Argo CD pertencem a `workflow-plane/`; Crossplane pertence ao **Control Plane**.
-- Telemetria compartilhada fica em `observability-plane/`; overlays específicos do ambiente ficam no respectivo Spoke.
-- Configurações e recursos por conta ficam em `data-plane/uat/` ou `data-plane/prod/`. Não duplicar manifests compartilhados.
-- **Experience Layer** descreve canais de consumo, não exige pasta separada para cada cliente enquanto não houver código.
-- Hub-and-Spoke permanece conceito explicativo na documentação, sem substituir as camadas nem impor uma divisão adicional no Git.
-- Criar subdiretórios de implementação apenas quando houver conteúdo real.
-- Toda a documentação, comentários didáticos e guias devem usar **pt-BR**.
-- Não usar uma API FastAPI própria como requisito; a interface principal é a Kubernetes API.
+O desenho técnico da plataforma é mantido em `control-plane/` e `workflow-plane/`; o fato de um manifesto de Capability morar no Data Plane **não** move o Crossplane para lá.
 
-## ✅ Critérios de revisão
-Isolamento UAT/PROD, contratos versionados, referências válidas, ownership do `spec` por GitOps, status reconciliado, privilégio mínimo, limites PCI, ausência de segredos, testes e instruções de limpeza.
-
-## ☁️ AWS real e separação de fases
-
-Os diretórios `data-plane/uat` e `data-plane/prod` representarão contas AWS **reais** distintas quando disponibilizadas. No início, usar uma única conta preexistente autorizada e evoluir para duas contas. Somente depois implementar a criação automática de contas pelo Environment Controller. Templates reutilizáveis ficam na camada proprietária, não duplicados nos overlays UAT/PROD. O bootstrap `kind` do Hub não implica que os recursos AWS sejam simulados.
-
-## 🚀 Provisionamento EKS
-Os seis clusters EKS previstos nos Spokes serão modelados com **Amazon EKS Auto Mode** por padrão, conforme [ADR-0011](adr/0011-eks-auto-mode.md). Configurações compartilhadas e módulos reutilizáveis ficam em sua camada proprietária; overlays UAT/PROD expressam apenas diferenças de ambiente. O `platform/hub/` local utiliza `kind`.
-
-## 📖 Trilha de fundamentos
-
-O diretório `docs/fundamentos/` organiza artigos conceituais, separados de `labs/`: os primeiros explicam **por que/para quem/como pensar**; os labs demonstram **como implementar, observar, falhar e recuperar**. Artigos sequenciais com links anterior/próxima devem manter pt-BR, explicações aprofundadas, exemplos da POC e links externos confiáveis. O livro é referência de temas, não texto a reproduzir. [Índice](fundamentos/README.md).
-
-
-[← Página inicial](../README.md) · [Arquitetura](architecture.md) · [Fundamentos](fundamentos/README.md)
+[Arquitetura](architecture.md) · [Decisões vigentes](adr/README.md)
