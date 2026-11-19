@@ -104,7 +104,7 @@ policies:
 
 Esses YAMLs **não são manifests Kubernetes** e não devem ser sincronizados diretamente pelo Argo CD central. Inicialmente são lidos por validações e ferramentas de workflow. A vinculação confiável **Entity + Environment + Domain → conta/IAM/namespace** precisa ser construída e testada: consumidores não podem escolher credenciais AWS arbitrárias.
 
-**`ObjectStorage` é a primeira Capability**; `Database`, `Messaging` e `ComputeInstance` ficam no roadmap. **Não criar `CapabilityClaim` genérico.** Um Domain não implica provisionamento automático de bucket, banco ou aplicação: solicitações ocorrem por contratos próprios.
+**`ObjectStorage` é a primeira Capability**; `Database`, `Messaging` e `ComputeInstance` ficam no roadmap. **Não criar `CapabilityClaim` genérico.** O **Domain Bootstrap** garante as Capabilities e configurações **obrigatórias** para cada Environment habilitado, usando os contratos existentes; Capabilities adicionais e Deployments de aplicações continuam solicitações independentes. Ver [Domain Bootstrap](#6-domain-bootstrap-padrão-obrigatório-por-environment).
 
 ## 4. Quatro camadas de ownership
 
@@ -160,7 +160,46 @@ platform-engineering-poc/
 
 O monorepo demonstra autonomia via PR, revisão de paths e eventualmente CODEOWNERS. **CODEOWNERS sem regras de proteção não basta;** também são necessários RBAC Kubernetes, admission, IAM por conta e AppProjects Argo CD. Terraform state fica fora do Git.
 
-## 6. Três fluxos sem sobreposição
+
+## 6. Domain Bootstrap: padrão obrigatório por Environment
+
+O **Domain é uma identidade lógica única na Entity**, porém sua **ativação em cada Environment** deve executar um **Domain Bootstrap** idempotente. O perfil versionado define o *baseline mínimo obrigatório*; o Domain pode solicitar Capabilities adicionais depois. **Cadastrar um Domain não equivale a um Domain pronto**.
+
+### Regra de produto do perfil `standard` (exemplo da POC)
+
+| Recurso obrigatório por Domain/Environment | Motor de entrega | Ownership |
+| :--- | :--- | :--- |
+| `Database` | Manifest de Capability → Argo CD **central** → Crossplane → AWS | Domain, no Environment |
+| `ObjectStorage` | Manifest de Capability → Argo CD **central** → Crossplane → AWS | Domain, no Environment |
+| Namespace(s) nos destinos Kubernetes permitidos | Manifest Kubernetes → Argo CD **local** | Domain, por cluster/destino |
+| Quotas, políticas de rede/segurança, permissões e labels/tags aplicáveis | GitOps local para Kubernetes; políticas de Capability para AWS | Governança da plataforma, instanciada para Domain |
+
+**Nota de fases:** `ObjectStorage` continua sendo o primeiro **produto técnico implementado** no lab; `Database` é requisito do **perfil completo** de Bootstrap, implementado somente quando houver autorização/custo e integração para a Capability. O teste inicial usa um perfil de laboratório explicitamente reduzido; **não se declara um Domain com perfil `standard` como `Ready` enquanto algum requisito obrigatório não estiver provisionado e verificado**.
+
+### Processo de ativação
+
+```mermaid
+flowchart TB
+    R["PR: domain.yaml / Environment habilitado<br/>+ versão do perfil"] --> V["Validação de identidade, escopo,<br/>permissões e perfil"]
+    V --> B["Domain Bootstrap<br/>renderização declarativa idempotente"]
+    B --> I["Manifests de Capabilities<br/>por Domain + Environment"]
+    B --> K["Manifests Kubernetes<br/>por Domain + Environment"]
+    I --> C["Argo CD central → Kubernetes API → Crossplane → AWS"]
+    K --> L["Argo CD local → EKS autorizado"]
+    C --> S["Verificação das dependências obrigatórias"]
+    L --> S
+    S --> READY["Domain Environment Ready"]
+```
+
+**Local da definição:** `data-plane/<entity>/domains/<domain>/domain.yaml` (identidade e perfil desejado) mais configuração de ativação por ambiente. O **perfil versionado**, com template e requisitos, pertence ao **Control Plane** (catálogo/padrões da plataforma), enquanto o **mecanismo de execução do Bootstrap** pertence ao **Workflow Plane**. Os manifests gerados ficam sob `domains/<domain>/<env>/{infrastructure,applications}/`, revisados e versionados no **mesmo monorepo**. **A aplicação é feita somente pelo GitOps**; o Bootstrap **não cria recursos diretamente** na AWS ou nos EKS, evitando dois escritores.
+
+**Disparo proposto para a POC:** PR de criação/ativação de Domain ou inclusão de Environment → validação e geração idempotente dos manifests → revisão/aprovação → merge → reconciliadores existentes. Não supor que a simples gravação do YAML dispara um controller: o gatilho de CI/workflow e o gerador são **componentes ainda a implementar**. O mesmo perfil pode ser aplicado em UAT e PROD em momentos diferentes, com autorizações próprias. O bootstrap não executa `apply` AWS por aprovação exclusiva da documentação.
+
+**Prontidão e falhas:** após sincronização, uma verificação independente consolida estado por **Domain + Environment** (XRs `Ready`, Argo CD Sync/Health, namespace/políticas). Estado como `Pending`, `Provisioning`, `Ready` ou `Failed` é **derivado de evidências**, não `status` magicamente escrito no `domain.yaml`. Falhas permitem reexecução idempotente sem duplicar buckets, bancos ou namespaces; se faltar um obrigatório, o Domain Environment não está pronto.
+
+**Evolução:** perfis possuem versão imutável/referenciada; novo perfil **não altera automaticamente** Domains existentes. Migração exige PR/avaliação de mudanças, especialmente recursos stateful e PROD. A remoção de um Domain não dispara automaticamente `destroy`: exige descomissionamento explícito, políticas de retenção, dependências e gates. Recursos de **Entity Core Infrastructure** nunca são excluídos com o Domain.
+
+## 7. Três fluxos sem sobreposição
 
 ### Foundation / Entity Core: Terraform orquestrado
 
@@ -200,7 +239,7 @@ data-plane/entity-a/domains/<domain>/<env>/applications/
 
 O Domain continua lógico, enquanto **Argo CD local aplica objetos Kubernetes**. Uma Composition Crossplane central não deve possuir esses mesmos namespaces. O controle PCI requer avaliação das permissões de acesso e eventual segregação do GitOps local.
 
-## 7. Segurança, exclusão, drift e falhas
+## 8. Segurança, exclusão, drift e falhas
 
 - **AWS real:** primeiro conta preexistente; STS comprova conta/região, credenciais temporárias, IAM mínimo, orçamento/custos e aprovação explícita **a cada execução**. Segunda etapa: UAT/PROD em contas distintas; terceira etapa opcional: automação de criação de contas.
 - **Isolamento:** validar negativa para tentativas de Domain A acessar Domain B ou UAT selecionar role/conta PROD. Paths Git e namespaces não equivalem a isolamento de contas AWS.
@@ -208,16 +247,16 @@ O Domain continua lógico, enquanto **Argo CD local aplica objetos Kubernetes**.
 - **Drift:** Crossplane reconcilia Capabilities continuamente enquanto o Hub estiver disponível; Terraform não reconcilia sem execução; Argo CD local continua operando aplicações se seu acesso ao Git e clusters permanecer válido.
 - **Observabilidade:** correlacionar revisão Git, aplicação Argo CD, execução Terraform, XR, condições `Ready` e eventos AWS.
 
-## 8. Nascimento de uma entidade versus ordem pedagógica
+## 9. Nascimento de uma entidade versus ordem pedagógica
 
-**Fluxo operacional real:** Foundation cria/adota conta e rede → Core cria três EKS por Environment → instala Argo CD local → registra Domain lógico → Domain solicita Capabilities por ambiente → Argo CD local implanta namespaces, policies e apps.
+**Fluxo operacional real:** Foundation cria/adota conta e rede → Core cria três EKS por Environment → instala Argo CD local → registra Domain lógico → **Domain Bootstrap cria e verifica o baseline obrigatório por Environment** (Capabilities AWS + namespace/policies) → aplicações são implantadas pelo Argo CD local.
 
-**POC pedagógica:** baseline → Hub `kind` → acesso AWS existente → Crossplane/`ObjectStorage` → registro de Domain/Environment + GitOps central → Terraform/Argo Workflows → Core/EKS incremental → Argo CD local → UAT/PROD segregados → eventual criação de contas. **Não criar seis EKS simultaneamente**, nem implementar um controller de lifecycle apenas para manter uma ideia anterior.
+**POC pedagógica:** baseline → Hub `kind` → acesso AWS existente → Crossplane/`ObjectStorage` → registro de Domain/Environment + GitOps central → **Bootstrap mínimo demonstrativo e progressão até perfil completo** → Terraform/Argo Workflows → Core/EKS incremental → Argo CD local → UAT/PROD segregados → eventual criação de contas. **Não criar seis EKS simultaneamente**, nem implementar um controller de lifecycle apenas para manter uma ideia anterior.
 
-## 9. Decisões vigentes e pontos abertos
+## 10. Decisões vigentes e pontos abertos
 
-**Fechado:** Domain como unidade lógica de consumo/ownership, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas, monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência.
+**Fechado:** Domain como unidade lógica de consumo/ownership **com Bootstrap obrigatório versionado por Environment**, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas, monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência.
 
-**A validar nos labs:** schema dos YAMLs, transformação segura de registros lógicos em escopo/credenciais, autenticação Crossplane a partir do `kind`, distribuição de namespaces/quotas ao GitOps local, gates, observabilidade, PCI e necessidade eventual de uma API/controller de ciclo de vida de contas.
+**A validar nos labs:** implementação e gatilho do gerador de Bootstrap, versionamento dos perfis, verificação agregada de prontidão, schema dos YAMLs, transformação segura de registros lógicos em escopo/credenciais, autenticação Crossplane a partir do `kind`, distribuição de namespaces/quotas ao GitOps local, gates, observabilidade, PCI e necessidade eventual de uma API/controller de ciclo de vida de contas.
 
 [Decisões](adr/README.md) · [Monorepo](repository-structure.md) · [Roteiro](learning-roadmap.md)

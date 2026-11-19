@@ -38,7 +38,7 @@ flowchart TB
   W -. "Foundation / EKS" .-> CORE
 ```
 
-**Environment é o contexto UAT/PROD associado à conta AWS inteira, não apenas ao Core.** O Data Plane contém **Core Infrastructure compartilhada** e **Domains** de negócio/aplicação. Um Domain pode possuir Capabilities, namespaces e apps em ambos os ambientes.
+**Environment é o contexto UAT/PROD associado à conta AWS inteira, não apenas ao Core.** O Data Plane contém **Core Infrastructure compartilhada** e **Domains** de negócio/aplicação. Um Domain pode possuir Capabilities, namespaces e apps em ambos os ambientes. **O Domain Bootstrap aplica um perfil versionado por Environment**: o perfil completo exige Database, ObjectStorage, namespace e políticas. O Bootstrap gera manifests no Git; Crossplane central e Argo CD local entregam os recursos. Nada é marcado pronto antes de verificar todas as dependências obrigatórias.
 
 ## 🧩 Quatro conceitos fundamentais
 
@@ -61,6 +61,10 @@ flowchart TB
 | **Applications** | Local | Argo CD local → EKS autorizado |
 
 **Um único monorepo** simula a organização por Entity/Domain. O Crossplane é central, sem cascata, e Argo CD local administra aplicações. A definição das contas e o provisioning de Foundation não dependem de criar `AWSEnvironment` ou Environment Controller próprio nesta fase.
+
+## 🧰 Domain Bootstrap
+
+Criar/ativar um Domain em UAT ou PROD requer um **perfil de Bootstrap versionado**, que define seu baseline obrigatório. O gerador produz os manifests de Capabilities (`infrastructure/`) e de namespaces/policies (`applications/`) para revisão em PR. O **Argo CD central** aplica os CRs de Capability, o **Crossplane** entrega AWS e o **Argo CD local** configura Kubernetes. A prontidão é avaliada por **Domain + Environment**, sem autoprovisionar PROD quando apenas UAT foi ativado. [Detalhamento](docs/architecture.md#6-domain-bootstrap-padrão-obrigatório-por-environment).
 
 ## ☁️ Estratégia AWS
 

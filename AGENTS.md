@@ -8,6 +8,7 @@ Consultar [arquitetura](docs/architecture.md), [decisões](docs/adr/README.md), 
 
 - **Experience Layer:** Backstage, CLI, GitOps e AI/MCP são canais paralelos. Alterações persistentes preferencialmente via PR.
 - **Control Plane:** Kubernetes API Server central, Crossplane Core + XRDs/Compositions/Providers para **Capabilities**; começar `ObjectStorage`. Crossplane único central, sem cascata.
+- **Domain Bootstrap:** **obrigatório ao criar/ativar Domain em um Environment**, por perfil de baseline versionado. Perfil completo de referência exige Database, ObjectStorage, namespace e quotas/policies. Geração idempotente de manifests no Git + PR, Crossplane central aplica recursos AWS e Argo CD local os objetos Kubernetes. Validar `Ready` a partir das dependências; sem banco ainda implantado, não declarar perfil completo pronto. Perfil novo não altera os Domains existentes sem migração deliberada.
 - **Entity / Environment / Domain:** conceitos lógicos e **registros declarativos no Git**. Entity organiza; Environment mapeia UAT/PROD à conta AWS/região; Domain é unidade de negócio, consumo, políticas e ownership de aplicações, namespaces e Capabilities. **Não criar CRD/XRD** para esses três na primeira etapa.
 - **Workflow Plane:** Argo CD central aplica CRs de Capability na Kubernetes API; Argo Workflows e Terraform Executor realizam Foundation e EKS via execução autorizada. Argo CD não executa Terraform. **Não implementar Environment Controller próprio como dependência inicial**.
 - **Observability Plane:** métricas, logs, traces, eventos e auditoria.

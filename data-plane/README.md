@@ -2,7 +2,7 @@
 
 O Data Plane é composto de **Entities**, com Environments UAT/PROD e duas áreas de infraestrutura: **Core Infrastructure** (compartilhada) e **Domains** de negócio/aplicação. Ambos pertencem ao Data Plane.
 
-**Environment é a conta AWS inteira**, não sinônimo de Core. Uma Entity pode ter diversos Domains; cada Domain é identidade única que possui Capabilities e aplicações em UAT e/ou PROD.
+**Environment é a conta AWS inteira**, não sinônimo de Core. Uma Entity pode ter diversos Domains; cada Domain é identidade única que possui Capabilities e aplicações em UAT e/ou PROD. **A ativação por Environment requer Domain Bootstrap**: um perfil versionado define Capabilities/namespace/policies obrigatórios, gerados como manifests Git e reconciliados por Crossplane central e Argo CD local.
 
 ## Organização proposta
 

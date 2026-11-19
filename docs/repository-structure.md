@@ -15,6 +15,8 @@ A POC utiliza **um único repositório** para demonstrar responsabilidades que p
 | `data-plane/<entity>/domains/<domain>/<env>/applications/` | **Applications** · Argo CD local |
 | `control-plane/`, `workflow-plane/`, `observability-plane/`, `platform/hub/` | Código e configuração da plataforma central |
 
+O **Domain Bootstrap** usa um perfil versionado definido pela plataforma e gera, mediante PR/validação, manifests de Capabilities obrigatórias sob `infrastructure/` e namespaces/policies sob `applications/` (por ambiente); o Argo CD central e o local são os únicos aplicadores. O gerador é um componente do **Workflow Plane** a implementar. A identidade do Domain permanece única. [Fluxo detalhado](architecture.md#6-domain-bootstrap-padrão-obrigatório-por-environment).
+
 **Environment é a conta AWS UAT/PROD inteira**, não a pasta de Core. O Core é a parte compartilhada e o Domain possui os recursos de negócio. Ambos ficam no **Data Plane**. O registro de Environment fica na Foundation por ownership central, mas descreve o destino de todos os recursos do Environment.
 
 ### Situação de migração

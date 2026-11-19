@@ -1,0 +1,27 @@
+# ADR-0005 — Domain Bootstrap e perfil obrigatório por Environment
+
+**Estado:** decisão vigente, implementação pendente · **Data:** 19/11/2026
+
+## Contexto
+
+O Domain é uma **unidade lógica de negócio e ownership**, não um XRD. Porém, ativar um Domain implica um **baseline obrigatório**, não apenas um registro declarativo: Database, bucket, namespace, quotas e políticas. Precisamos preservar a separação entre provisionamento AWS e objetos Kubernetes remotos.
+
+## Decisão
+
+1. **Manter Domain como registro único** `data-plane/<entity>/domains/<domain>/domain.yaml`, com owners, políticas, perfil/versão e Environments habilitados. **Não criar Claim ou XRD de Domain para o primeiro laboratório.**
+2. **Criar um Domain Bootstrap** como automação do **Workflow Plane**. Na criação/ativação de um Domain em cada Environment, ele valida escopo e perfil e **gera manifests declarativos idempotentes no monorepo**, submetidos a PR e aprovação. A definição do perfil versionado pertence à governança da plataforma (Control Plane).
+3. **Perfil completo `standard` da POC:** requer pelo menos `Database`, `ObjectStorage`, namespace(s) em clusters permitidos, quotas e políticas. **Argo CD central → Crossplane central** reconcilia as Capabilities AWS; **Argo CD local** aplica os objetos Kubernetes. Não criar dois owners do mesmo recurso.
+4. **Prontidão por Domain + Environment**, verificada a partir de `Ready` das Capabilities e sync/health de Argo CD local, incluindo existência de objetos/policies. Não interpretar um `domain.yaml` aprovado como `Ready`. Falhas devem suportar reexecução idempotente, sem duplicar recursos.
+5. **Evolução segura:** perfis devem ter versões controladas; novo perfil não altera Domains existentes sem migração revisada. A ativação de UAT não ativa PROD automaticamente; recursos stateful precisam de análise específica de exclusão/upgrade. Apagar o Domain não implica destruição automática de bancos, buckets ou Core.
+
+## Escolha técnica e faseamento
+
+O **Bootstrap não é um Claim Crossplane**: a Composition descreve um produto técnico (Capability), enquanto o Bootstrap coordena a entrega de produtos AWS e configurações Kubernetes por mecanismos distintos. Futuramente pode ser avaliado um XR de Domain, mas não é pré-requisito.
+
+Os primeiros labs continuam com `ObjectStorage` sozinho. Um **perfil reduzido de laboratório** demonstra a geração de manifests; o **perfil standard completo só estará `Ready` após o laboratório implementar Database e GitOps local**. O mecanismo de disparo PR/CI, renderização e agregação de estado são **a implementar**, não recursos já ativos.
+
+## Consequências
+
+Uma automação extra passa a fazer parte da POC. Deve existir schema validado para Domain/profile/Environment, separação de acesso ao Git e à AWS, suporte a revisão, detecção de drift e auditoria. A organização `Data Plane → Entity → Core Infrastructure / Domains` continua inalterada.
+
+[Arquitetura](../architecture.md) · [ADRs](README.md)
