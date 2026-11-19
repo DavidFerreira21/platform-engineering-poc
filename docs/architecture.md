@@ -1,8 +1,10 @@
-# Arquitetura da POC de Platform Engineering
+# 🏗️ Arquitetura da Platform Engineering POC
+
+[← Página inicial](../README.md) · [📝 ADRs](adr/README.md) · [🧪 Roteiro prático](learning-roadmap.md)
 
 **Situação:** arquitetura-alvo, não totalmente implementada. **Escopo:** dois ambientes — UAT e PROD — sem países, entidades ou referências corporativas.
 
-## Camadas arquiteturais
+## 🧱 Camadas arquiteturais
 
 ```text
 EXPERIENCE LAYER
@@ -37,7 +39,7 @@ DATA PLANE
 
 A arquitetura física-alvo prevê **sete clusters Kubernetes** (um central, três UAT e três PROD), sem exigir sua implantação simultânea. O Hub poderá rodar em `kind` local; **o provisionamento dos recursos será realizado em AWS real**, com conta existente inicialmente e autorização específica para cada operação.
 
-## Contratos Kubernetes-native
+## 🧩 Contratos Kubernetes-native
 O **Kubernetes API Server** é a API oficial da plataforma, com três famílias de contratos:
 - **`AWSEnvironment`:** representa uma conta AWS e seu ciclo de vida: criação/adoção, bootstrap, rede, segurança e clusters. Uma conta por ambiente; exclusão do CR nunca implica exclusão automática da conta.
 - **`Domain`:** representa o ecossistema de aplicações/serviços e recursos compartilhados de um domínio de negócio. Vários Domains podem existir no mesmo Environment.
@@ -80,7 +82,7 @@ A indisponibilidade do Hub não deve automaticamente interromper workloads já e
 
 Leitura complementar: [ADRs](adr/README.md), [estrutura do monorepo](repository-structure.md) e [roteiro de aprendizado](learning-roadmap.md).
 
-## Separação entre reconciliação e execução
+## ⚙️ Reconciliação e execução
 
 O cliente (`kubectl`, Backstage, CLI ou AI/MCP) fala **sempre com o Kubernetes API Server**. Ele não chama diretamente o Crossplane como se fosse outra API. O API Server valida e armazena o CR; o reconciliador apropriado observa e atende ao `spec`, atualizando `status`.
 
@@ -96,7 +98,7 @@ O `Domain` começa como namespace e configurações (por exemplo quotas, limites
 
 Não permitir que Terraform e Crossplane modifiquem simultaneamente o mesmo recurso externo. O Terraform fica preferencialmente responsável pela fundação dos ambientes; o Crossplane pelas Capabilities.
 
-## AWS real: três etapas
+## ☁️ AWS real em três etapas
 
 **Etapa 1 — Conta existente:** autenticar em uma conta AWS já disponível e executar labs com recursos reais, começando por operações de menor custo e risco. O Hub local pode utilizar `kind`. Mocks são úteis para testes isolados, mas não substituem a validação AWS.
 
@@ -106,7 +108,7 @@ Não permitir que Terraform e Crossplane modifiquem simultaneamente o mesmo recu
 
 Antes de qualquer alteração AWS: confirmar account ID e região usando STS, planejar a mudança, dimensionar custo, documentar autorização explícita, privilégios mínimos, proteção de credenciais, state remoto e limpeza/descomissionamento. Nenhum `apply` ou `destroy` automático apenas pela aprovação do PR de documentação.
 
-## Padrão de provisionamento Kubernetes: EKS Auto Mode
+## 🚀 EKS Auto Mode
 
 Para os **clusters reais dos Data Planes**, adotar **Amazon EKS Auto Mode** inicialmente: Environment Management EKS, EKS PCI e EKS Non-PCI de UAT/PROD. O **Platform Management Cluster** permanece no **`kind` local** durante os primeiros laboratórios. A escolha reduz a manutenção direta de compute, nós, integração de load balancing, networking e storage, mas não elimina o gerenciamento de permissões, VPC, políticas, add-ons compatíveis, workloads, upgrades e custos.
 

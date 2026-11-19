@@ -1,4 +1,6 @@
-# Estrutura e responsabilidades do monorepo
+# 🗂️ Estrutura do monorepo
+
+[← Página inicial](../README.md) · [🏗️ Arquitetura](architecture.md) · [📝 ADRs](adr/README.md)
 
 A estrutura do repositório evidencia **Control Plane, Workflow Plane, Observability Plane e Data Plane**, com UAT e PROD como ambientes distintos. Os diretórios existentes com README são marcadores de escopo, não componentes implantados.
 
@@ -14,7 +16,7 @@ platform-engineering-poc/
 ├── workflow-plane/
 │   ├── argo-workflows/          # execução e aprovações
 │   ├── terraform-executor/      # plan/apply controlado
-│   ├── argocd/                  # GitOps global
+│   └── argocd/                  # GitOps global
 ├── observability-plane/         # OTel, métricas, logs, traces, auditoria
 ├── platform/hub/                # bootstrap do Platform Management Cluster
 ├── data-plane/
@@ -30,6 +32,7 @@ platform-engineering-poc/
 │       └── aws-runtime/
 ├── docs/
 │   ├── adr/
+│   ├── fundamentos/            # 24 artigos conceituais
 │   ├── architecture.md
 │   ├── repository-structure.md
 │   └── learning-roadmap.md
@@ -60,4 +63,4 @@ Os seis clusters EKS previstos nos Spokes serão modelados com **Amazon EKS Auto
 
 ## Trilha de fundamentos
 
-O diretório `docs/fundamentos/` organiza artigos conceituais, separadas de `labs/`: a primeira explica **por que/para quem/como pensar**; o segundo demonstra **como implementar, observar, falhar e recuperar**. Artigos sequenciais com links anterior/próxima devem manter pt-BR, explicações aprofundadas, exemplos da POC e links externos confiáveis. O livro é referência de temas, não texto a reproduzir. [Índice](fundamentos/README.md).
+O diretório `docs/fundamentos/` organiza artigos conceituais, separados de `labs/`: os primeiros explicam **por que/para quem/como pensar**; os labs demonstram **como implementar, observar, falhar e recuperar**. Artigos sequenciais com links anterior/próxima devem manter pt-BR, explicações aprofundadas, exemplos da POC e links externos confiáveis. O livro é referência de temas, não texto a reproduzir. [Índice](fundamentos/README.md).

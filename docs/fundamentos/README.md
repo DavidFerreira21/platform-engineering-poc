@@ -1,65 +1,70 @@
-# Fundamentos de Platform Engineering
+# 📖 Fundamentos de Platform Engineering
 
-Textos de referência conceitual, com explicações aprofundadas em português, exemplos da POC e fontes externas relevantes. Não é uma apostila de objetivos/exercícios.
+Uma base de conhecimento em **português brasileiro** para compreender os princípios da disciplina antes de começar os laboratórios.
 
-**Comece por aqui antes dos labs.** O conteúdo é inteiramente conceitual e não exige AWS, Kubernetes ou instalações. A proposta é compreender **por que** construímos uma plataforma, **para quem**, **qual produto** oferecemos e **como** nossos contratos/planos operam.
+**24 artigos · 4 módulos · Conteúdo conceitual · Exemplos da POC**
 
-## Referência bibliográfica e autoria
+> **Como usar:** siga a sequência sugerida ou consulte um tema diretamente. Os artigos explicam os conceitos e suas implicações; a [trilha prática](../learning-roadmap.md) mostra como aplicá-los em Kubernetes e AWS.
 
-A sequência temática é inspirada principalmente nos **capítulos 1–3** de *Platform Engineering in Practice* — **Zebb Wright**, GitforGits (2026): motivos para criar plataformas; pensar como equipe de plataforma; arquitetura de IDP. A ordem, explicações, exemplos e decisões são **autorais e próprios da POC**, e não uma tradução, edição ou reprodução do livro. O estudo aprofunda o exemplar original adquirido separadamente.
+## 🗺️ Mapa de leitura
 
-### História e problema
+| Módulo | Tema | Escopo |
+| :--- | :--- | :--- |
+| 🧭 **Contexto e origem** | Artigos 01–04 | Por que Platform Engineering surgiu, DevOps, carga cognitiva e fricções. |
+| 🛠️ **Produto e experiência** | Artigos 05–09 | Produto interno, self-service, Golden Paths, guardrails e Build/Buy/Adopt. |
+| 👥 **Times e descoberta** | Artigos 10–16 | Team Topologies, personas, discovery, TVP, métricas e charter. |
+| 🏗️ **Arquitetura e contratos** | Artigos 17–24 | Planes, reconciliação, isolamento, API-first, portal, catálogo e lifecycle. |
 
-Por que a disciplina existe e quais dores ela resolve.
+## 🧭 Contexto e origem
 
-- [Aula 01 — Por que Platform Engineering surgiu?](01-por-que-platform-engineering.md)
-- [Aula 02 — DevOps não é a mesma coisa que Platform Engineering](02-devops-e-platform-engineering.md)
-- [Aula 03 — Carga cognitiva e troca de contexto](03-carga-cognitiva.md)
-- [Aula 04 — Sintomas de uma plataforma ausente ou fraca](04-friccao-e-sintomas.md)
+Por que Platform Engineering surgiu, DevOps, carga cognitiva e fricções.
 
-### Produto e experiência
+- **01** · [Por que Platform Engineering surgiu?](01-por-que-platform-engineering.md)
+- **02** · [DevOps e Platform Engineering](02-devops-e-platform-engineering.md)
+- **03** · [Carga cognitiva e troca de contexto](03-carga-cognitiva.md)
+- **04** · [Sintomas de uma plataforma ausente](04-friccao-e-sintomas.md)
 
-Como transformar infraestrutura recorrente em um produto consumível.
+## 🛠️ Produto e experiência
 
-- [Aula 05 — Plataforma como produto interno](05-plataforma-como-produto.md)
-- [Aula 06 — Plataforma como serviço e self-service](06-plataforma-como-servico.md)
-- [Aula 07 — Golden Paths e Paved Roads](07-golden-paths.md)
-- [Aula 08 — Guardrails, políticas e aprovações](08-guardrails-e-gates.md)
-- [Aula 09 — Build, Buy ou Adopt](09-construir-comprar-adotar.md)
+Produto interno, self-service, Golden Paths, guardrails e Build/Buy/Adopt.
 
-### Organização e descoberta
+- **05** · [Plataforma como produto interno](05-plataforma-como-produto.md)
+- **06** · [Plataforma como serviço e self-service](06-plataforma-como-servico.md)
+- **07** · [Golden Paths e Paved Roads](07-golden-paths.md)
+- **08** · [Guardrails, políticas e aprovações](08-guardrails-e-gates.md)
+- **09** · [Build, Buy ou Adopt](09-construir-comprar-adotar.md)
 
-Como entender usuários, organizar responsabilidades e medir resultados.
+## 👥 Times e descoberta
 
-- [Aula 10 — Team Topologies e tipos de equipes](10-team-topologies.md)
-- [Aula 11 — Modos de interação entre equipes](11-modos-de-interacao.md)
-- [Aula 12 — Personas e jornada do desenvolvedor](12-personas-e-jornadas.md)
-- [Aula 13 — Discovery: entrevistas e identificação de fricções](13-descoberta-e-entrevistas.md)
-- [Aula 14 — Thinnest Viable Platform (TVP) e priorização](14-tvp.md)
-- [Aula 15 — Developer Experience, DORA e SPACE](15-metricas-dx.md)
-- [Aula 16 — Platform Charter, escopo e backlog](16-charter-e-backlog.md)
+Team Topologies, personas, discovery, TVP, métricas e charter.
 
-### Arquitetura conceitual
+- **10** · [Team Topologies](10-team-topologies.md)
+- **11** · [Modos de interação](11-modos-de-interacao.md)
+- **12** · [Personas e jornada do desenvolvedor](12-personas-e-jornadas.md)
+- **13** · [Discovery e entrevistas](13-descoberta-e-entrevistas.md)
+- **14** · [Thinnest Viable Platform (TVP)](14-tvp.md)
+- **15** · [Developer Experience, DORA e SPACE](15-metricas-dx.md)
+- **16** · [Platform Charter e backlog](16-charter-e-backlog.md)
 
-Como contratos, planos, reconciliação e isolamento funcionam.
+## 🏗️ Arquitetura e contratos
 
-- [Aula 17 — Camadas e planos de uma plataforma](17-planos-e-responsabilidades.md)
-- [Aula 18 — Estado desejado, estado observado e reconciliação](18-estado-declarativo.md)
-- [Aula 19 — Abstrações, contratos e escape hatches](19-abstracoes-e-escape-hatches.md)
-- [Aula 20 — Multi-tenancy, isolamento e células](20-multitenancy-cells.md)
-- [Aula 21 — API-first, CRDs, XRDs, Operators e ADRs](21-api-first-operadores-adrs.md)
-- [Internal Developer Platform versus Developer Portal](22-idp-e-developer-portal.md)
-- [Catálogo de serviços, produtos e capacidades](23-catalogo-e-capacidades.md)
-- [Ciclo de vida de produtos e serviços de plataforma](24-ciclo-de-vida-produtos.md)
+Planes, reconciliação, isolamento, API-first, portal, catálogo e lifecycle.
 
-## Como estudar
+- **17** · [Camadas e planos da plataforma](17-planos-e-responsabilidades.md)
+- **18** · [Reconciliação e estado desejado](18-estado-declarativo.md)
+- **19** · [Abstrações e escape hatches](19-abstracoes-e-escape-hatches.md)
+- **20** · [Multi-tenancy, isolamento e cells](20-multitenancy-cells.md)
+- **21** · [API-first, CRDs, XRDs, Operators e ADRs](21-api-first-operadores-adrs.md)
+- **22** · [IDP versus Developer Portal](22-idp-e-developer-portal.md)
+- **23** · [Catálogo de serviços e Capabilities](23-catalogo-e-capacidades.md)
+- **24** · [Lifecycle de produtos de plataforma](24-ciclo-de-vida-produtos.md)
 
-Leia os artigos na ordem sugerida, reflita sobre os exemplos e consulte o [mapa da arquitetura](../architecture.md) para identificar onde cada ideia se manifesta. Ao concluir os 24 artigos, avance para o [roteiro de implementação](../learning-roadmap.md). Instalar ferramentas sem compreender o problema não é critério de conclusão.
+---
 
-## Padrão editorial
+## 📚 Sobre o conteúdo
 
-Os artigos são textos explicativos autorais, sem seções fixas de objetivos, exercícios ou resumos. Devem desenvolver o conceito com profundidade, explicar implicações e limites, trazer exemplos pertinentes da POC e links confiáveis de aprofundamento, preservando a navegação entre textos. Os labs, em contraste, exigem comandos, evidências, falhas e recuperação.
+Os temas iniciais dialogam com os capítulos 1–3 de *Platform Engineering in Practice*, de Zebb Wright (GitforGits, 2026). Os textos, exemplos e organização são **autorais**, adaptados às decisões da nossa POC; não constituem tradução do livro.
 
-## O que esta trilha não pretende
+O formato prioriza explicações bem desenvolvidas, comparações quando úteis, exemplos concretos e referências externas. Não usamos exercícios, objetivos formais ou resumos repetitivos em cada artigo.
 
-Não reconta página por página o livro, não reproduz os diagramas/códigos do autor e não toma os produtos do livro como obrigações técnicas. Na prática utilizaremos nossos contratos Kubernetes-native, Crossplane, Argo Workflows, AWS real e a topologia UAT/PROD da POC.
+**Próximo passo:** [Arquitetura da POC](../architecture.md) · [Roteiro de implementação](../learning-roadmap.md) · [Página inicial](../../README.md)

@@ -1,4 +1,6 @@
-# Roteiro de aprendizado prático — Platform Engineering POC
+# 🧪 Roteiro prático da POC
+
+[← Página inicial](../README.md) · [📖 Fundamentos](fundamentos/README.md) · [🏗️ Arquitetura](architecture.md)
 
 **Antes de implementar:** concluir ou revisar o [curso de Fundamentos de Platform Engineering](fundamentos/README.md), com 24 artigos conceituais em pt-BR. Os labs não substituem o estudo de problemas, produto, Golden Paths, contratos e reconciliação.
 
@@ -23,7 +25,7 @@
 | 14 | **Criação automatizada de conta AWS** via AWSEnvironment | Argo Workflows coordena criação, rede, segurança e dependências humanas |
 | 15 | PCI, identidade, custos e recuperação | Revisão de privilégios, restauração e teardown seguro |
 
-## Regras técnicas e pedagógicas
+## 🔐 Regras técnicas e pedagógicas
 - Crossplane **é parte do Control Plane** desde os primeiros labs; o Workflow Plane possui Argo Workflows, Terraform Executor e Argo CD.
 - `AWSEnvironment` é CRD nativo com controller próprio, inicialmente operando sobre **contas existentes**; `Domain` e Capabilities são XRDs com Compositions.
 - A AWS é real: executar alterações apenas com conta/região conferidas via STS, credenciais temporárias, avaliação de custos e aprovação específica por operação. Preferir recursos baratos e descartáveis antes de banco/compute.
@@ -31,5 +33,5 @@
 - Ter testes de mocks para lógica interna não significa substituir os labs AWS por simulação.
 - Não pressupor integração de chamados, criação de conta na fase inicial ou acesso administrativo compartilhado PCI/Non-PCI.
 
-## Padrão EKS
+## ☁️ Padrão EKS
 O Lab 11 utiliza **Amazon EKS Auto Mode**, não node groups autogerenciados como padrão. O Hub continua em `kind` local. Verificar compatibilidade com DaemonSets, requirements PCI, identidade de Pods, rede, storage e cobrança antes do provisionamento. Escalar gradualmente de um cluster para a topologia-alvo, sem criação automática de todos os clusters.
