@@ -1,4 +1,6 @@
-# Roteiro de aprendizado — Platform Engineering POC
+# Roteiro de aprendizado prático — Platform Engineering POC
+
+**Antes de implementar:** concluir ou revisar o [curso de Fundamentos de Platform Engineering](fundamentos/README.md), com 21 aulas conceituais em pt-BR. Os labs não substituem o estudo de problemas, produto, Golden Paths, contratos e reconciliação.
 
 **Objetivo:** construir a plataforma progressivamente, com Hub local em `kind` e **provisionamento AWS real**. A criação de contas é uma fase posterior; os primeiros exercícios usam conta preexistente autenticada. Cada lab apresenta finalidade, pré-requisitos, comandos, evidências de execução, falha controlada, recuperação, custo e limpeza.
 

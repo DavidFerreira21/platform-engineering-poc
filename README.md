@@ -18,7 +18,8 @@ A topologia-alvo contempla sete clusters, mas o **Hub pode começar localmente e
 - [Arquitetura](docs/architecture.md)
 - [Decisões arquiteturais](docs/adr/README.md)
 - [Estrutura do repositório](docs/repository-structure.md)
-- [Roteiro de aprendizado](docs/learning-roadmap.md)
+- [Fundamentos de Platform Engineering — curso conceitual](docs/fundamentos/README.md)
+- [Roteiro de aprendizado prático](docs/learning-roadmap.md)
 - [Instruções para agentes](AGENTS.md)
 
 ## Regras fundamentais
@@ -41,3 +42,6 @@ Decisões: [ADR-0009](docs/adr/0009-crossplane-e-reconciliacao.md) e [ADR-0010](
 
 ## Padrão EKS dos ambientes
 Os clusters reais de gerenciamento local, PCI e Non-PCI terão **Amazon EKS Auto Mode** como escolha padrão. Isso reduz a necessidade de operar nós e componentes gerenciados de computação, rede e storage. O **Platform Management Cluster permanece em kind local**, e o uso do Auto Mode nos EKS reais será validado conforme compatibilidade, requisitos PCI e custos. Ver [ADR-0011](docs/adr/0011-eks-auto-mode.md).
+
+## Antes dos laboratórios
+Comece pelas **[21 aulas de fundamentos](docs/fundamentos/README.md)**, baseadas nos temas conceituais dos primeiros capítulos de *Platform Engineering in Practice* (Zebb Wright), mas com conteúdo autoral em pt-BR e exemplos exclusivos da nossa POC. A trilha de fundamentos **explica conceitos**; o roadmap prático **implementa e valida** esses conceitos.

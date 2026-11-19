@@ -37,3 +37,7 @@ O escopo real de cada execução AWS deve ser aprovado antes de qualquer apply. 
 
 ## Padrão de clusters EKS
 Usar **Amazon EKS Auto Mode** como padrão para clusters reais nos diretórios `data-plane/{uat,prod}/{management-eks,eks-pci,eks-non-pci}`. Não instalar Karpenter autogerenciado, AWS Load Balancer Controller ou drivers de storage equivalentes indiscriminadamente quando essas funções forem gerenciadas pelo Auto Mode. Validar compatibilidade de operators, DaemonSets, Pod Identity/IAM, políticas, requisitos PCI, custos e controles de nó antes de executar. O Hub local em `kind` não é EKS Auto Mode. Ver [ADR-0011](docs/adr/0011-eks-auto-mode.md).
+
+## Fundamentos antes dos labs
+
+A pasta [docs/fundamentos/](docs/fundamentos/README.md) contém o **curso conceitual em pt-BR** (21 aulas), com explicações autorais inspiradas pelos temas dos capítulos 1–3 de *Platform Engineering in Practice*, Zebb Wright. Não traduzir/reproduzir texto ou diagramas protegidos do livro. Não misturar aulas conceituais com labs de implementação. Cada aula deve cobrir motivação, conceito, aplicação na POC, erro comum, exercício, fixação, fonte temática e navegação anterior/próxima. Novos labs devem linkar os fundamentos pré-requisito.

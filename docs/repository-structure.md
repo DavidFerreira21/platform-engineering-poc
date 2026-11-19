@@ -57,3 +57,7 @@ Os diretórios `data-plane/uat` e `data-plane/prod` representarão contas AWS **
 
 ## Provisionamento EKS
 Os seis clusters EKS previstos nos Spokes serão modelados com **Amazon EKS Auto Mode** por padrão, conforme [ADR-0011](adr/0011-eks-auto-mode.md). Configurações compartilhadas e módulos reutilizáveis ficam em sua camada proprietária; overlays UAT/PROD expressam apenas diferenças de ambiente. O `platform/hub/` local utiliza `kind`.
+
+## Trilha de fundamentos
+
+O diretório `docs/fundamentos/` organiza aulas conceituais, separadas de `labs/`: a primeira explica **por que/para quem/como pensar**; o segundo demonstra **como implementar, observar, falhar e recuperar**. Aulas numeradas com links anterior/próxima devem manter pt-BR, exercícios e exemplos da POC. O livro é referência de temas, não texto a reproduzir. [Índice](fundamentos/README.md).
