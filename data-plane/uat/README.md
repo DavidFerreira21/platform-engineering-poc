@@ -1,0 +1,1 @@
+UAT account spoke; distinct permissions and desired state from PROD. See management-eks/, eks-pci/, eks-non-pci/, aws-runtime/.

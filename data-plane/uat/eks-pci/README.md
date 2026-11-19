@@ -1,0 +1,1 @@
+UAT — PCI workload Kubernetes cluster: applications and cluster-local agents/operators. Target only; do not deploy real AWS resources without approval.

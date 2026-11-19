@@ -1,0 +1,1 @@
+Two target Spokes only: UAT and PROD. Each corresponds to one AWS account, containing local management EKS, PCI EKS, Non-PCI EKS and AWS Runtime. Descriptions are target, not provisioned resources.

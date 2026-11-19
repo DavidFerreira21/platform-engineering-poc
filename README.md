@@ -1,27 +1,31 @@
-# Platform Engineering POC
+# Platform Engineering Lab
 
-Proof of concept for an Internal Developer Platform (IDP), focused on self-service infrastructure and clear architectural boundaries.
+Personal, vendor-neutral learning POC for a **Kubernetes-native platform API** using a hierarchical **hub-and-spoke** architecture. This repository is a **design baseline**, not a claim that the stack has been provisioned.
 
 ## Architecture
-- **Control Plane:** API, contracts, validation and orchestration.
-- **Workflow/GitOps Plane:** Argo Workflows executes Terraform; Argo CD reconciles platform components.
-- **Data Plane:** AWS foundations and resources in isolated target environments.
-- **Observability Plane:** planned for later.
+- **Experience:** Backstage, CLI, GitOps (Git as the source of desired state), AI/MCP.
+- **Hub — Platform Management Cluster:** Kubernetes API Server; three contract **families** (`AWSEnvironment`, `Domain`, specialized `Capability` resource kinds); Platform Controllers; logical Workflow and Observability planes.
+- **Workflow:** Argo CD for GitOps, Argo Workflows for orchestration and manual gates, Terraform execution; Crossplane is a candidate additional reconciler, introduced progressively.
+- **Spokes — UAT and PROD:** each represents **one separate AWS account**; each target account contains an Environment Management EKS, EKS PCI, EKS Non-PCI and AWS Runtime (network, RDS, S3, EC2 and managed services).
+- **Observability:** telemetry, logs, metrics, traces and audit across hub and spokes. Collection and gateway components may run locally.
 
-Crossplane will be introduced later through an executor interface; the MVP starts with Terraform.
+The architecture is logical and a **target topology**: its seven Kubernetes clusters need not all be deployed to learn or validate the patterns. The initial local implementation uses kind and mocks; actual EKS and AWS integration are explicit later steps.
 
-See [architecture](docs/architecture.md), [repository structure](docs/repository-structure.md), [learning roadmap](docs/learning-roadmap.md), [ADRs](docs/adr/README.md) and [agent instructions](AGENTS.md).
-
-## Milestones
-1. Bootstrap repository, documentation and conventions.
-2. Build a Control Plane API with request validation and a mock executor.
-3. Integrate Argo Workflows and Terraform plan.
-4. Add approval gates and controlled apply.
-5. Integrate Argo CD, then a Crossplane executor.
-6. Extend observability, security policies and developer experience.
+## Start here
+- [Architecture and data flows](docs/architecture.md)
+- [Architecture decisions](docs/adr/README.md)
+- [Repository boundaries](docs/repository-structure.md)
+- [Progressive learning roadmap](docs/learning-roadmap.md)
+- [Agent instructions](AGENTS.md)
 
 ## Principles
-- Git is the source of truth.
-- No credentials, real infrastructure identifiers or Terraform state in Git.
-- Mock execution first; real AWS changes require explicit authorization.
-- Keep local development reproducible.
+- No organization/customer names, corporate identifiers, credentials or production config.
+- Git owns desired-state manifests; Kubernetes owns operational resource status; no ungoverned direct changes to GitOps-managed specs.
+- Native Kubernetes API/CRDs instead of a mandatory custom REST API; use `spec` and `status.conditions`.
+- One environment = one AWS account. UAT and PROD are separate spokes; PCI and Non-PCI are clusters **within** each spoke.
+- Separate intended capability from implementation engine. No generic `CapabilityClaim` for the initial design.
+- Human dependencies are explicit workflow gates with evidence, authorized resume and technical verification; never equate a ticket opened with work completed.
+- No real AWS provisioning, destructive apply or secrets without explicit authorization.
+- Each lab is progressive, observable, reproducible, and has a safe failure/recovery exercise.
+
+**Current state:** architecture and learning plan only. Implementation folders contain scope notes, not running components.

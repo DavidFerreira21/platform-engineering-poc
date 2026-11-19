@@ -1,0 +1,1 @@
+Own shared telemetry semantics, OTel pipelines, metrics, logs/traces, alerts and audit. Spoke-specific routing belongs in its environment overlay.

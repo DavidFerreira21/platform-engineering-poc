@@ -1,0 +1,1 @@
+Own versioned Argo Workflows, Terraform runner contracts, manual gates, GitOps definitions, and an optional Crossplane engine. Do not duplicate CRDs or manage deployment via CI alone.
