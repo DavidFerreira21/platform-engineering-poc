@@ -8,14 +8,12 @@ Uma equipe central pode automatizar tarefas sem oferecer uma plataforma. A difer
 
 ## Onde a POC se encaixa
 
-Na POC, o consumidor não precisa conhecer o módulo Terraform ou cada Provider AWS para pedir ObjectStorage. A plataforma encapsula essa complexidade em um contrato Kubernetes.
-
 No laboratório, o resultado desejado é permitir que um consumidor solicite storage ou banco e acompanhe a reconciliação sem aprender como um Provider AWS é configurado. Kubernetes, Crossplane e Terraform são meios para oferecer essa experiência, não a definição de Platform Engineering.
 
 ## Leitura complementar
 
 - [CNCF — O que é Platform Engineering](https://www.cncf.io/blog/2025/11/19/what-is-platform-engineering/) — referência pública para aprofundar o conceito.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 1 — evolução de DevOps para plataformas.. Referência temática; esta explicação é autoral, não uma tradução do livro.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 1 — evolução de DevOps para plataformas. Referência temática; esta explicação é autoral, não uma tradução do livro.
 
 ---
 

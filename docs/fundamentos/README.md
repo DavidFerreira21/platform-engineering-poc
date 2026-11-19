@@ -2,11 +2,11 @@
 
 Textos de referência conceitual, com explicações aprofundadas em português, exemplos da POC e fontes externas relevantes. Não é uma apostila de objetivos/exercícios.
 
-**Comece por aqui antes dos labs.** Esta trilha é um curso conceitual em português brasileiro; não exige AWS, Kubernetes ou instalações. Objetivo: compreender **por que** construímos uma plataforma, **para quem**, **qual produto** oferecemos e **como** nossos contratos/planos operam.
+**Comece por aqui antes dos labs.** O conteúdo é inteiramente conceitual e não exige AWS, Kubernetes ou instalações. A proposta é compreender **por que** construímos uma plataforma, **para quem**, **qual produto** oferecemos e **como** nossos contratos/planos operam.
 
 ## Referência bibliográfica e autoria
 
-A sequência temática é inspirada principalmente nos **capítulos 1–3** de *Platform Engineering in Practice* — **Zebb Wright**, GitforGits (2026): motivos para criar plataformas; pensar como equipe de plataforma; arquitetura de IDP. A ordem, explicações, exemplos, exercícios e decisões são **autorais e próprios da POC**, e não uma tradução, edição ou reprodução do livro. O estudo aprofunda o exemplar original adquirido separadamente.
+A sequência temática é inspirada principalmente nos **capítulos 1–3** de *Platform Engineering in Practice* — **Zebb Wright**, GitforGits (2026): motivos para criar plataformas; pensar como equipe de plataforma; arquitetura de IDP. A ordem, explicações, exemplos e decisões são **autorais e próprios da POC**, e não uma tradução, edição ou reprodução do livro. O estudo aprofunda o exemplar original adquirido separadamente.
 
 ### História e problema
 
@@ -54,9 +54,9 @@ Como contratos, planos, reconciliação e isolamento funcionam.
 
 ## Como estudar
 
-Leia os artigos na ordem sugerida, reflita sobre os exemplos e consulte o [mapa da arquitetura](../architecture.md) e identifique onde ele se manifesta. Ao concluir as 24 artigos, avance para o [roteiro de implementação](../learning-roadmap.md). Instalar ferramentas sem compreender o problema não é critério de conclusão.
+Leia os artigos na ordem sugerida, reflita sobre os exemplos e consulte o [mapa da arquitetura](../architecture.md) para identificar onde cada ideia se manifesta. Ao concluir os 24 artigos, avance para o [roteiro de implementação](../learning-roadmap.md). Instalar ferramentas sem compreender o problema não é critério de conclusão.
 
-## Contrato de qualidade das aulas
+## Padrão editorial
 
 Os artigos são textos explicativos autorais, sem seções fixas de objetivos, exercícios ou resumos. Devem desenvolver o conceito com profundidade, explicar implicações e limites, trazer exemplos pertinentes da POC e links confiáveis de aprofundamento, preservando a navegação entre textos. Os labs, em contraste, exigem comandos, evidências, falhas e recuperação.
 
