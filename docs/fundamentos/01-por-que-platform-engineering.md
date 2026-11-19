@@ -1,37 +1,22 @@
-# Aula 01 — Por que Platform Engineering surgiu?
-
-**Trilha:** História e problema · **Tipo:** fundamento conceitual · **Pré-requisito:** nenhum
-
-## Objetivos de aprendizagem
-
-Ao terminar, você deve conseguir explicar o conceito com suas palavras, reconhecer o problema que ele resolve e relacioná-lo às decisões da POC.
-
-## Conceito e por que existe
+# Por que Platform Engineering surgiu?
 
 A especialização crescente de infraestrutura fez equipes de produto dependerem de múltiplos especialistas para publicar mudanças. A passagem de operações centralizadas para DevOps ampliou o ownership das equipes, mas não tornou simples a compreensão simultânea de rede, IAM, Kubernetes, CI/CD, observabilidade e políticas. Platform Engineering surge para oferecer capacidades internas repetíveis, com contratos e suporte ao fluxo de trabalho, sem retirar das equipes a responsabilidade sobre suas aplicações.
 
-## Como aparece na nossa POC
+## Da infraestrutura compartilhada à plataforma como produto
+
+Uma equipe central pode automatizar tarefas sem oferecer uma plataforma. A diferença aparece quando seus consumidores encontram capacidades padronizadas, documentação confiável, contratos versionados e mecanismos para acompanhar a própria solicitação. A evolução não é uma linha obrigatória Ops → DevOps → Plataforma: as organizações combinam práticas conforme suas necessidades. O problema central é que conhecimento de infraestrutura cresce mais rápido do que a capacidade de cada equipe aprender tudo.
+
+## Onde a POC se encaixa
 
 Na POC, o consumidor não precisa conhecer o módulo Terraform ou cada Provider AWS para pedir ObjectStorage. A plataforma encapsula essa complexidade em um contrato Kubernetes.
 
-## Erro comum
+No laboratório, o resultado desejado é permitir que um consumidor solicite storage ou banco e acompanhe a reconciliação sem aprender como um Provider AWS é configurado. Kubernetes, Crossplane e Terraform são meios para oferecer essa experiência, não a definição de Platform Engineering.
 
-Não confundir o conceito com a simples instalação de uma ferramenta. A evidência de uma capacidade de plataforma está na experiência de consumo, no contrato e na possibilidade de observar e corrigir o resultado.
+## Leitura complementar
 
-## Exercício conceitual
-
-Quando o time precisar pedir uma fila, qual trabalho deveria continuar sendo dele e qual deveria ser absorvido pela plataforma?
-
-**Critério de conclusão:** responder com um exemplo, um trade-off e uma forma de verificar se o conceito foi aplicado.
-
-## Para fixar
-
-Reduzir dependências operacionais e trabalho repetitivo, sem transformar a plataforma em novo gargalo.
-
-## Referência e leitura complementar
-
-Inspirado no tema **Capítulo 1 — evolução de DevOps para plataformas.** do livro *Platform Engineering in Practice*, de Zebb Wright (GitforGits, 2026), com explicações e exemplos **autorais**, adaptados à nossa POC. Consulte o exemplar licenciado para aprofundamento; este texto não o substitui nem reproduz trechos.
+- [CNCF — O que é Platform Engineering](https://www.cncf.io/blog/2025/11/19/what-is-platform-engineering/) — referência pública para aprofundar o conceito.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 1 — evolução de DevOps para plataformas.. Referência temática; esta explicação é autoral, não uma tradução do livro.
 
 ---
 
-[Índice](README.md) · [Índice da trilha](README.md) · [Próxima aula](./02-devops-e-platform-engineering.md)
+[Índice](README.md) · [Próxima aula](02-devops-e-platform-engineering.md)
