@@ -1,6 +1,6 @@
 # Estado desejado, estado observado e reconciliação
 
-O estado desejado descreve resultado, como um bucket com política ou um Domain com quota; o estado observado informa o que existe de fato. Um reconciliador compara os dois e tenta convergir de forma idempotente, atualizando condições e expondo erros. Git contém o spec revisado; Kubernetes API contém o recurso e o status. Drift é divergência relevante, não apenas diferença textual de YAML.
+O estado desejado descreve resultado, como um bucket com política ou um Deployment com réplicas; o estado observado informa o que existe de fato. Um reconciliador compara os dois e tenta convergir de forma idempotente, atualizando condições e expondo erros. Git contém o spec revisado; Kubernetes API contém o recurso e o status. Drift é divergência relevante, não apenas diferença textual de YAML.
 
 ## A reconciliação é contínua
 

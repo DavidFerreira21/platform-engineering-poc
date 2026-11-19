@@ -8,7 +8,7 @@ Guardrails podem operar antes da criação (validação de schema, políticas de
 
 ## Critério de desenho
 
-Um XRD Database só aceita classes aprovadas e exige tags. Já a criação de conta por AWSEnvironment pode precisar de um gate humano auditado no Argo Workflows.
+Um XRD Database só aceita classes aprovadas e exige tags. Já um workflow de criação de conta AWS, caso seja adotado futuramente, pode exigir gate humano auditado no Argo Workflows.
 
 Os fluxos de ObjectStorage com configurações aprovadas devem seguir automaticamente. Uma criação de conta com rota dependente de outra equipe pode demandar uma etapa de aprovação e validação de resultado, com identidade e trilha de auditoria.
 
