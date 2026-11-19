@@ -1,0 +1,1 @@
+PROD account spoke; no automatic promotion or shared credentials with UAT. See management-eks/, eks-pci/, eks-non-pci/, aws-runtime/.

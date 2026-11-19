@@ -1,0 +1,1 @@
+PROD — Local Argo CD, remote-capable operators/controllers and telemetry gateway; PCI access requires review. Target only; do not deploy real AWS resources without approval.

@@ -1,0 +1,1 @@
+Phased, visible learning labs follow docs/learning-roadmap.md. Each lab must explain concept, execution, observations, safe failures, validation and cleanup.

@@ -1,61 +1,51 @@
-# Repository structure and placement guide
+# Monorepo boundaries and target tree
 
-This is the **target monorepo structure**. Directories are created incrementally as implementation begins.
+The repository mirrors **responsibility** and **environment deployment ownership**, not one folder per Kubernetes cluster. The folders with README files are **scaffolds only**, not deployed components.
 
 ```text
 platform-engineering-poc/
-├── apps/                    # Executable API, orchestrator and future interfaces
-├── control-plane/           # Product contracts, catalog, schemas, domain policy
-├── workflow-plane/          # Tekton, Argo Workflows, executors, GitOps integration
-├── data-plane/              # Terraform modules, blueprints, target workloads
-├── observability-plane/     # Instrumentation config, dashboards, alerts, audit
-├── platform/                # kind, bootstrap, Helm, ingress, IDP deployments
-├── docs/                    # Architecture, ADRs, guides
-├── labs/                    # Incremental hands-on exercises
-└── tests/                   # Cross-component integration and end-to-end tests
+├── AGENTS.md
+├── README.md
+├── control-plane/
+│   ├── crds/                 # AWSEnvironment, Domain, specialized capabilities
+│   └── controllers/          # reconciliation, lifecycle, status, reference checks
+├── workflow-plane/
+│   ├── argo-workflows/       # long-running workflows, validations, human gates
+│   ├── terraform-executor/   # runner contracts and plans
+│   ├── argocd/               # hub GitOps config, spoke bootstrap integration
+│   └── crossplane/           # optional future adapter/compositions
+├── observability-plane/      # OTel, metrics, logging, traces, audit, alerts
+├── data-plane/
+│   ├── uat/
+│   │   ├── management-eks/   # local Argo CD/operators/telemetry gateway
+│   │   ├── eks-pci/          # PCI Kubernetes workload target
+│   │   ├── eks-non-pci/      # non-PCI Kubernetes workload target
+│   │   └── aws-runtime/      # AWS services in UAT account
+│   └── prod/
+│       ├── management-eks/
+│       ├── eks-pci/
+│       ├── eks-non-pci/
+│       └── aws-runtime/
+├── platform/
+│   └── hub/                  # Platform Management Cluster bootstrap/kind
+├── docs/
+│   ├── adr/
+│   ├── architecture.md
+│   ├── learning-roadmap.md
+│   └── repository-structure.md
+├── labs/                     # incremental learning instructions
+└── tests/                    # architecture, contracts, integration/E2E
 ```
 
-## What belongs where?
+## Ownership rules
+- Controller code/CRD definitions: `control-plane/`. Helm/bootstrap to install them: `platform/hub/`.
+- Workflow **definitions** and shared runners: `workflow-plane/`. Hub Argo CD source only here; spoke-local configuration belongs in `data-plane/{uat,prod}/management-eks/` with reusable shared components referenced instead of copied.
+- Observability **common definitions**: `observability-plane/`. Spoke-specific routing/overlays under their environment's management EKS configuration.
+- Infra/resource **intention** for UAT and PROD, including workload Kubernetes target settings: `data-plane/`. Reusable definitions should live in their owning domain and be referenced by environment overlays.
+- The repository does not require all directories to exist from day one. Bootstrap first, then populate incremental slices.
+- No `apps/control-api` or mandatory FastAPI server: Kubernetes API is authoritative. A Backstage plugin, CLI or MCP adapter can be added after the platform API contracts mature.
+- No CI engine is mandated by this architecture. Choose and document one independently when implementing build/test/supply-chain automation.
+- Avoid duplicate source-of-truth manifests and avoid embedding secrets, real account IDs, actual routes or certificates in YAML.
 
-| Example | Directory | Why |
-| --- | --- | --- |
-| FastAPI request handler, Pydantic runtime code | `apps/control-api/` | Executable application |
-| Versioned infrastructure product schema and catalog metadata | `control-plane/` | Consumer-facing contract |
-| Tekton CI pipeline and reusable Tasks | `workflow-plane/tekton/` | Execution definition |
-| Argo Workflows Terraform plan template | `workflow-plane/argo-workflows/` | Execution definition |
-| Argo CD Application/ApplicationSet definitions | `workflow-plane/argocd/` | GitOps configuration |
-| Reusable Terraform module for a consumer product | `data-plane/modules/` | Delivered infrastructure |
-| Example AWS environment or consumer Kubernetes workload | `data-plane/environments/` or `data-plane/workloads/` | Data Plane target |
-| kind cluster configuration and cluster lifecycle scripts | `platform/kind/` | Platform runtime/bootstrap |
-| Helm values for Traefik, Argo CD, Keycloak or platform API | `platform/helm/` | Installing IDP components |
-| OpenTelemetry configuration, dashboards and alerts | `observability-plane/` | Cross-cutting observability definitions |
-| Lab instructions and validation steps | `labs/` | Learning path |
-| End-to-end self-service request test | `tests/e2e/` | Cross-component verification |
-
-These paths are illustrative and may be refined in implementation PRs. A single component can have **source** in one directory and **deployment** in another without duplicating the same artifact.
-
-## Boundaries
-
-### `apps/` vs `control-plane/`
-The API server and orchestration code live in `apps/`. The versioned schemas, product definitions and declarative contracts consumed by that code live in `control-plane/`. The API should load or validate against these contracts through an explicit versioned interface.
-
-### `platform/` vs `data-plane/`
-`platform/` builds and runs the IDP itself (management and local workload cluster bootstrap, controllers, ingress and shared services). `data-plane/` represents what the IDP delivers to consumers: AWS infrastructure products and sample workloads. **Data Plane is not a synonym for the workload kind cluster**.
-
-### `workflow-plane/` vs `platform/`
-Pipeline/workflow/GitOps **definitions** go in `workflow-plane/`. Installing the Tekton/Argo controllers, their Helm charts and base cluster configuration goes in `platform/`. Argo CD's application definitions remain in `workflow-plane/` even when they deploy components defined elsewhere.
-
-### `observability-plane/` vs `platform/`
-Dashboards, instrumentation and alert definitions belong to `observability-plane/`; the runtime installation of monitoring operators/servers belongs to `platform/`.
-
-## Planned implementation approach
-1. Start with `platform/kind/` and `labs/01-bootstrap/` for the two kind clusters.
-2. Add a minimal `apps/control-api/` and first `control-plane/` contract.
-3. Add `workflow-plane/` components incrementally, keeping Terraform apply gated.
-4. Add `data-plane/` examples, policy, secrets and telemetry as each lab needs them.
-
-## Guardrails
-- Git is the source of truth for declarative definitions.
-- Never commit credentials, kubeconfigs, tokens, Terraform state or real organization identifiers.
-- Use mock execution first; require explicit authorization for real AWS provisioning.
-- Follow [ADR-0007](adr/0007-monorepo-structure-and-boundaries.md) and [architecture](architecture.md).
+## Review checklist
+Path ownership clear; UAT/PROD isolation clear; API group and schema version declared; Git spec ownership controlled; `status` reconciliation idempotent; least privilege and PCI boundaries reviewed; no live AWS change without approval; lab has validation and cleanup instructions.

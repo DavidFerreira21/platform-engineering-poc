@@ -1,0 +1,1 @@
+Bootstrap the Platform Management Cluster (Hub) with kind first. Install Kubernetes-native controllers and logical Workflow/Observability components incrementally, using Argo CD when ready.

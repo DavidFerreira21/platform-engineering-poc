@@ -1,0 +1,1 @@
+Own Kubernetes-native platform CRDs, validation and Platform Controllers. Start with AWSEnvironment CRD and mock reconciliation; add Domain and typed Capability CRDs incrementally.

@@ -1,0 +1,1 @@
+UAT — Managed services inside this AWS account: RDS/Aurora, S3, EC2, networking and messaging. Target only; do not deploy real AWS resources without approval.

@@ -1,0 +1,1 @@
+Cross-component architecture, CRD contract, workflow and end-to-end tests. No real cloud writes by default.
