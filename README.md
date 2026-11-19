@@ -74,6 +74,17 @@ flowchart TB
 
 [Detalhes e limites da arquitetura](docs/architecture.md) · [ADR de reconciliação](docs/adr/0009-crossplane-e-reconciliacao.md)
 
+## 🧭 Quatro camadas de ownership
+
+| Camada | Owner | Recursos e motor |
+| :--- | :--- | :--- |
+| **Foundation** | Plataforma central | Conta, landing zone, VPC, IAM · Terraform |
+| **Entity Core Infrastructure** | DevOps federado, com governança central | Management EKS, EKS PCI e EKS Non-PCI · Terraform |
+| **Domain Infrastructure** | DevOps federado | Capabilities AWS · Crossplane central |
+| **Applications** | Times locais | Workloads Kubernetes · Argo CD local |
+
+**Um monorepo** representa essas fronteiras por pastas. O Argo CD **central** sincronizará os contratos de infraestrutura; o Argo CD **local** cuidará das aplicações. Não haverá Crossplane em cascata nem MSK inicial. [Entenda as decisões e o fluxo completo](docs/architecture.md) · [ADR-0012](docs/adr/0012-federated-ownership-and-gitops.md).
+
 ## 🛤️ Jornada da POC
 
 | Etapa | Experiência |

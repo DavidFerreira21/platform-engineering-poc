@@ -2,6 +2,8 @@
 
 [← Página inicial](../README.md) · [🏗️ Arquitetura](architecture.md) · [📝 ADRs](adr/README.md)
 
+**Estado atual:** o diretório abaixo representa as pastas existentes ou os respectivos marcadores de escopo. A organização detalhada por entidade, Domain e quatro camadas está **proposta**, ainda não criada. Consulte a [arquitetura consolidada](architecture.md#4-monorepo-representação-das-fronteiras).
+
 A estrutura do repositório evidencia **Control Plane, Workflow Plane, Observability Plane e Data Plane**, com UAT e PROD como ambientes distintos. Os diretórios existentes com README são marcadores de escopo, não componentes implantados.
 
 ```text
@@ -39,6 +41,17 @@ platform-engineering-poc/
 ├── labs/
 └── tests/
 ```
+
+## 🧭 Quatro camadas dentro do mesmo monorepo
+
+| Camada | Caminho proposto | Gestão |
+| :--- | :--- | :--- |
+| Foundation | `foundation/modules/` e `foundation/config/entity-a/{uat,prod}/` | Central, Terraform |
+| Entity Core Infrastructure | `data-plane/entity-a/{uat,prod}/core-infra/` | Federada com contratos/aprovações centrais |
+| Domain Infrastructure | `data-plane/entity-a/{uat,prod}/domains/<domain>/infra/` | Federada, Crossplane central |
+| Applications | `data-plane/entity-a/{uat,prod}/applications/` | Local, Argo CD local |
+
+`entity-a` é uma entidade fictícia da POC. As pastas **não devem ser criadas vazias** antes dos labs e não correspondem a repositórios separados. Os diretórios atuais `data-plane/uat/` e `data-plane/prod/` serão migrados quando surgir conteúdo real. [ADR-0012](adr/0012-federated-ownership-and-gitops.md).
 
 ## 🧩 Critérios de organização
 - Código do controller AWSEnvironment e XRDs/Compositions/Providers Crossplane pertencem ao `control-plane/`; instalação do Hub pertence a `platform/hub/`.
