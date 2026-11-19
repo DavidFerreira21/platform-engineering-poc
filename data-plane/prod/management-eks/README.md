@@ -1,8 +1,16 @@
-# PROD — management-eks
+# 🏗️ PROD · Environment Management EKS
 
-Cluster de gerenciamento local: Argo CD, operators compatíveis com reconciliação remota e gateway de observabilidade. Avaliar fronteira administrativa PCI.
+**Gerenciamento local do ambiente:** Argo CD, operators compatíveis e gateway de telemetria; acesso administrativo a workloads PCI deve ser avaliado.
 
-**Situação:** componente previsto na arquitetura-alvo, não provisionado. Qualquer alteração real na AWS exige autorização explícita.
+| Atributo | Definição |
+| :--- | :--- |
+| Ambiente | **PROD** — conta AWS independente |
+| Situação | **Planejado; não provisionado** |
+| Tecnologia | Amazon EKS Auto Mode (padrão inicial) |
+| Validação pendente | Operators, Argo CD, identidade e fronteira PCI |
 
-## Tipo de cluster
-**Amazon EKS Auto Mode** é o padrão de provisionamento deste cluster real. Conferir compatibilidade de add-ons, operators, identidade, rede e isolamento antes da implantação; o uso não implica que o cluster já existe. Consulte [ADR-0011](../../../docs/adr/0011-eks-auto-mode.md).
+Nenhuma execução AWS é autorizada apenas por este documento. Recursos devem ser provisionados com conta/região confirmadas, aprovação e plano de limpeza.
+
+---
+
+[← PROD](../README.md) · [Data Plane](../../README.md) · [Arquitetura](../../../docs/architecture.md) · [ADR EKS Auto Mode](../../../docs/adr/0011-eks-auto-mode.md)

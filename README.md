@@ -5,7 +5,7 @@
 **`Kubernetes API` · `Crossplane` · `Argo Workflows` · `Terraform` · `Argo CD` · `AWS`**
 
 > [!NOTE]
-> **Estado atual:** arquitetura e materiais conceituais documentados. Os componentes da POC ainda serão implementados. Os ambientes AWS não foram provisionados por este repositório.
+> **Estado atual:** arquitetura e materiais conceituais documentados; sem deploy dos componentes da POC. Os ambientes AWS não foram provisionados por este repositório.
 
 ## 🧭 Comece por aqui
 
@@ -20,33 +20,57 @@
 
 ## 🧱 Arquitetura em uma visão
 
-```text
-                      EXPERIENCE LAYER
-                Backstage · CLI · GitOps · AI/MCP
-                              │
-                              ▼
-                 PLATFORM MANAGEMENT CLUSTER
-                         (kind local)
-  ┌────────────────────────────────────────────────────┐
-  │ CONTROL PLANE                                      │
-  │ Kubernetes API · AWSEnvironment Controller         │
-  │ Crossplane · XRDs · Compositions · Providers        │
-  ├────────────────────────────────────────────────────┤
-  │ WORKFLOW PLANE                                     │
-  │ Argo CD · Argo Workflows · Terraform Executor       │
-  ├────────────────────────────────────────────────────┤
-  │ OBSERVABILITY PLANE                                │
-  │ Métricas · Logs · Traces · Auditoria                │
-  └────────────────────────────────────────────────────┘
-                              │
-                              ▼
-                           DATA PLANE
-          UAT (conta AWS)          PROD (conta AWS)
-          EKS Auto Mode            EKS Auto Mode
-          AWS Runtime              AWS Runtime
+```mermaid
+flowchart TB
+    EXP["🧭 Experience Layer<br/>Backstage · CLI · GitOps · AI/MCP"]
+
+    subgraph HUB["Platform Management Cluster · kind local na POC"]
+        direction TB
+        CP["🧩 Control Plane<br/>Kubernetes API · Controllers · Crossplane"]
+        WF["⚙️ Workflow Plane<br/>Argo CD · Argo Workflows · Terraform"]
+        OB["📊 Observability Plane<br/>Métricas · Logs · Traces"]
+    end
+
+    subgraph UAT["☁️ UAT · Conta AWS"]
+        direction TB
+        UM["Environment Management EKS<br/>Auto Mode"]
+        UP["EKS PCI<br/>Auto Mode"]
+        UN["EKS Non-PCI<br/>Auto Mode"]
+        UR["AWS Runtime<br/>S3 · RDS · Rede · Outros"]
+        UM --> UP
+        UM --> UN
+    end
+
+    subgraph PROD["☁️ PROD · Conta AWS"]
+        direction TB
+        PM["Environment Management EKS<br/>Auto Mode"]
+        PP["EKS PCI<br/>Auto Mode"]
+        PN["EKS Non-PCI<br/>Auto Mode"]
+        PR["AWS Runtime<br/>S3 · RDS · Rede · Outros"]
+        PM --> PP
+        PM --> PN
+    end
+
+    EXP --> CP
+    CP --> WF
+    CP -.-> UM
+    CP -.-> PM
+    WF -.-> UM
+    WF -.-> PM
+    CP -.-> UR
+    CP -.-> PR
+    OB -.-> UM
+    OB -.-> PM
 ```
 
 **Uma API, diferentes reconciliadores.** O Kubernetes API Server recebe os recursos. O **Environment Controller** cuida de `AWSEnvironment`; o **Crossplane** implementa `Domain` e as Capabilities especializadas. Argo Workflows coordena processos longos e aprovações.
+
+**Leitura do diagrama:** linhas contínuas indicam relações lógicas dentro da arquitetura; linhas tracejadas representam integrações de gerenciamento e observabilidade, **não conexões de rede ou permissões já configuradas**. O Management EKS de cada ambiente gerencia seus clusters de workloads apenas quando as regras de segurança permitirem.
+
+| Ambiente | Cluster de gerenciamento | Clusters de workloads | Recursos AWS |
+| :--- | :--- | :--- | :--- |
+| **UAT** | Environment Management EKS (Auto Mode) | EKS PCI · EKS Non-PCI | AWS Runtime |
+| **PROD** | Environment Management EKS (Auto Mode) | EKS PCI · EKS Non-PCI | AWS Runtime |
 
 [Detalhes e limites da arquitetura](docs/architecture.md) · [ADR de reconciliação](docs/adr/0009-crossplane-e-reconciliacao.md)
 

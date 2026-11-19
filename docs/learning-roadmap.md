@@ -2,7 +2,7 @@
 
 [← Página inicial](../README.md) · [📖 Fundamentos](fundamentos/README.md) · [🏗️ Arquitetura](architecture.md)
 
-**Antes de implementar:** concluir ou revisar o [curso de Fundamentos de Platform Engineering](fundamentos/README.md), com 24 artigos conceituais em pt-BR. Os labs não substituem o estudo de problemas, produto, Golden Paths, contratos e reconciliação.
+**Antes de implementar:** consultar a [base de Fundamentos de Platform Engineering](fundamentos/README.md), com 24 artigos conceituais em pt-BR. Os labs não substituem o estudo de problemas, produto, Golden Paths, contratos e reconciliação.
 
 **Objetivo:** construir a plataforma progressivamente, com Hub local em `kind` e **provisionamento AWS real**. A criação de contas é uma fase posterior; os primeiros exercícios usam conta preexistente autenticada. Cada lab apresenta finalidade, pré-requisitos, comandos, evidências de execução, falha controlada, recuperação, custo e limpeza.
 
@@ -34,4 +34,9 @@
 - Não pressupor integração de chamados, criação de conta na fase inicial ou acesso administrativo compartilhado PCI/Non-PCI.
 
 ## ☁️ Padrão EKS
-O Lab 11 utiliza **Amazon EKS Auto Mode**, não node groups autogerenciados como padrão. O Hub continua em `kind` local. Verificar compatibilidade com DaemonSets, requirements PCI, identidade de Pods, rede, storage e cobrança antes do provisionamento. Escalar gradualmente de um cluster para a topologia-alvo, sem criação automática de todos os clusters.
+O Lab 11 utiliza **Amazon EKS Auto Mode**, não node groups autogerenciados como padrão. O Hub continua em `kind` local. Verificar compatibilidade com DaemonSets, requisitos PCI, identidade de Pods, rede, storage e cobrança antes do provisionamento. Escalar gradualmente de um cluster para a topologia-alvo, sem criação automática de todos os clusters.
+
+
+---
+
+[← Página inicial](../README.md) · [Fundamentos](fundamentos/README.md) · [Arquitetura](architecture.md)

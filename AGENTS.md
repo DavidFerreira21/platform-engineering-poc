@@ -40,4 +40,9 @@ Usar **Amazon EKS Auto Mode** como padrão para clusters reais nos diretórios `
 
 ## Fundamentos antes dos labs
 
-A pasta [docs/fundamentos/](docs/fundamentos/README.md) contém o **base conceitual em pt-BR** (24 artigos), com explicações autorais inspiradas pelos temas dos capítulos 1–3 de *Platform Engineering in Practice*, Zebb Wright. Não traduzir/reproduzir texto ou diagramas protegidos do livro. Não misturar artigos conceituais com labs de implementação. Cada artigo deve explicar o conceito com profundidade e texto contínuo, trazer exemplos da POC e referências confiáveis, sem seções artificiais de objetivos, exercícios ou fixação. Manter navegação anterior/próxima. Novos labs devem linkar os fundamentos pré-requisito.
+A pasta [docs/fundamentos/](docs/fundamentos/README.md) contém a **base conceitual em pt-BR** (24 artigos), com explicações autorais inspiradas pelos temas dos capítulos 1–3 de *Platform Engineering in Practice*, Zebb Wright. Não traduzir/reproduzir texto ou diagramas protegidos do livro. Não misturar artigos conceituais com labs de implementação. Cada artigo deve explicar o conceito com profundidade e texto contínuo, trazer exemplos da POC e referências confiáveis, sem seções artificiais de objetivos, exercícios ou fixação. Manter navegação anterior/próxima. Novos labs devem linkar os fundamentos pré-requisito.
+
+
+## Documentação e navegabilidade
+
+Manter o README principal como página de entrada, as 24 páginas em `docs/fundamentos/` como referência conceitual e os labs separados em `labs/`. Revisar todos os links relativos antes de enviar PRs. Diagramas do GitHub devem representar os **três EKS por ambiente** (Environment Management EKS, EKS PCI e EKS Non-PCI), além de AWS Runtime. Preferir títulos curtos, hierarquia de headings, ícones discretos e Markdown/Mermaid nativos; evitar badges ou estados não verificados. Não confundir integração lógica e rede AWS.

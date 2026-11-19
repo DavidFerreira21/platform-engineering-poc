@@ -67,4 +67,4 @@ Os temas iniciais dialogam com os capítulos 1–3 de *Platform Engineering in P
 
 O formato prioriza explicações bem desenvolvidas, comparações quando úteis, exemplos concretos e referências externas. Não usamos exercícios, objetivos formais ou resumos repetitivos em cada artigo.
 
-**Próximo passo:** [Arquitetura da POC](../architecture.md) · [Roteiro de implementação](../learning-roadmap.md) · [Página inicial](../../README.md)
+**Continue:** [Arquitetura da POC](../architecture.md) · [Roteiro de implementação](../learning-roadmap.md) · [Página inicial](../../README.md)
