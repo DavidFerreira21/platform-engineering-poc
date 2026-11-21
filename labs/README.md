@@ -8,6 +8,7 @@ Os labs materializarão a arquitetura progressivamente: preparação, instalaç�
 | **Design** | [🏗️ Arquitetura](../docs/architecture.md) |
 | **Execução** | [🛤️ Roteiro prático](../docs/learning-roadmap.md) |
 | **Lab 01** | [Platform Management Cluster com kind](01-platform-management-cluster.md) |
+| **Lab 02** | [Argo CD central no Hub kind](02-argocd-central.md) |
 
 Cada lab deve apresentar pré-requisitos, passos, evidências, diagnóstico, recuperação e limpeza. Recursos AWS reais exigem autorização por operação.
 
