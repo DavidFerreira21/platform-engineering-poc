@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: lab02b-echo-
+  namespace: argo-workflows
+  labels:
+    lab.platform.example/exercise: lab02b
+spec:
+  entrypoint: echo
+  serviceAccountName: argo-workflow
+  activeDeadlineSeconds: 180
+  arguments:
+    parameters:
+      - name: resultado
+        value: ok
+  templates:
+    - name: echo
+      container:
+        image: docker.io/library/busybox:1.37.0
+        command: [sh, -eu, -c]
+        env:
+          - name: LAB_RESULTADO
+            value: "{{workflow.parameters.resultado}}"
+        args:
+          - |
+            if [ "$LAB_RESULTADO" != ok ]; then
+              echo "falha controlada: resultado esperado é ok" >&2
+              exit 1
+            fi
+            echo "lab02b-workflow-ok"

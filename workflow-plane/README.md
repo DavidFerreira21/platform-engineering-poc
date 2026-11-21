@@ -2,7 +2,7 @@
 
 O Workflow Plane inclui o **Domain Bootstrap**, que valida o perfil versionado e gera a estrutura e os manifests iniciais de cada novo Domain, para os Environments selecionados, em PR; ele não provisiona recursos diretamente e não concorre com Argo CD/Crossplane. A verificação da prontidão deve agregar evidências de ambos. 
 
-O Workflow Plane mantém processos, GitOps central, aprovação e execução, **sem Crossplane**. **Argo Workflows é instalado logo após Argo CD (Lab 02B)**, antes de Crossplane; o Lab 08 aprofunda integração com Terraform Executor e aprovações.
+O Workflow Plane mantém processos, GitOps central, aprovação e execução, **sem Crossplane**. **Argo Workflows é instalado logo após Argo CD ([Lab 02B](../labs/02b-argo-workflows.md))**, antes de Crossplane; o Lab 08 aprofunda integração com Terraform Executor e aprovações.
 
 | Componente | Papel |
 | :--- | :--- |
@@ -12,7 +12,6 @@ O Workflow Plane mantém processos, GitOps central, aprovação e execução, **
 
 `Entity`, `Environment` e `Domain` são registros lógicos no Git. Não exigem Environment Controller próprio ou XRD de Domain nesta fase. A criação de contas será reconsiderada no futuro quando houver necessidade de lifecycle automatizado. O **Argo CD local** roda em cada Management EKS autorizado, junto do Data Plane.
 
-> [!NOTE]
-> **Estado:** documentação; nenhum componente provisionado.
+Os labs do Workflow Plane usam o Hub local. A integração com Terraform Executor segue no roteiro do Lab 08.
 
 [← Início](../README.md) · [Arquitetura](../docs/architecture.md)
