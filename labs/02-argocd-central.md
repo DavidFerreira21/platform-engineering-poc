@@ -8,7 +8,7 @@ Neste lab, o Helm faz o bootstrap do Argo CD. Depois, o Argo CD lê uma revisão
 
 - Lab 01 concluído, com `kind`, `kubectl` e `helm` disponíveis.
 - Uma revisão publicada neste monorepo que contenha `workflow-plane/argocd/demo/configmap.yaml`.
-- Acesso de leitura ao monorepo privado e conectividade do Hub ao GitHub e aos registries das imagens.
+- Conectividade do Hub ao GitHub e aos registries das imagens.
 
 Execute os comandos da raiz do monorepo.
 
@@ -41,7 +41,7 @@ Após o login, troque a senha em **User Info → Update Password**. Mantenha as 
 
 ## 2. Sincronizar uma revisão publicada
 
-Na UI, vá a **Settings → Repositories → Connect Repo** e configure o acesso HTTPS a `https://github.com/DavidFerreira21/platform-engineering-poc.git`. Use um token temporário com acesso de leitura ao conteúdo desse repositório. Confirme que a conexão aparece como bem-sucedida antes de prosseguir.
+O monorepo deste lab é público. O Argo CD lê a URL HTTPS declarada na Application sem credenciais. Comece pelo comando abaixo.
 
 ```bash
 read -r -p 'SHA completo do commit publicado: ' lab02_sha
@@ -57,7 +57,7 @@ kubectl --context kind-platform-management -n platform-system get configmap lab0
   -o 'jsonpath={.data.mensagem}{"\n"}'
 ```
 
-O valor esperado é `definido-no-git`. Se a aplicação mostrar `Unknown` ou `ComparisonError`, inspecione `kubectl --context kind-platform-management -n argocd describe application lab02-gitops-demo`. Confira credenciais, SHA publicado e caminho. Consulte os logs de `deployment/argocd-repo-server` no namespace `argocd` se a comparação continuar falhando.
+O valor esperado é `definido-no-git`. Se a aplicação mostrar `Unknown` ou `ComparisonError`, inspecione `kubectl --context kind-platform-management -n argocd describe application lab02-gitops-demo`. Confira a conectividade ao GitHub, o SHA publicado e o caminho. Consulte os logs de `deployment/argocd-repo-server` no namespace `argocd` se a comparação continuar falhando.
 
 ## 3. Provocar drift e recuperar
 
@@ -77,6 +77,6 @@ kubectl --context kind-platform-management -n argocd delete appproject lab02 --i
 bash platform/hub/scripts/verify.sh
 ```
 
-Encerre o port-forward com Ctrl+C. Remova a conexão em **Settings → Repositories** e revogue o token se foram criados só para o exercício. Mantenha o Argo CD instalado para o Lab 02B.
+Encerre o port-forward com Ctrl+C. Mantenha o Argo CD instalado para o Lab 02B.
 
 Para desinstalar o Argo CD opcionalmente, primeiro confirme que nenhuma outra aplicação depende dele. Execute `helm --kube-context kind-platform-management -n argocd uninstall argocd`. O chart mantém os CRDs. A exclusão dos CRDs é uma operação separada e remove todas as instâncias desses tipos no cluster.
