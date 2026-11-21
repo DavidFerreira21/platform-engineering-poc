@@ -1,0 +1,15 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: lab02
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://github.com/DavidFerreira21/platform-engineering-poc.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: platform-system
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: ConfigMap
