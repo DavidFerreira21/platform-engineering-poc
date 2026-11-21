@@ -1,0 +1,36 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: lab03-message
+spec:
+  compositeTypeRef:
+    apiVersion: lab.platform.example/v1alpha1
+    kind: LabMessage
+  mode: Pipeline
+  pipeline:
+    - step: render-configmap
+      functionRef:
+        name: lab03-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+          - name: message
+            base:
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                labels:
+                  lab.platform.example/exercise: lab03
+              data:
+                mensagem: ""
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.message
+                toFieldPath: data.mensagem
+                policy:
+                  fromFieldPath: Required
+            readinessChecks:
+              - type: MatchString
+                fieldPath: metadata.labels[lab.platform.example/exercise]
+                matchString: lab03

@@ -10,7 +10,7 @@ Construção incremental e observável: cada lab terá pré-requisitos, comandos
 | **01** | Hub `kind` + Traefik | API, CoreDNS, namespaces, mapeamento de portas, Ingress HTTP e verificações locais |
 | **02** | [Argo CD central (GitOps)](../labs/02-argocd-central.md) | Bootstrap do Argo CD, acesso local, Git como fonte da verdade e aplicações da plataforma |
 | **02B** | Argo Workflows no Hub por GitOps | Argo CD instala Argo Workflows e CRDs; executar um Workflow local inofensivo, observar Pods/logs/status e validar reexecução e limpeza, sem AWS ou Terraform |
-| **03** | Crossplane Core por GitOps | Argo CD instala o Crossplane; observar CRDs, XRDs, Compositions e status sem AWS |
+| **03** | [Crossplane Core por GitOps](../labs/03-crossplane-core.md) | Argo CD instala o Crossplane; observar CRDs, XRDs, Compositions e status sem AWS |
 | **03B** | UAT: registro de conta e autenticação AWS | Configurar arquivo de Environment e método de autenticação a definir; validar STS **antes de qualquer operação** |
 | **04** | `ObjectStorage` real | XRD/Composition/Provider AWS, bucket de laboratório, `Ready`, drift e teardown |
 | **04B** | `Database` com Amazon Aurora PostgreSQL | Contrato de Database e cluster Aurora PostgreSQL em UAT, sujeito a custo, rede, IAM, plano e teardown autorizados |

@@ -1,0 +1,7 @@
+apiVersion: lab.platform.example/v1alpha1
+kind: LabMessage
+metadata:
+  name: lab03-demo
+  namespace: platform-system
+spec:
+  message: reconciliado-pelo-crossplane
