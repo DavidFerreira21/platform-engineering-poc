@@ -1,0 +1,30 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: labmessages.lab.platform.example
+spec:
+  group: lab.platform.example
+  scope: Namespaced
+  names:
+    kind: LabMessage
+    plural: labmessages
+  enforcedCompositionRef:
+    name: lab03-message
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - message
+              properties:
+                message:
+                  type: string
+                  minLength: 1
+          required:
+            - spec
