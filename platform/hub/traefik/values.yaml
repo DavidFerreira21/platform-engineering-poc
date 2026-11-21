@@ -1,7 +1,8 @@
 # Traefik apenas para desenvolvimento local com kind.
 # NodePorts casam com kind-config.yaml (host 8080 -> 30080; 8443 -> 30443).
 service:
-  type: NodePort
+  spec:
+    type: NodePort
 ports:
   web:
     nodePort: 30080
@@ -11,8 +12,9 @@ ports:
     nodePort: 30443
     expose:
       default: true
-    tls:
-      enabled: true
+    http:
+      tls:
+        enabled: true
 providers:
   kubernetesIngress:
     enabled: true
