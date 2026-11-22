@@ -18,7 +18,9 @@ Construção incremental e observável: cada lab terá pré-requisitos, comandos
 | **06** | Argo CD central + primeira Capability de Domain | GitOps de `ObjectStorage` → Crossplane → AWS, com destino autorizado e isolamento |
 | **07** | Foundation Terraform reutilizável | Config central por Entity/Environment, plan/state isolado |
 | **08** | Integração Argo Workflows + gates + Terraform Executor | Reutilizar o Lab 02B; validar plan/apply, state seguro, aprovação e auditoria |
-| **08B** | `TerraformRun` CRD + Controller (**propostos**) | Validação, status, idempotência, disparo único do Argo Workflow e gates (primeiro com executor simulado) |
+| **08B-A** | `TerraformStack` — Declarative Execution | CRD/controller, intenção GitOps → plan via Argo Workflows, policy/gate e status; começar com executor simulado, sem AWS |
+| **08B-B** | `TerraformStack` — Drift Detection | Plan periódico/manual, distinguir alterações Git de drift externo, atualizar `status.conditions`, **sem remediação automática** |
+| **08B-C** | `TerraformStack` — Policy-Based Reconciliation | Policy Engine versionado avalia impacto e origem; auto apply autorizado, aprovação de plano imutável ou bloqueio; state e concorrência seguros |
 | **09** | Entity Core e EKS Auto Mode incremental | Criar **um EKS por vez** a partir do Foundation/Core, validar identidade, custo, rede e controles PCI |
 | **10** | Argo CD local + configuração do Management EKS | Management EKS gerencia GitOps para EKS PCI/Não PCI autorizados; selecionar Operators progressivamente, validar conectividade e RBAC |
 | **10B** | Smoke test técnico do Data Plane com app mínima | **Somente após EKS + Argo CD local funcionarem:** subir app HTTP mínima, preferencialmente Python + Flask, de **repositório separado** e verificar deploy, conectividade, health check e rollback simples; sem portal, Golden Path ou DX |

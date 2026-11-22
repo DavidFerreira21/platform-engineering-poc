@@ -11,7 +11,7 @@ O **Kubernetes API Server** é a API da plataforma para produtos técnicos Kuber
 | `Database` | Segunda Capability: **Aurora PostgreSQL**, dependente de conta UAT autorizada, VPC e controle de custo |
 | `Messaging`, `ComputeInstance` | Capabilities posteriores |
 
-Crossplane **não observa diretamente Git**. Argo CD central sincroniza somente CRs de Capability com a API. A definição dos **perfis versionados de Domain Bootstrap** e dos contratos de Capability pertence à plataforma. O Workflow Plane gera os manifests obrigatórios por Domain/Environment; Crossplane continua sendo o reconciliador de AWS, e não o executor do Bootstrap. A seleção de credenciais precisa vir de mapeamento validado; Domain não escolhe uma role arbitrária. O Argo CD local possui os objetos Kubernetes dos workloads e namespaces.
+Crossplane **não observa diretamente Git**. O **Argo CD central sincroniza CRs de Capability e, futuramente, `TerraformStack`** com a Kubernetes API do Hub. Crossplane reconcilia exclusivamente as Capabilities AWS de seu ownership; o TerraformStack Controller coordena os Workflows de Foundation/Entity Core. Os registros lógicos Domain/Environment não são CRs e exigem resolução confiável de destino e IAM; o Domain não escolhe uma role arbitrária. **Domain Bootstrap é uma proposta anterior adiada e em reavaliação (ADR-0005):** seus perfis/gerador não são pré-requisito e o Workflow Plane **não gera manifests de Bootstrap atualmente**. O Argo CD local mantém objetos Kubernetes de aplicações nos destinos autorizados.
 
 ## TerraformStack (proposta)
 

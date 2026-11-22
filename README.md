@@ -90,7 +90,7 @@ A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership 
 
 ## 🧰 Domain Bootstrap
 
-**Proposta anterior (atualmente em reavaliação, sem implementação imediata):** ao criar um Domain, a plataforma executaria o **Domain Bootstrap** como fluxo padrão: o perfil versionado define a estrutura e os recursos iniciais, considerando os Environments escolhidos. Não existe um Bootstrap independente obrigatório por Environment. O gerador produz os manifests de Capabilities (`infrastructure/`) e de namespaces/policies (`applications/`) para revisão em PR. O **Argo CD central** aplica os CRs de Capability, o **Crossplane** entrega AWS e o **Argo CD local** configura Kubernetes. A conclusão é verificada para o Domain, com detalhamento por Environment; criar em UAT não seleciona PROD automaticamente. [Detalhamento](docs/architecture.md#6-domain-bootstrap-criação-padronizada-do-domain).
+**Proposta anterior (atualmente em reavaliação, sem implementação imediata):** ao criar um Domain, a plataforma executaria o **Domain Bootstrap** como fluxo padrão: o perfil versionado define a estrutura e os recursos iniciais, considerando os Environments escolhidos. Não existe um Bootstrap independente obrigatório por Environment. O gerador produz os manifests de Capabilities (`infrastructure/`) e de namespaces/policies (`applications/`) para revisão em PR. O **Argo CD central** aplica os CRs de Capability, o **Crossplane** entrega AWS e o **Argo CD local** configura Kubernetes. A conclusão é verificada para o Domain, com detalhamento por Environment; criar em UAT não seleciona PROD automaticamente. [Detalhamento](docs/architecture.md#6-domain-bootstrap-proposta-anterior-em-reavaliação).
 
 ## ☁️ Estratégia AWS
 
