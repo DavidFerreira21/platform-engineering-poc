@@ -1,0 +1,9 @@
+entity: entity-a
+environment: prod
+aws:
+  accountRef: platform-poc-prod
+  region: us-east-1
+foundation:
+  profile: standard
+core:
+  profile: eks-standard

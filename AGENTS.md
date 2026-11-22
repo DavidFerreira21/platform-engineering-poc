@@ -56,7 +56,7 @@ Os YAMLs `domain.yaml` e `environment.yaml` **não são CRs**; validar e resolve
 
 1. Lab 01 cria **somente** Platform Management Cluster local com `kind`; não depender de AWS.
 2. Instalar Crossplane no Hub e estudar XRD/Composition sem provisionar recursos AWS.
-3. Registrar **apenas UAT** com template em `foundation/config/entity-a/uat/environment.example.yaml`. **O método de autenticação AWS ainda não foi decidido**: não presumir IRSA/Pod Identity em `kind`, não commitar secrets e não usar credenciais permanentes como padrão.
+3. Registrar **UAT e PROD** em arquivos `environment.yaml` separados na Foundation, usando o template em `foundation/config/entity-a/uat/environment.example.yaml`. O operador usa IAM Identity Center. A autenticação de workload do Crossplane em `kind` ainda precisa ser validada, sem presumir IRSA/Pod Identity ou usar credenciais permanentes.
 4. Implementar `ObjectStorage` real e depois `Database` como **cluster Aurora PostgreSQL**, com orçamento, IAM, rede e teardown aprovados.
 
 ## Monorepo e labs

@@ -1,4 +1,4 @@
-# Modelo para o registro versionado de um Environment.
+# Modelo para o registro versionado de um Environment. Ajuste entity e environment ao caminho.
 entity: entity-a
 environment: uat
 aws:

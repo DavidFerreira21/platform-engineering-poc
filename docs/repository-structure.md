@@ -34,7 +34,7 @@ A POC utiliza **um único repositório** para demonstrar responsabilidades que p
 
 - `platform/hub/kind-config.yaml` e `platform/hub/scripts/`: criação, inspeção e remoção **apenas do cluster local kind**.
 - `labs/01-platform-management-cluster.md`: laboratório com pré-requisitos, começo, testes, diagnóstico e teardown.
-- `foundation/config/entity-a/uat/environment.yaml`: registro versionado da UAT com referência lógica, região e perfis. O [Lab 03B](../labs/03b-uat-e-autenticacao-aws.md) valida o destino via IAM Identity Center e mantém o ID numérico fora do Git.
+- `foundation/config/entity-a/{uat,prod}/environment.yaml`: registros versionados das contas UAT e PROD com referências lógicas distintas, região e perfis. O [Lab 03B](../labs/03b-uat-e-autenticacao-aws.md) valida os destinos via IAM Identity Center e mantém os IDs numéricos fora do Git.
 
 ### Situação de migração
 
