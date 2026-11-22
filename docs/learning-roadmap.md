@@ -18,7 +18,9 @@ Construção incremental e observável: cada lab terá pré-requisitos, comandos
 | **06** | Argo CD central + primeira Capability de Domain | GitOps de `ObjectStorage` → Crossplane → AWS, com destino autorizado e isolamento |
 | **07** | Foundation Terraform reutilizável | Config central por Entity/Environment, plan/state isolado |
 | **08** | Integração Argo Workflows + gates + Terraform Executor | Reutilizar o Lab 02B; validar plan/apply, state seguro, aprovação e auditoria |
-| **08B** | `TerraformRun` CRD + Controller (**propostos**) | Validação, status, idempotência, disparo único do Argo Workflow e gates (primeiro com executor simulado) |
+| **08B-A** | `TerraformStack` — Declarative Execution | Aplicar CR via Argo CD central; controller valida intenção, executa plan em Argo Workflow e respeita política/gate, começando com executor simulado |
+| **08B-B** | `TerraformStack` — Drift Detection | Plan periódico/manual, distinção entre drift externo e mudança Git, atualização de status/conditions e evidências, **sem auto apply** |
+| **08B-C** | `TerraformStack` — Policy-Based Reconciliation | Policy Engine avalia recurso, atributo, Environment e origem; auto apply permitido, aprovação de plano ou bloqueio; revalidação do plano e segurança do state |
 | **09** | Entity Core e EKS Auto Mode incremental | Um EKS por vez, verificando custo, identidade e PCI |
 | **10** | Argo CD local + Operators / gateway de telemetria | Management EKS faz GitOps para EKS PCI/Non-PCI autorizados; Operators a escolher e OTel Collector/gateway |
 | **10B** | CI/CD de Domain Applications (repo separado) | GitHub Actions faz build/test/scan/publica no futuro repo da aplicação de teste; Argo CD local faz o deploy GitOps |
@@ -31,7 +33,9 @@ Construção incremental e observável: cada lab terá pré-requisitos, comandos
 
 **Ordem dos componentes no Hub:** `kind` e Traefik → Argo CD central → **Argo Workflows via Argo CD** → Crossplane Core via Argo CD. O Lab 02B instala e observa o motor com um fluxo de teste local; integração com Terraform, gates humanos e permissões AWS fica para o Lab 08. Não confundir instalar o workflow controller com habilitar execução de infraestrutura real.
 
-**Não implementar `AWSEnvironment` CRD ou Environment Controller próprio como pré-requisito inicial.** Environment e Domain são registros lógicos; somente Capabilities precisam de XRD no primeiro ciclo. **Domain Bootstrap está em reavaliação e adiado**, não é pré-requisito dos labs. **O Argo CD local** aplica namespaces/policies e workloads Kubernetes. `Database` seguirá `ObjectStorage`, com Aurora PostgreSQL, custos e teardown aprovados. `TerraformRun` e CI/CD externo são propostas, **não componentes implantados**.
+**GitOps vs drift:** Argo CD central sincroniza o manifesto `TerraformStack` na Kubernetes API; **TerraformStack Controller**, e não Argo CD, detecta drift AWS executando plans periódicos. `Synced` no Argo CD não significa `Ready` na AWS. O controller só aplica depois da avaliação do Policy Engine e do gate apropriado. Ver [ADR-0006](adr/0006-terraformrun-and-application-ci.md).
+
+**Não implementar `AWSEnvironment` CRD ou Environment Controller próprio como pré-requisito inicial.** Environment e Domain são registros lógicos; somente Capabilities precisam de XRD no primeiro ciclo. **Domain Bootstrap está em reavaliação e adiado**, não é pré-requisito dos labs. **O Argo CD local** aplica namespaces/policies e workloads Kubernetes. `Database` seguirá `ObjectStorage`, com Aurora PostgreSQL, custos e teardown aprovados. `TerraformStack` (com controller, drift e policies) e CI/CD externo são propostas, **não componentes implantados**.
 
 **Conta UAT:** registrar o destino em `foundation/config/entity-a/uat/environment.example.yaml` (template sem dados reais). Conta, região, credenciais e método de autenticação ainda precisam ser definidos e validados no início dos labs AWS. Nenhuma chave ou segredo deve ser versionado.
 
