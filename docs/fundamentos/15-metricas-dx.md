@@ -15,7 +15,7 @@ Para ObjectStorage, registre o tempo entre submissão do contrato e Ready, quant
 ## Leitura complementar
 
 - [DORA — Platform Engineering](https://dora.dev/capabilities/platform-engineering/) — documentação e material público complementar.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 2 — DORA, SPACE e experiência do desenvolvedor.. Referência temática; texto autoral adaptado à POC.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 2 — DORA, SPACE e experiência do desenvolvedor.
 
 ---
 

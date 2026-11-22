@@ -15,7 +15,7 @@ Um XRD ObjectStorage com Composition que provisiona um bucket real numa conta au
 ## Leitura complementar
 
 - [CNCF — Maturity Model](https://tag-app-delivery.cncf.io/whitepapers/platform-eng-maturity-model/) — material de referência para aprofundamento.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 2 — thinnest viable platform.. Referência temática; explicação e exemplos autorais.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 2 — thinnest viable platform.
 
 ---
 

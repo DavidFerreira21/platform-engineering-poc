@@ -15,7 +15,7 @@ No início, entregaremos uma Capability ObjectStorage em AWS real, a partir de u
 ## Leitura complementar
 
 - [CNCF — Platform Engineering Maturity Model](https://tag-app-delivery.cncf.io/whitepapers/platform-eng-maturity-model/) — documentação e material público complementar.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 2 — platform charter e backlog.. Referência temática; texto autoral adaptado à POC.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 2 — platform charter e backlog.
 
 ---
 

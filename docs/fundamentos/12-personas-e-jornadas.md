@@ -15,7 +15,7 @@ Para Database, observe desde a descoberta do contrato e escolha do ambiente até
 ## Leitura complementar
 
 - [DORA — Platform Engineering](https://dora.dev/capabilities/platform-engineering/) — material de referência para aprofundamento.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 2 — personas e developer workflows.. Referência temática; explicação e exemplos autorais.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 2 — personas e developer workflows.
 
 ---
 

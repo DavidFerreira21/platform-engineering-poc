@@ -15,7 +15,7 @@ Um time de plataforma saudável oferece produtos com interfaces e suporte previs
 ## Leitura complementar
 
 - [Team Topologies — conceitos fundamentais](https://teamtopologies.com/key-concepts/) — material de referência para aprofundamento.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 2 — Team Topologies.. Referência temática; explicação e exemplos autorais.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 2 — Team Topologies.
 
 ---
 

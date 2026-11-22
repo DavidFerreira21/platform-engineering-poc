@@ -15,7 +15,7 @@ Usamos a API Kubernetes e Crossplane para Capabilities porque oferecem contratos
 ## Leitura complementar
 
 - [CNCF — Maturity Model](https://tag-app-delivery.cncf.io/whitepapers/platform-eng-maturity-model/) — material de referência para aprofundamento.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 1 — build, buy or adopt.. Referência temática; explicação e exemplos autorais.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 1 — build, buy or adopt.
 
 ---
 

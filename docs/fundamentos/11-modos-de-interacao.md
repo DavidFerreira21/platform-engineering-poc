@@ -15,7 +15,7 @@ O primeiro Domain da POC pode exigir colaboração para definir namespaces, quot
 ## Leitura complementar
 
 - [Team Topologies — modos de interação](https://teamtopologies.com/key-concepts-content/team-interaction-modeling-with-team-topologies) — material de referência para aprofundamento.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 2 — modos de interação.. Referência temática; explicação e exemplos autorais.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 2 — modos de interação.
 
 ---
 
