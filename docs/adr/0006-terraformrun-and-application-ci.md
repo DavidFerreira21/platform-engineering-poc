@@ -101,7 +101,7 @@ O código, a pipeline CI/CD **e os manifests Kubernetes da aplicação de exempl
 
 **Domain Applications** permanecem independentes: GitHub Actions de uma aplicação de teste rodará em **outro repositório**; após build/test/scan/publicação, uma atualização de manifesto GitOps será revisada/aprovada e aplicada pelo **Argo CD local**. Nenhuma pipeline de aplicação é criada neste monorepo agora.
 
-**Observabilidade** continua com OpenTelemetry, Grafana, Loki e Tempo; coletor/gateway local em cada Management EKS, Operators a definir. **Domain Bootstrap** permanece documentado no ADR-0005, **adiado e em reavaliação**, sem dependência com TerraformStack.
+**Observabilidade** continua com OpenTelemetry, Grafana, Loki e Tempo; coletor/gateway local em cada Management EKS, Operators a definir.
 
 ## Faseamento e pendências
 

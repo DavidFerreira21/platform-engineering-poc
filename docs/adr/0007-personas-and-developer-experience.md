@@ -109,7 +109,6 @@ O repositório separado da aplicação de teste será criado ou integrado na eta
 - **Integração CI → GitOps:** definir como a pipeline da aplicação atualiza os manifests versionados, aprovações e promoção entre UAT/PROD.
 - **Golden Paths:** validar o conceito **na Etapa 24, após Developer Experience na Etapa 22**, reutilizando a aplicação mínima implantada na Etapa 17. Backstage/CLI/templates e Helm/Kustomize são escolhas futuras; **não exigir um gerador completo**.
 - **Produto e métricas DX:** demonstrar o fluxo da plataforma e a redução da carga cognitiva com a aplicação mínima; métricas de geração de novos serviços são opcionais.
-- **Não implementar Domain Bootstrap agora:** ADR-0005 continua adiado; a proposta de Starter Kit de aplicação é **distinta** do Bootstrap de Domain e não exige esse gerador.
 - **Status:** estes contratos e exemplos descrevem o desenho pretendido, não repositório da aplicação já fornecido ou componentes AWS/EKS implantados.
 
 [Arquitetura](../architecture.md) · [Estrutura](../repository-structure.md) · [Roadmap](../learning-roadmap.md) · [Índice ADRs](README.md)

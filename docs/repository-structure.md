@@ -15,7 +15,7 @@ A POC utiliza **um único repositório** para demonstrar responsabilidades que p
 | **Repositório próprio da aplicação (etapa futura)**: `src/`, `tests/`, `.github/workflows/`, `k8s/` | **Domain Applications** · Application Team (código, manifests K8s, CI/CD) + Argo CD local |
 | `control-plane/`, `workflow-plane/`, `observability-plane/`, `platform/hub/` | Código e configuração da plataforma central |
 
-**Domain Bootstrap está adiado e em reavaliação:** a ideia anterior previa um gerador de manifests em `infrastructure/` e `applications/`, porém **não é requisito do modelo atual**. Os manifests de infraestrutura pertencem ao DevOps Federado no monorepo; **manifests da aplicação pertencem ao repositório separado da squad**, gerado futuramente por Golden Path. Ver [ADR-0007](adr/0007-personas-and-developer-experience.md).
+Os registros de Domain ficam no monorepo. O DevOps Federado mantém os manifests de infraestrutura em `infrastructure/` para cada destino, e a squad mantém os manifests da aplicação no próprio repositório. Ver [ADR-0007](adr/0007-personas-and-developer-experience.md).
 
 **Environment é a conta AWS UAT/PROD inteira**, não a pasta de Core. O Core é a parte compartilhada e o Domain possui os recursos de negócio. Ambos ficam no **Data Plane**. O registro de Environment fica na Foundation por ownership central, mas descreve o destino de todos os recursos do Environment.
 
@@ -24,7 +24,6 @@ A POC utiliza **um único repositório** para demonstrar responsabilidades que p
 - **TerraformStack (CRD + controller):** contrato de infraestrutura desejada e drift em `control-plane/`, sincronizado via Argo CD central, com policies, status e execução plan/gate/apply por Argo Workflows + Terraform Executor em `workflow-plane/`. `TerraformRun` é nome opcional de execução individual, sem segundo CRD obrigatório. Não confundir com XRDs do Crossplane.
 - **GitHub Actions das aplicações:** será mantido **em repositório de aplicação de teste separado**, a integrar durante o lab correspondente. Este monorepo não incluirá código/CI da aplicação.
 - **Management EKS:** Argo CD local, Operators a escolher e OpenTelemetry Collector/gateway para observabilidade central (Grafana/Loki/Tempo).
-- **Domain Bootstrap:** documentação existente preservada, mas implementação adiada e em reavaliação.
 
 ### Três personas e a fronteira entre repositórios
 

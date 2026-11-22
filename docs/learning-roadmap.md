@@ -89,4 +89,3 @@ Reutilizar a aplicação da Etapa 17 para demonstrar a jornada completa de um Do
 ## Extensões opcionais
 
 - **Automação de criação de contas.** Avaliar apenas se surgir necessidade de automatizar o lifecycle de contas da organização.
-- **Reavaliação do Domain Bootstrap.** Manter a proposta como decisão adiada. O Golden Path usa passos explícitos de registro, infraestrutura e aplicação. [ADR-0005](adr/0005-domain-bootstrap.md)

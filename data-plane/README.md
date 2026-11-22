@@ -2,7 +2,7 @@
 
 O Data Plane é composto de **Entities**, com Environments UAT/PROD e duas áreas de infraestrutura: **Core Infrastructure** (compartilhada) e **Domains** de negócio/aplicação. Ambos pertencem ao Data Plane.
 
-**Environment é a conta AWS inteira**, não sinônimo de Core. A divisão padrão de ownership é **Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications**. Uma Entity pode ter diversos Domains; cada Domain é identidade única que possui Capabilities e aplicações em UAT e/ou PROD. **Domain Bootstrap é uma proposta documentada, atualmente adiada/em reavaliação**. Não exigir um gerador para que Capabilities e aplicações sejam entregues pelos reconciliadores Crossplane central e Argo CD local.
+**Environment é a conta AWS inteira**, não sinônimo de Core. A divisão padrão de ownership é **Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications**. Uma Entity pode ter diversos Domains; cada Domain é identidade única que possui Capabilities e aplicações em UAT e/ou PROD.
 
 ## Management EKS e AWS Runtime (topologia-alvo)
 
@@ -11,8 +11,6 @@ Em cada conta UAT/PROD, a topologia prevê **Management EKS**, **EKS PCI** e **E
 O **AWS Runtime** engloba Core Infrastructure (recursos compartilhados) e Domain Infrastructure (recursos de cada domínio). **Terraform** cria Foundation e Entity Core como rede, dependências e EKS; **Crossplane** reconcilia Capabilities AWS de Domain, e pode operar Capabilities comuns quando o ownership for explícito. Um recurso não terá Terraform e Crossplane como owners simultâneos.
 
 **Domain Applications:** código, GitHub Actions **e manifests Kubernetes da aplicação** ficarão **juntos no repositório próprio da squad, previsto para uma etapa posterior**; Argo CD local aplica esses manifests em EKS PCI/Não PCI autorizado. O **Application Team** é owner desse repositório.
-
-**Domain Bootstrap** continua registrado como hipótese, mas a implementação foi **adiada e está em reavaliação**.
 
 ## Personas e consumo da infraestrutura
 

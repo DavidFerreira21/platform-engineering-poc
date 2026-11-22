@@ -114,7 +114,7 @@ policies:
 
 Esses YAMLs **não são manifests Kubernetes** e não devem ser sincronizados diretamente pelo Argo CD central. Inicialmente são lidos por validações e ferramentas de workflow. A vinculação confiável **Entity + Environment + Domain → conta/IAM/namespace** precisa ser construída e testada: consumidores não podem escolher credenciais AWS arbitrárias.
 
-**`ObjectStorage` e `Database` são as duas primeiras Capabilities da POC**, nessa ordem. A primeira implementação de `Database` usará **Amazon Aurora PostgreSQL** (cluster Aurora), sem assumir que uma definição lógica de `Database` tenha de se limitar a Aurora em versões futuras; `Messaging` e `ComputeInstance` ficam no roadmap. **Não criar `CapabilityClaim` genérico.** **Domain Bootstrap é proposta anterior adiada:** previa a criação de Capabilities e configurações iniciais do Domain, mas não será implementado agora. Capabilities e Deployments continuam solicitações independentes. Ver [Domain Bootstrap](#6-domain-bootstrap-proposta-anterior-em-reavaliação).
+**`ObjectStorage` e `Database` são as duas primeiras Capabilities da POC**, nessa ordem. A primeira implementação de `Database` usará **Amazon Aurora PostgreSQL** (cluster Aurora), sem assumir que uma definição lógica de `Database` tenha de se limitar a Aurora em versões futuras; `Messaging` e `ComputeInstance` ficam no roadmap. **Não criar `CapabilityClaim` genérico.** Capabilities e Deployments são solicitações independentes.
 
 ### Decisões complementares da arquitetura-alvo
 
@@ -122,7 +122,6 @@ Esses YAMLs **não são manifests Kubernetes** e não devem ser sincronizados di
 - **Domain Applications:** as squads manterão **código, GitHub Actions e manifests Kubernetes da aplicação em repositório próprio**, separado deste monorepo e previsto para uma etapa posterior. O pipeline faz build/testes/scans e publicação, propõe atualização declarativa GitOps; **Argo CD local** em cada Management EKS faz o deploy nos EKS PCI/Non-PCI autorizados. O workflow CI existente neste monorepo só valida a POC.
 - **Management EKS:** **Operators ainda a estudar**; usar **OpenTelemetry Collector/gateway** para encaminhar telemetria à camada central, não assumir Loki instalado dentro de todos os Management EKS.
 - **Observabilidade central:** **OpenTelemetry, Grafana, Loki e Tempo**; estratégia de métricas/Prometheus, retenção e fronteiras PCI a validar no laboratório.
-- **Domain Bootstrap:** conceito mantido no ADR-0005 para rastreabilidade, mas **em reavaliação e fora das próximas implementações**. Não é pré-requisito para Foundation, Capabilities ou Domain Applications.
 
 ### Personas, limites de abstração e modelo de consumo
 
@@ -195,46 +194,14 @@ platform-engineering-poc/
 O monorepo demonstra autonomia via PR, revisão de paths e eventualmente CODEOWNERS. **CODEOWNERS sem regras de proteção não basta;** também são necessários RBAC Kubernetes, admission, IAM por conta e AppProjects Argo CD. Terraform state fica fora do Git.
 
 
-## 6. Domain Bootstrap: proposta anterior em reavaliação
+## 6. Registro e entrega de um Domain
 
-> [!NOTE]
-> Esta seção preserva um desenho anterior para rastreabilidade. **Não implementar nem assumir Domain Bootstrap como obrigatório** neste ciclo. A necessidade do gerador será reavaliada; ele pode não existir na arquitetura final.
+Na Etapa 23, a equipe registra o Domain em `data-plane/<entity>/domains/<domain>/domain.yaml` com identidade, ownership e Environments autorizados. Cada entrega passa por revisão no Git.
 
-O **Domain é uma identidade lógica única na Entity**. **No desenho anterior, a criação de um Domain usaria o Domain Bootstrap** como fluxo de inicialização: escolhe e valida um perfil versionado, gera sua estrutura e as declarações dos recursos previstos nesse perfil. O processo é iniciado **pela criação do Domain**, não como uma obrigação de executar um Bootstrap independente para cada Environment. O Domain pode solicitar Capabilities adicionais depois. **Cadastrar um Domain não equivale a concluir seu Bootstrap**.
-
-### O que o perfil `standard` cria (exemplo da POC)
-
-| Recurso inicial definido pelo perfil | Motor de entrega | Destino / ownership |
-| :--- | :--- | :--- |
-| `Database` | Manifest de Capability → Argo CD **central** → Crossplane → AWS | Domain, no Environment |
-| `ObjectStorage` | Manifest de Capability → Argo CD **central** → Crossplane → AWS | Domain, no Environment |
-| Namespace(s) nos destinos Kubernetes permitidos | Manifest Kubernetes → Argo CD **local** | Domain, por cluster/destino |
-| Quotas, políticas de rede/segurança, permissões e labels/tags aplicáveis | GitOps local para Kubernetes; políticas de Capability para AWS | Governança da plataforma, instanciada para Domain |
-
-**Nota de fases:** o perfil `standard` de referência cria banco, bucket, namespace e políticas como padrão de nascimento do Domain. `ObjectStorage` continua sendo o primeiro **produto técnico implementado** no lab; `Database` será o segundo, com **Aurora PostgreSQL**, conforme validação de rede, custo, permissões e estratégia de remoção. Um perfil de laboratório reduzido pode demonstrar o mecanismo antes disso. **Não declarar um Domain com perfil `standard` como `Ready` enquanto os recursos previstos por esse perfil não estiverem provisionados e verificados**.
-
-### Processo de criação
-
-```mermaid
-flowchart TB
-    R["Criar Domain<br/>identidade + perfil + destinos selecionados"] --> V["Validação de identidade, escopo,<br/>permissões e perfil"]
-    V --> B["Domain Bootstrap<br/>renderização declarativa idempotente"]
-    B --> I["Manifests de Capabilities<br/>por Domain + Environment"]
-    B --> K["Manifests Kubernetes<br/>por Domain + Environment"]
-    I --> C["Argo CD central → Kubernetes API → Crossplane → AWS"]
-    K --> L["Argo CD local → EKS autorizado"]
-    C --> S["Verificação das dependências obrigatórias"]
-    L --> S
-    S --> READY["Domain Environment Ready"]
-```
-
-**Local da definição:** `data-plane/<entity>/domains/<domain>/domain.yaml` (identidade, perfil e versão desejados, Environments selecionados). O **perfil versionado**, com template e requisitos, pertence ao **Control Plane** (catálogo/padrões da plataforma), enquanto o **mecanismo de execução do Bootstrap** pertence ao **Workflow Plane**. Os manifests gerados ficam sob `domains/<domain>/<env>/{infrastructure,applications}/`, revisados e versionados no **mesmo monorepo**. **A aplicação é feita somente pelo GitOps**; o Bootstrap **não cria recursos diretamente** na AWS ou nos EKS, evitando dois escritores.
-
-**Disparo proposto para a POC:** solicitação de **criação de Domain** com perfil e ambientes de destino → geração idempotente da estrutura e dos manifests iniciais → validação/revisão/merge → reconciliadores existentes. **Um único processo de Bootstrap do Domain** pode preparar recursos para UAT, PROD ou ambos, de acordo com a solicitação e suas autorizações. A posterior inclusão de um novo Environment é uma **evolução do Domain** e pode reutilizar o mesmo mecanismo de geração, sem representar um novo nascimento. Não supor que gravar o YAML dispara um controller: gatilho de CI/workflow e gerador são **componentes ainda a implementar**. O Bootstrap não executa `apply` AWS só por aprovação documental.
-
-**Prontidão e falhas:** após sincronização, uma verificação independente consolida evidências de execução **para o Domain e seus destinos (Domain + Environment)** (XRs `Ready`, Argo CD Sync/Health, namespace/políticas). Estado como `Pending`, `Provisioning`, `Ready` ou `Failed` é **derivado de evidências**, não `status` magicamente escrito no `domain.yaml`. Falhas permitem reexecução idempotente sem duplicar buckets, bancos ou namespaces; se faltar um recurso do padrão num destino, o Bootstrap daquele destino não está concluído. A checagem por Environment é apenas uma dimensão operacional do mesmo Domain.
-
-**Evolução:** perfis possuem versão imutável/referenciada; novo perfil **não altera automaticamente** Domains existentes. Migração exige PR/avaliação de mudanças, especialmente recursos stateful e PROD. A remoção de um Domain não dispara automaticamente `destroy`: exige descomissionamento explícito, políticas de retenção, dependências e gates. Recursos de **Entity Core Infrastructure** nunca são excluídos com o Domain.
+- **Infraestrutura do Domain.** O DevOps Federado declara as Capabilities necessárias em `data-plane/<entity>/domains/<domain>/<env>/infrastructure/`. O Argo CD central aplica os CRs, e o Crossplane reconcilia os recursos AWS no destino aprovado.
+- **Configuração e aplicação.** O Argo CD local entrega namespaces, políticas e workloads nos destinos autorizados. Na Etapa 24, a squad demonstra a entrega com código, CI e manifests Kubernetes no repositório da aplicação.
+- **Prontidão.** Verificar, por Environment, as condições `Ready` das Capabilities solicitadas e o estado de sincronização e saúde dos recursos Kubernetes. O registro de Domain documenta identidade e ownership.
+- **Remoção.** Descomissionar recursos por operação aprovada, após avaliar dependências e retenção.
 
 ## 7. Três fluxos sem sobreposição
 
@@ -297,16 +264,16 @@ O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicaçã
 
 ## 9. Nascimento de uma entidade versus ordem pedagógica
 
-**Fluxo operacional alvo, sem Domain Bootstrap obrigatório:** Foundation cria/adota contas e rede → Entity Core prepara EKS e Argo CD local → manifests de Capabilities aprovados são reconciliados por Crossplane central → workloads de Domain Applications são entregues por Argo CD local. **O fluxo Domain Bootstrap descrito na seção 6 está adiado e em reavaliação.**
+**Fluxo operacional alvo.** Foundation cria ou adota contas e rede → Entity Core prepara EKS e Argo CD local → manifests de Capabilities aprovados são reconciliados por Crossplane central → workloads de Domain Applications são entregues por Argo CD local.
 
 **POC pedagógica:** preparação do Hub e dos ambientes AWS → Control Plane e contratos → Workflow Plane e execução autorizada → provisionamento e smoke test → observabilidade e operação → Experience Layer → Golden Path. O [roteiro prático](learning-roadmap.md) organiza essas fases nas Etapas 00 a 24. A UAT recebe os primeiros recursos reais, com expansão incremental de clusters após verificar identidade, rede, custo e isolamento.
 
 ## 10. Decisões vigentes e pontos abertos
 
-**Atualização:** TerraformStack com controller e reconciliação orientada por políticas é um contrato alvo ainda não implementado; GitHub Actions das aplicações será externo a este monorepo; OpenTelemetry/Grafana/Loki/Tempo são a stack-alvo; Operators locais ainda serão selecionados; Domain Bootstrap está em reavaliação e adiado.
+**Atualização:** TerraformStack com controller e reconciliação orientada por políticas é um contrato alvo ainda não implementado; GitHub Actions das aplicações será externo a este monorepo; OpenTelemetry/Grafana/Loki/Tempo são a stack-alvo; Operators locais ainda serão selecionados.
 
-**Fechado:** Domain como unidade lógica de consumo/ownership, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas (incluindo **Domain Applications**), monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência. **Criação padronizada via Domain Bootstrap não está fechada: em reavaliação.**
+**Fechado:** Domain como unidade lógica de consumo/ownership, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas (incluindo **Domain Applications**), monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência.
 
-**A validar no roteiro:** federação do Provider AWS na UAT com renovação de sessão, arquitetura de rede e custo do Aurora PostgreSQL, decisão futura sobre manter ou descartar Domain Bootstrap (sem implementá-lo agora), schema dos YAMLs, transformação segura de registros lógicos em escopo/credenciais, distribuição de namespaces/quotas ao GitOps local, gates, observabilidade, PCI e necessidade eventual de uma API/controller de ciclo de vida de contas.
+**A validar no roteiro:** federação do Provider AWS na UAT com renovação de sessão, arquitetura de rede e custo do Aurora PostgreSQL, schema dos YAMLs, transformação segura de registros lógicos em escopo/credenciais, distribuição de namespaces/quotas ao GitOps local, gates, observabilidade, PCI e necessidade eventual de uma API/controller de ciclo de vida de contas.
 
 [Decisões](adr/README.md) · [Monorepo](repository-structure.md) · [Roteiro](learning-roadmap.md)

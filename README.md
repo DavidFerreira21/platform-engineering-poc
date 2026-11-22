@@ -40,7 +40,7 @@ O exercício implementa uma fatia do **Rastreamento de Encomendas**. Um operador
 
 > **Nota de arquitetura:** o diagrama oficial está em `docs/arquitetura Plataform.png` e representa a **topologia-alvo**. Para contratos e decisões atualizadas, consultar os [ADRs](docs/adr/README.md). O nome vigente do contrato declarativo proposto é `TerraformStack` (CRD + controller); `TerraformRun` fica reservado para uma execução individual, se necessário.
 
-**Environment é o contexto UAT/PROD associado à conta AWS inteira, não apenas ao Core.** O Data Plane contém **Core Infrastructure compartilhada** e **Domains** de negócio/aplicação. Um Domain pode possuir Capabilities, namespaces e apps em ambos os ambientes. **Domain Bootstrap é uma proposta anterior em reavaliação, não um pré-requisito da POC**. O perfil `standard` e seu gerador permanecem descritos para referência, mas não serão implementados agora. Capabilities continuam entregues por Crossplane central e aplicações por Argo CD local.
+**Environment é o contexto UAT/PROD associado à conta AWS inteira, não apenas ao Core.** O Data Plane contém **Core Infrastructure compartilhada** e **Domains** de negócio/aplicação. Um Domain pode possuir Capabilities, namespaces e apps em ambos os ambientes. Capabilities continuam entregues por Crossplane central e aplicações por Argo CD local.
 
 ## 👥 Personas e experiência da plataforma
 
@@ -80,13 +80,8 @@ A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership 
 - **Domain Applications:** código e workflows CI/CD **GitHub Actions em um repositório de aplicação de teste separado**, a integrar em etapa posterior; deploy GitOps nos EKS via Argo CD local.
 - **Management EKS:** Argo CD local, Operators **a escolher** e OpenTelemetry Collector/gateway para logs e traces; backend central com **Grafana + Loki + Tempo**. Estratégia de métricas/Prometheus em validação.
 - **Ownership:** Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications.
-- **Domain Bootstrap:** documentação preservada, mas **adiado e em reavaliação**, sem implementação neste ciclo.
 
 [Decisão de personas e Golden Paths](docs/adr/0007-personas-and-developer-experience.md)
-
-## 🧰 Domain Bootstrap
-
-**Proposta anterior, adiada e em reavaliação.** O desenho de um gerador por perfil versionado está preservado para rastreabilidade, **sem ser etapa obrigatória nem implementação planejada agora**. A POC adota manifests de **Domain Infrastructure** geridos pelo DevOps Federado neste monorepo e manifests de **Domain Applications** no repositório próprio da squad. Não recriar `applications/` no monorepo por causa do Bootstrap histórico. [Contexto e decisão](docs/adr/0005-domain-bootstrap.md).
 
 ## ☁️ Estratégia AWS
 
