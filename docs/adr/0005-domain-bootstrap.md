@@ -1,6 +1,9 @@
 # ADR-0005 — Domain Bootstrap como padrão de criação do Domain
 
-**Estado:** decisão vigente, implementação pendente · **Data:** 19/11/2026
+**Estado:** proposta preservada em reavaliação, implementação adiada · **Data:** 19/11/2026; revisão 21/11/2026
+
+> [!NOTE]
+> Domain Bootstrap permanece documentado para referência, mas **não está previsto nas próximas implementações** e pode ser descartado após nova avaliação. Não criar gerador ou controller nem torná-lo pré-requisito agora.
 
 ## Contexto
 

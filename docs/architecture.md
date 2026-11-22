@@ -10,7 +10,7 @@
 A POC demonstra uma plataforma **Kubernetes-native** de governança central e consumo federado. Existem duas dimensões distintas:
 
 - **Planos:** Experience Layer, Control Plane, Workflow Plane, Observability Plane e Data Plane. Os três planos técnicos centrais coexistem no **Platform Management Cluster**, inicialmente `kind`.
-- **Quatro camadas de ownership:** **Foundation → Entity Core Infrastructure → Domain Infrastructure → Applications**. Elas classificam responsabilidade de mudança e lifecycle, **não** representam planos ou clusters adicionais.
+- **Quatro camadas de ownership:** **Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications**. Elas classificam responsabilidade de mudança e lifecycle, **não** representam planos ou clusters adicionais.
 
 A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) é o contexto de uma conta AWS. O **Domain** é a unidade lógica de negócio, consumo, ownership e governança: possui Capabilities e aplicações em um ou mais Environments. **Capability** é o produto técnico provisionável, como `ObjectStorage`.
 
@@ -23,15 +23,15 @@ flowchart TB
   E["Experience Layer<br/>Backstage · CLI · GitOps · AI/MCP"]
   subgraph HUB["Platform Management Cluster · kind inicial"]
     direction TB
-    CP["Control Plane<br/>Kubernetes API · Crossplane central · políticas"]
-    WF["Workflow Plane<br/>Argo CD central · Argo Workflows · Terraform"]
-    OB["Observability Plane<br/>métricas · logs · traces · auditoria"]
+    CP["Control Plane<br/>Kubernetes API · Crossplane central · XRDs<br/>Admission/Policies · TerraformRun CRD/controller (propostos)"]
+    WF["Workflow Plane<br/>Argo CD central · Argo Workflows · Terraform Executor"]
+    OB["Observability Plane<br/>OpenTelemetry · Grafana · Loki · Tempo · auditoria"]
     CP --> WF
   end
   subgraph DP["Data Plane · Entity A"]
     direction TB
     subgraph U["UAT · conta AWS"]
-      UM["Management EKS<br/>Argo CD local"]
+      UM["Management EKS<br/>Argo CD local · Operators (a definir) · OTel gateway"]
       UP["EKS PCI"]
       UN["EKS Non-PCI"]
       UR["AWS Runtime<br/>Core + Domains"]
@@ -39,7 +39,7 @@ flowchart TB
       UM --> UN
     end
     subgraph P["PROD · conta AWS"]
-      PM["Management EKS<br/>Argo CD local"]
+      PM["Management EKS<br/>Argo CD local · Operators (a definir) · OTel gateway"]
       PP["EKS PCI"]
       PN["EKS Non-PCI"]
       PR["AWS Runtime<br/>Core + Domains"]
@@ -60,9 +60,9 @@ Linhas tracejadas representam integração lógica, **não redes AWS nem permiss
 | :--- | :--- |
 | **Experience Layer** | Consumidores independentes: Backstage, CLI, PR GitOps, AI/MCP; Backstage não é gateway obrigatório |
 | **Control Plane** | Kubernetes API Server central, XRDs/Compositions/Providers de Capabilities, Crossplane e políticas |
-| **Workflow Plane** | Argo CD central, Argo Workflows, Terraform Executor, aprovações |
-| **Observability Plane** | Métricas, logs, traces, status, eventos e auditoria |
-| **Data Plane** | Contas AWS das Entities, Core compartilhado, Domains, workloads e Argo CD local |
+| **Workflow Plane** | Argo CD central, Argo Workflows, Terraform Executor, aprovações; GitHub Actions de aplicações em repositório separado |
+| **Observability Plane** | OpenTelemetry, Grafana, Loki, Tempo, métricas, eventos e auditoria |
+| **Data Plane** | Contas AWS das Entities, Core compartilhado, Domains, Management EKS com Argo CD local/Operators/gateway de logs e EKS PCI/Non-PCI |
 
 ## 3. Quatro conceitos e seus contratos
 
@@ -106,6 +106,14 @@ Esses YAMLs **não são manifests Kubernetes** e não devem ser sincronizados di
 
 **`ObjectStorage` e `Database` são as duas primeiras Capabilities da POC**, nessa ordem. A primeira implementação de `Database` usará **Amazon Aurora PostgreSQL** (cluster Aurora), sem assumir que uma definição lógica de `Database` tenha de se limitar a Aurora em versões futuras; `Messaging` e `ComputeInstance` ficam no roadmap. **Não criar `CapabilityClaim` genérico.** Na **criação do Domain**, o **Domain Bootstrap** aplica o padrão inicial definido pelo perfil versionado e gera as Capabilities e configurações previstas para os Environments selecionados, usando os contratos existentes; Capabilities adicionais e Deployments de aplicações continuam solicitações independentes. Ver [Domain Bootstrap](#6-domain-bootstrap-criação-padronizada-do-domain).
 
+### Complemento da arquitetura-alvo (21/11/2026)
+
+- **Contrato Terraform (proposto):** `TerraformRun` é um CRD Kubernetes próprio no Hub, com controller dedicado. O Argo CD central sincroniza o recurso; o controller aciona Argo Workflows e Terraform Executor, com `plan → gate → apply`, state isolado, status e idempotência. **Não fazer apply a cada reconcile**, nem converter Terraform em provider Crossplane. Ver [ADR-0006](adr/0006-terraformrun-and-application-ci.md).
+- **Domain Applications:** as squads terão **GitHub Actions em um repositório de aplicação de teste separado**, a ser fornecido. O pipeline faz build/testes/scans e publicação, propõe atualização declarativa GitOps; **Argo CD local** em cada Management EKS faz o deploy nos EKS PCI/Non-PCI autorizados. O workflow CI existente neste monorepo só valida a POC.
+- **Management EKS:** **Operators ainda a estudar**; usar **OpenTelemetry Collector/gateway** para encaminhar telemetria à camada central, não assumir Loki instalado dentro de todos os Management EKS.
+- **Observabilidade central:** **OpenTelemetry, Grafana, Loki e Tempo**; estratégia de métricas/Prometheus, retenção e fronteiras PCI a validar no laboratório.
+- **Domain Bootstrap:** conceito mantido no ADR-0005 para rastreabilidade, mas **em reavaliação e fora das próximas implementações**. Não é pré-requisito para Foundation, Capabilities ou Domain Applications.
+
 ## 4. Quatro camadas de ownership
 
 | Camada | Quem solicita | Quem controla execução e lifecycle | Recursos / motor |
@@ -113,7 +121,7 @@ Esses YAMLs **não são manifests Kubernetes** e não devem ser sincronizados di
 | **Foundation** | Plataforma central; federado pode propor PR | Plataforma central | Conta, landing zone, rede, IAM; **Terraform** e configurações por Entity/Environment |
 | **Entity Core Infrastructure** | DevOps federado nos limites autorizados | Plataforma governa componentes críticos | Três EKS e recursos comuns por Environment; **Terraform para EKS** |
 | **Domain Infrastructure** | DevOps federado / Domain | Crossplane central sob políticas | Capabilities de Domain/Environment via **XRDs** |
-| **Applications** | Time de aplicação | Argo CD local com destinos restritos | Namespace, policies e workloads Kubernetes |
+| **Domain Applications** | Squads de produto | CI/CD externo em GitHub Actions + Argo CD local | Build/test/scan/publicação, manifests GitOps, namespaces, policies e workloads Kubernetes |
 
 Um recurso externo tem **um único owner de reconciliação**. Terraform administra Foundation/EKS; Crossplane as Capabilities que lhe forem atribuídas. Core futuro pode conter Capability compartilhada, desde que tenha owner explícito e não seja excluída pela remoção de um Domain consumidor.
 
@@ -161,7 +169,10 @@ platform-engineering-poc/
 O monorepo demonstra autonomia via PR, revisão de paths e eventualmente CODEOWNERS. **CODEOWNERS sem regras de proteção não basta;** também são necessários RBAC Kubernetes, admission, IAM por conta e AppProjects Argo CD. Terraform state fica fora do Git.
 
 
-## 6. Domain Bootstrap: criação padronizada do Domain
+## 6. Domain Bootstrap: proposta anterior em reavaliação
+
+> [!NOTE]
+> Esta seção preserva um desenho anterior para rastreabilidade. **Não implementar nem assumir Domain Bootstrap como obrigatório** neste ciclo. A necessidade do gerador será reavaliada; ele pode não existir na arquitetura final.
 
 O **Domain é uma identidade lógica única na Entity**. **Quando ele é criado**, a plataforma usa o **Domain Bootstrap** como fluxo padrão de inicialização: escolhe e valida um perfil versionado, gera sua estrutura e as declarações dos recursos previstos nesse perfil. O processo é iniciado **pela criação do Domain**, não como uma obrigação de executar um Bootstrap independente para cada Environment. O Domain pode solicitar Capabilities adicionais depois. **Cadastrar um Domain não equivale a concluir seu Bootstrap**.
 
@@ -206,8 +217,9 @@ flowchart TB
 ```text
 foundation/config/ ou core-infrastructure/ (Git)
   → validação + PR/aprovação
-  → Argo Workflows (quando implantado)
-  → Terraform plan → gate → apply → verificação
+  → Argo CD central → TerraformRun CRD (proposta)
+  → Controller TerraformRun (proposta) → Argo Workflows
+  → Terraform Executor: plan → gate → apply → verificação/status
   → AWS Foundation / EKS
 ```
 
@@ -228,7 +240,7 @@ flowchart LR
 
 Argo CD central **sincroniza somente manifests Kubernetes de Capability**. Os registros de Domain/Environment informam ownership/destino após validação; **Crossplane não observa Git diretamente**. Em cada Capability validar schema, escopo, credenciais e política de deletion.
 
-### Applications: GitOps local
+### Domain Applications: GitHub Actions + GitOps local
 
 ```text
 data-plane/entity-a/domains/<domain>/<env>/applications/
@@ -237,7 +249,7 @@ data-plane/entity-a/domains/<domain>/<env>/applications/
   → Namespaces / quotas / policies / Deployments / Services
 ```
 
-O Domain continua lógico, enquanto **Argo CD local aplica objetos Kubernetes**. Uma Composition Crossplane central não deve possuir esses mesmos namespaces. O controle PCI requer avaliação das permissões de acesso e eventual segregação do GitOps local.
+O código e as pipelines GitHub Actions da aplicação de teste ficarão **em repositório separado** (não neste monorepo); a pipeline publica imagem e propõe mudanças GitOps. O Domain continua lógico, enquanto **Argo CD local aplica objetos Kubernetes**. Uma Composition Crossplane central não deve possuir esses mesmos namespaces. O controle PCI requer avaliação das permissões de acesso e eventual segregação do GitOps local.
 
 ## 8. Segurança, exclusão, drift e falhas
 
@@ -249,13 +261,15 @@ O Domain continua lógico, enquanto **Argo CD local aplica objetos Kubernetes**.
 
 ## 9. Nascimento de uma entidade versus ordem pedagógica
 
-**Fluxo operacional real:** Foundation cria/adota contas e rede → Core prepara EKS e Argo CD local nos destinos necessários → **solicitação de criação do Domain dispara seu Bootstrap padrão** (gera estrutura, Capabilities AWS e namespace/policies nos Environments selecionados) → reconciliadores provisionam e a plataforma verifica o resultado → aplicações são implantadas pelo Argo CD local.
+**Fluxo operacional alvo, sem Domain Bootstrap obrigatório:** Foundation cria/adota contas e rede → Entity Core prepara EKS e Argo CD local → manifests de Capabilities aprovados são reconciliados por Crossplane central → workloads de Domain Applications são entregues por Argo CD local. **O fluxo Domain Bootstrap descrito na seção 6 está adiado e em reavaliação.**
 
-**POC pedagógica:** baseline → Hub `kind` → Crossplane local sem AWS → configuração UAT e autenticação AWS (a definir) → `ObjectStorage` real → `Database` Aurora PostgreSQL → registro de Domain/Environment + GitOps central → **Bootstrap mínimo demonstrativo e progressão até perfil completo** → Terraform/Argo Workflows → Core/EKS incremental → Argo CD local → UAT/PROD segregados → eventual criação de contas. **Não criar seis EKS simultaneamente**, nem implementar um controller de lifecycle apenas para manter uma ideia anterior.
+**POC pedagógica:** baseline → Hub `kind` → Argo CD central/Argo Workflows → Crossplane local sem AWS → configuração UAT e autenticação AWS (a definir) → `ObjectStorage` e `Database` Aurora PostgreSQL → registro de Domain/Environment + GitOps central → Terraform/Argo Workflows → `TerraformRun` CRD/controller (propostos) → Core/EKS incremental → Argo CD local e CI/CD da aplicação em repositório separado → UAT/PROD segregados → eventual criação de contas. **Sem Bootstrap obrigatório.** **Não criar seis EKS simultaneamente**, nem implementar um controller de lifecycle apenas para manter uma ideia anterior.
 
 ## 10. Decisões vigentes e pontos abertos
 
-**Fechado:** Domain como unidade lógica de consumo/ownership **com processo padronizado de criação por perfil versionado**, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas, monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência.
+**Atualização:** TerraformRun é um contrato alvo ainda não implementado; GitHub Actions das aplicações será externo a este monorepo; OpenTelemetry/Grafana/Loki/Tempo são a stack-alvo; Operators locais ainda serão selecionados; Domain Bootstrap está em reavaliação e adiado.
+
+**Fechado:** Domain como unidade lógica de consumo/ownership, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas (incluindo **Domain Applications**), monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência. **Criação padronizada via Domain Bootstrap não está fechada: em reavaliação.**
 
 **A validar nos labs:** autenticação de UAT sem credenciais permanentes no Git, arquitetura de rede e custo do Aurora PostgreSQL, implementação e gatilho do gerador de Bootstrap, versionamento dos perfis, verificação agregada de prontidão, schema dos YAMLs, transformação segura de registros lógicos em escopo/credenciais, autenticação Crossplane a partir do `kind`, distribuição de namespaces/quotas ao GitOps local, gates, observabilidade, PCI e necessidade eventual de uma API/controller de ciclo de vida de contas.
 

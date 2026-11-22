@@ -2,10 +2,13 @@
 
 > Plataforma **Kubernetes-native** construída em labs incrementais, com governança central e autonomia federada por **Domain**.
 
-**`Kubernetes API` · `Crossplane` · `Argo CD` · `Argo Workflows` · `Terraform` · `AWS`**
+**`Kubernetes API` · `Crossplane v2` · `Argo CD` · `Argo Workflows` · `TerraformRun (proposto)` · `GitHub Actions (app separada)` · `OpenTelemetry` · `AWS`**
 
 > [!NOTE]
 > **Estado atual:** arquitetura documentada, sem deploy AWS/Kubernetes realizado por esta revisão. As pastas são organizacionais ou exemplos de implementação futura.
+
+> [!NOTE]
+> Projeto **pessoal de laboratório**, independente de qualquer iniciativa corporativa. A arquitetura abaixo é **alvo**, não comprovação de recursos implantados.
 
 ## 🧭 Navegação
 
@@ -25,12 +28,12 @@
 flowchart TB
   E["Experience Layer<br/>Backstage · CLI · GitOps · AI/MCP"]
   subgraph HUB["Platform Management Cluster · kind inicial"]
-    C["Control Plane<br/>Kubernetes API · Crossplane central"]
-    W["Workflow Plane<br/>Argo CD central · Workflows · Terraform"]
-    O["Observability Plane<br/>métricas · logs · traces"]
+    C["Control Plane<br/>Kubernetes API · Crossplane central<br/>XRDs · TerraformRun CRD/controller (propostos)"]
+    W["Workflow Plane<br/>Argo CD central · Workflows · Terraform Executor"]
+    O["Observability Plane<br/>OpenTelemetry · Grafana · Loki · Tempo"]
   end
   subgraph D["Data Plane · Entity A"]
-    CORE["Core Infrastructure<br/>UAT/PROD · 3 EKS por conta"]
+    CORE["Entity Core Infrastructure<br/>UAT/PROD · 3 EKS por conta<br/>Management EKS: Argo CD local · Operators · OTel gateway"]
     DOM["Domains<br/>identidade única · infra e apps por ambiente"]
   end
   E --> C
@@ -39,7 +42,7 @@ flowchart TB
   W -. "Foundation / EKS" .-> CORE
 ```
 
-**Environment é o contexto UAT/PROD associado à conta AWS inteira, não apenas ao Core.** O Data Plane contém **Core Infrastructure compartilhada** e **Domains** de negócio/aplicação. Um Domain pode possuir Capabilities, namespaces e apps em ambos os ambientes. **A criação do Domain segue um Domain Bootstrap com perfil versionado**: o perfil `standard` prevê Database, ObjectStorage, namespace e políticas nos destinos selecionados. O Bootstrap gera manifests no Git; Crossplane central e Argo CD local entregam os recursos. Nada é marcado pronto antes de verificar todas as dependências obrigatórias.
+**Environment é o contexto UAT/PROD associado à conta AWS inteira, não apenas ao Core.** O Data Plane contém **Core Infrastructure compartilhada** e **Domains** de negócio/aplicação. Um Domain pode possuir Capabilities, namespaces e apps em ambos os ambientes. **Domain Bootstrap é uma proposta anterior em reavaliação, não um pré-requisito da POC**. O perfil `standard` e seu gerador permanecem descritos para referência, mas não serão implementados agora. Capabilities continuam entregues por Crossplane central e aplicações por Argo CD local.
 
 ## 🧩 Quatro conceitos fundamentais
 
@@ -59,13 +62,21 @@ flowchart TB
 | **Foundation** | Central | Terraform / configuração por Entity e Environment |
 | **Entity Core Infrastructure** | Federado propõe; mudanças críticas sob governança | Terraform para EKS |
 | **Domain Infrastructure** | Federado / Domain | Argo CD central → Crossplane → AWS |
-| **Applications** | Local | Argo CD local → EKS autorizado |
+| **Domain Applications** | Squads | GitHub Actions (repositório separado) → Argo CD local → EKS autorizado |
 
 **Um único monorepo** simula a organização por Entity/Domain. O Crossplane é central, sem cascata, e Argo CD local administra aplicações. A definição das contas e o provisioning de Foundation não dependem de criar `AWSEnvironment` ou Environment Controller próprio nesta fase.
 
+## 🔧 Novas decisões arquiteturais
+
+- **TerraformRun CRD + Controller (propostos):** interface declarativa do Hub para execuções Terraform/OpenTofu via Argo Workflows e Terraform Executor, com `plan`, gates, `apply` e status; sem `apply` contínuo a cada reconciliação. [ADR-0006](docs/adr/0006-terraformrun-and-application-ci.md).
+- **Domain Applications:** código e workflows CI/CD **GitHub Actions em outro repositório de aplicação de teste**, ainda não fornecido; deploy GitOps nos EKS via Argo CD local.
+- **Management EKS:** Argo CD local, Operators **a escolher** e OpenTelemetry Collector/gateway para logs e traces; backend central com **Grafana + Loki + Tempo**. Estratégia de métricas/Prometheus em validação.
+- **Ownership:** Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications.
+- **Domain Bootstrap:** documentação preservada, mas **adiado e em reavaliação**, sem implementação neste ciclo.
+
 ## 🧰 Domain Bootstrap
 
-**Ao criar um Domain**, a plataforma executa o **Domain Bootstrap** como fluxo padrão: o perfil versionado define a estrutura e os recursos iniciais, considerando os Environments escolhidos. Não existe um Bootstrap independente obrigatório por Environment. O gerador produz os manifests de Capabilities (`infrastructure/`) e de namespaces/policies (`applications/`) para revisão em PR. O **Argo CD central** aplica os CRs de Capability, o **Crossplane** entrega AWS e o **Argo CD local** configura Kubernetes. A conclusão é verificada para o Domain, com detalhamento por Environment; criar em UAT não seleciona PROD automaticamente. [Detalhamento](docs/architecture.md#6-domain-bootstrap-criação-padronizada-do-domain).
+**Proposta anterior (atualmente em reavaliação, sem implementação imediata):** ao criar um Domain, a plataforma executaria o **Domain Bootstrap** como fluxo padrão: o perfil versionado define a estrutura e os recursos iniciais, considerando os Environments escolhidos. Não existe um Bootstrap independente obrigatório por Environment. O gerador produz os manifests de Capabilities (`infrastructure/`) e de namespaces/policies (`applications/`) para revisão em PR. O **Argo CD central** aplica os CRs de Capability, o **Crossplane** entrega AWS e o **Argo CD local** configura Kubernetes. A conclusão é verificada para o Domain, com detalhamento por Environment; criar em UAT não seleciona PROD automaticamente. [Detalhamento](docs/architecture.md#6-domain-bootstrap-criação-padronizada-do-domain).
 
 ## ☁️ Estratégia AWS
 

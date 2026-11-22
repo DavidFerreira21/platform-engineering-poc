@@ -14,21 +14,24 @@ Construção incremental e observável: cada lab terá pré-requisitos, comandos
 | **03B** | UAT: registro de conta e autenticação AWS | Configurar arquivo de Environment e método de autenticação a definir; validar STS **antes de qualquer operação** |
 | **04** | `ObjectStorage` real | XRD/Composition/Provider AWS, bucket de laboratório, `Ready`, drift e teardown |
 | **04B** | `Database` com Amazon Aurora PostgreSQL | Contrato de Database e cluster Aurora PostgreSQL em UAT, sujeito a custo, rede, IAM, plano e teardown autorizados |
-| **05** | Entity, Environment e criação padronizada de Domain | Registro único, perfil versionado, destinos selecionados e geração idempotente de estrutura/manifests |
-| **06** | Argo CD central + primeiro Domain Bootstrap | Criar Domain gera manifest de `ObjectStorage` conforme perfil de lab → Crossplane → AWS; demonstrar validação e isolamento |
+| **05** | Entity, Environment e Domain (registros lógicos) | Schema e validação de identidade/ownership/destino, **sem depender de Domain Bootstrap** |
+| **06** | Argo CD central + primeira Capability de Domain | GitOps de `ObjectStorage` → Crossplane → AWS, com destino autorizado e isolamento |
 | **07** | Foundation Terraform reutilizável | Config central por Entity/Environment, plan/state isolado |
-| **08** | Integração Argo Workflows + gates + Terraform Executor | Reutilizar o Argo Workflows instalado no Lab 02B; separar `plan` e `apply`, validar aprovações e execução auditável |
+| **08** | Integração Argo Workflows + gates + Terraform Executor | Reutilizar o Lab 02B; validar plan/apply, state seguro, aprovação e auditoria |
+| **08B** | `TerraformRun` CRD + Controller (**propostos**) | Validação, status, idempotência, disparo único do Argo Workflow e gates (primeiro com executor simulado) |
 | **09** | Entity Core e EKS Auto Mode incremental | Um EKS por vez, verificando custo, identidade e PCI |
-| **10** | Argo CD local + perfil de Bootstrap completo | Criação de Domain gera Database, ObjectStorage, namespace e policies nos destinos escolhidos; evidências de entrega antes do Deployment |
+| **10** | Argo CD local + Operators / gateway de telemetria | Management EKS faz GitOps para EKS PCI/Non-PCI autorizados; Operators a escolher e OTel Collector/gateway |
+| **10B** | CI/CD de Domain Applications (repo separado) | GitHub Actions faz build/test/scan/publica no futuro repo da aplicação de teste; Argo CD local faz o deploy GitOps |
 | **11** | Duas contas AWS UAT/PROD | Credenciais e recursos segregados |
-| **12** | Observabilidade | Status, logs, métricas, traces, auditoria |
+| **12** | Observabilidade OpenTelemetry / Grafana / Loki / Tempo | Gateway nos spokes, logs/traces centralizados, métricas, alertas e segregação de acesso |
 | **13** | Backstage / CLI / AI-MCP | Consumo dos contratos sem API paralela |
 | **14** | Extensão opcional: criação de contas | Justificar contrato/controlador de lifecycle se necessário |
+| **14B** | Reavaliar Domain Bootstrap (opcional) | ADR preservado; decidir posteriormente se este gerador terá utilidade, **sem implementá-lo agora** |
 | **15** | Segurança, custo e recuperação | Testes de isolamento e cleanup |
 
 **Ordem dos componentes no Hub:** `kind` e Traefik → Argo CD central → **Argo Workflows via Argo CD** → Crossplane Core via Argo CD. O Lab 02B instala e observa o motor com um fluxo de teste local; integração com Terraform, gates humanos e permissões AWS fica para o Lab 08. Não confundir instalar o workflow controller com habilitar execução de infraestrutura real.
 
-**Não implementar `AWSEnvironment` CRD ou Environment Controller próprio como pré-requisito inicial.** Environment e Domain são registros lógicos; somente Capabilities precisam de XRD no primeiro ciclo. O **Domain Bootstrap** é o fluxo padrão de **criação de Domain**: gera estrutura e manifests iniciais conforme perfil versionado e Environments selecionados; **o Argo CD local**, e não um controller do Domain, aplica namespaces/policies. `Database` usará **Aurora PostgreSQL** como implementação inicial do produto, após `ObjectStorage`, e será implementado progressivamente e nunca pode ser marcado pronto antes de sua entrega real.
+**Não implementar `AWSEnvironment` CRD ou Environment Controller próprio como pré-requisito inicial.** Environment e Domain são registros lógicos; somente Capabilities precisam de XRD no primeiro ciclo. **Domain Bootstrap está em reavaliação e adiado**, não é pré-requisito dos labs. **O Argo CD local** aplica namespaces/policies e workloads Kubernetes. `Database` seguirá `ObjectStorage`, com Aurora PostgreSQL, custos e teardown aprovados. `TerraformRun` e CI/CD externo são propostas, **não componentes implantados**.
 
 **Conta UAT:** registrar o destino em `foundation/config/entity-a/uat/environment.example.yaml` (template sem dados reais). Conta, região, credenciais e método de autenticação ainda precisam ser definidos e validados no início dos labs AWS. Nenhuma chave ou segredo deve ser versionado.
 

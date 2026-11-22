@@ -10,6 +10,7 @@ Estes documentos contêm **somente a arquitetura atual** e suas justificativas. 
 | [**0002**](0002-topology-and-ownership.md) | Planos, Data Plane, Core/Domains, quatro camadas e monorepo |
 | [**0003**](0003-reconciliation-and-gitops.md) | Crossplane central, Terraform e GitOps central/local |
 | [**0004**](0004-aws-security-and-roadmap.md) | AWS real, EKS Auto Mode, isolamento, lifecycle e labs |
-| [**0005**](0005-domain-bootstrap.md) | Domain Bootstrap como padrão de criação, perfis versionados e verificação dos recursos |
+| [**0005**](0005-domain-bootstrap.md) | Domain Bootstrap — proposta preservada, em reavaliação / adiada |
+| [**0006**](0006-terraformrun-and-application-ci.md) | TerraformRun CRD/controller e CI/CD de Domain Applications em repo separado |
 
 Documento principal: [Arquitetura](../architecture.md) · [Estrutura](../repository-structure.md) · [Roadmap](../learning-roadmap.md)

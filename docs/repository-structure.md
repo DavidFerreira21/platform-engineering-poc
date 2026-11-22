@@ -12,12 +12,19 @@ A POC utiliza **um único repositório** para demonstrar responsabilidades que p
 | `data-plane/<entity>/core-infrastructure/<env>/` | **Entity Core** · compartilhado por ambiente, EKS por Terraform |
 | `data-plane/<entity>/domains/<domain>/domain.yaml` | **Domain** · registro lógico único, não CRD |
 | `data-plane/<entity>/domains/<domain>/<env>/infrastructure/` | **Domain Infra** · Capabilities por Crossplane central |
-| `data-plane/<entity>/domains/<domain>/<env>/applications/` | **Applications** · Argo CD local |
+| `data-plane/<entity>/domains/<domain>/<env>/applications/` | **Domain Applications** · GitHub Actions (repo externo) + Argo CD local |
 | `control-plane/`, `workflow-plane/`, `observability-plane/`, `platform/hub/` | Código e configuração da plataforma central |
 
 O **Domain Bootstrap** usa um perfil versionado definido pela plataforma e gera, mediante PR/validação, manifests de Capabilities obrigatórias sob `infrastructure/` e namespaces/policies sob `applications/` (por ambiente); o Argo CD central e o local são os únicos aplicadores. O gerador é um componente do **Workflow Plane** a implementar. A identidade do Domain permanece única. [Fluxo detalhado](architecture.md#6-domain-bootstrap-criação-padronizada-do-domain).
 
 **Environment é a conta AWS UAT/PROD inteira**, não a pasta de Core. O Core é a parte compartilhada e o Domain possui os recursos de negócio. Ambos ficam no **Data Plane**. O registro de Environment fica na Foundation por ownership central, mas descreve o destino de todos os recursos do Environment.
+
+### Atualizações de arquitetura-alvo (a implementar)
+
+- **TerraformRun (CRD + controller):** contrato técnico de `control-plane/` para acionar Argo Workflows + Terraform Executor em `workflow-plane/`. Não confundir com XRDs do Crossplane.
+- **GitHub Actions das aplicações:** será mantido **em repositório de aplicação de teste separado**, ainda não informado. Este monorepo não incluirá código/CI da aplicação.
+- **Management EKS:** Argo CD local, Operators a escolher e OpenTelemetry Collector/gateway para observabilidade central (Grafana/Loki/Tempo).
+- **Domain Bootstrap:** documentação existente preservada, mas implementação adiada e em reavaliação.
 
 ### Primeira implementação
 
