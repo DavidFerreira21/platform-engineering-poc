@@ -128,7 +128,7 @@ Existem **três personas**, não quatro equipes para as quatro camadas de owners
 
 **Dois tipos de Capabilities:** **Infrastructure Capabilities** (Crossplane especializado, consumido pelo DevOps Federado) e **Application Capabilities** (padrões de runtime/build/deploy/telemetria, consumidos pelos desenvolvedores; **não implicam XRD Crossplane**). Um **Golden Path / Starter Kit** combina padrões e automações para uma jornada específica. Backstage, CLI e Git são canais alternativos; Backstage não é gateway obrigatório.
 
-**Primeiro Golden Path planejado:** **Java Service** (Spring Boot como opção de referência, ainda a validar), gerando repositório da aplicação com estrutura de código e testes, Dockerfile, GitHub Actions para CI/CD, manifests Kubernetes (base/overlays UAT/PROD), probes, requests/limits, configurações de segurança e instrumentação OpenTelemetry. A squad concentra-se no código e no ciclo da aplicação; demandas de Database/S3/Messaging passam pelo DevOps Federado. Detalhes e matriz de ownership em [ADR-0007](adr/0007-personas-and-developer-experience.md).
+**Aplicação mínima da POC (preferencialmente Python + Flask):** um serviço HTTP pequeno, com health check, testes básicos, Dockerfile, GitHub Actions, manifests Kubernetes e telemetria OpenTelemetry. A intenção é **validar as capacidades e o fluxo da plataforma**, não desenvolver uma aplicação complexa ou implementar um gerador completo de Starter Kits. Java foi apenas um exemplo. Golden Path/Starter Kit continua como padrão de DX a demonstrar de forma mínima ou evoluir posteriormente. Infraestrutura Database/S3/Messaging permanece responsabilidade do DevOps Federado. Detalhes em [ADR-0007](adr/0007-personas-and-developer-experience.md).
 
 ## 4. Quatro camadas de ownership
 
