@@ -108,7 +108,7 @@ Esses YAMLs **não são manifests Kubernetes** e não devem ser sincronizados di
 
 ### Complemento da arquitetura-alvo (21/11/2026)
 
-- **Contrato Terraform (proposto):** `TerraformRun` é um CRD Kubernetes próprio no Hub, com controller dedicado. O Argo CD central sincroniza o recurso; o controller aciona Argo Workflows e Terraform Executor, com `plan → gate → apply`, state isolado, status e idempotência. **Não fazer apply a cada reconcile**, nem converter Terraform em provider Crossplane. Ver [ADR-0006](adr/0006-terraformrun-and-application-ci.md).
+- **Contrato Terraform (proposto):** `TerraformStack` é o CRD Kubernetes próprio do Hub que representa **infraestrutura desejada** de Foundation/Entity Core. O Argo CD central sincroniza o manifesto; o controller coordena Argo Workflows/Terraform Executor para `plan` inicial e periódico, detecção de drift, classificação por Policy Engine (**auto apply / aprovação / bloqueio**) e atualização de status. **Não executar `apply` a cada reconcile**. `TerraformRun` permanece nome opcional de uma execução isolada, não um segundo CRD obrigatório. Ver [ADR-0006](adr/0006-terraformrun-and-application-ci.md).
 - **Domain Applications:** as squads terão **código, GitHub Actions e manifests Kubernetes da aplicação no mesmo repositório separado**, a ser fornecido. O pipeline faz build/testes/scans e publicação, propõe atualização declarativa GitOps; **Argo CD local** em cada Management EKS faz o deploy nos EKS PCI/Non-PCI autorizados. O workflow CI existente neste monorepo só valida a POC.
 - **Management EKS:** **Operators ainda a estudar**; usar **OpenTelemetry Collector/gateway** para encaminhar telemetria à camada central, não assumir Loki instalado dentro de todos os Management EKS.
 - **Observabilidade central:** **OpenTelemetry, Grafana, Loki e Tempo**; estratégia de métricas/Prometheus, retenção e fronteiras PCI a validar no laboratório.
@@ -264,7 +264,7 @@ flowchart LR
   XP -. "status / conditions" .-> API
 ```
 
-Argo CD central **sincroniza somente manifests Kubernetes de Capability**. Os registros de Domain/Environment informam ownership/destino após validação; **Crossplane não observa Git diretamente**. Em cada Capability validar schema, escopo, credenciais e política de deletion.
+Neste fluxo de **Domain Infrastructure**, o Argo CD central sincroniza CRs Kubernetes de **Capability**; na arquitetura completa também sincronizará `TerraformStack`, para Foundation/Entity Core. Os registros de Domain/Environment informam ownership/destino após validação, **não são CRs**; **Crossplane não observa Git diretamente**. Em cada Capability validar schema, escopo, credenciais e política de deletion.
 
 ### Domain Applications: GitHub Actions + GitOps local
 
