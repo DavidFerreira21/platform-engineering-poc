@@ -85,15 +85,21 @@ O Developer pode consumir os padrões por **Backstage, CLI ou Git/Template**. **
 
 ## Decisão 5 — Aplicação mínima de referência, sem foco em desenvolvimento
 
-A POC tem como **produto principal a plataforma**, não a aplicação. Para validar Developer Experience, GitHub Actions, GitOps, segurança, telemetria e consumo de Capabilities, usaremos uma **aplicação mínima de demonstração**, preferencialmente **Python + Flask**. Java foi apenas um exemplo de linguagem, **não uma decisão de implementação nem um requisito de Starter Kit**.
+A POC tem como **produto principal a plataforma**, não a aplicação. Para validar primeiro o **Data Plane** e depois integrar a **Developer Experience**, reutilizaremos uma **aplicação mínima de demonstração**, preferencialmente **Python + Flask**. Java foi apenas um exemplo de linguagem, **não uma decisão de implementação nem um requisito de Starter Kit**.
 
-A aplicação de teste deve permanecer simples: um serviço HTTP pequeno com endpoint de saúde e resposta de exemplo, testes básicos, Dockerfile, pipeline GitHub Actions e manifests Kubernetes (base/overlays para os ambientes usados). Incluir apenas a instrumentação OpenTelemetry e as configurações mínimas necessárias para observar o fluxo de ponta a ponta.
+A aplicação de teste deve permanecer simples: um serviço HTTP pequeno com endpoint de saúde e resposta de exemplo, testes básicos, Dockerfile e manifests Kubernetes (base/overlays para os ambientes usados). GitHub Actions e OpenTelemetry serão acrescentados **conforme os labs**, sem exigir que toda a jornada esteja pronta no primeiro deploy.
 
 **Não implementar arquitetura de software complexa**, funcionalidades de produto, persistência de dados própria da aplicação, múltiplos serviços, framework de negócio, cobertura sofisticada ou um catálogo multi-linguagem nesta etapa. Python/Flask é uma **preferência pragmática**; uma aplicação igualmente simples em outra linguagem pode ser usada se facilitar o laboratório.
 
 O **Golden Path / Starter Kit permanece como conceito de plataforma**: padrões e automações que tornam trivial iniciar uma aplicação nova, sem exigir conhecimento de mecanismos internos. Na POC, basta demonstrar com o **app mínimo** e padrões reaproveitáveis; criar um produto completo de geração de templates, um catálogo de Starter Kits ou uma experiência de portal rica **não é objetivo imediato**.
 
-**Fluxo demonstrado:** app mínimo → commit/PR → GitHub Actions (build/test/scan/publicação mínimos) → atualização declarativa GitOps → Argo CD local → workload no destino Kubernetes autorizado → logs/traces/status observáveis. A infraestrutura de Database, S3 e Messaging continua sob **Federated DevOps**, não deve ser provisionada automaticamente pelo app.
+**Duas utilizações, em momentos diferentes do roadmap:**
+
+1. **Lab 10B — smoke test técnico do Data Plane:** **depois de provisionar ao menos um EKS e configurar o Argo CD local**, usar o app mínimo em repositório separado para testar conectividade, deploy GitOps, health check, logs básicos e rollback. **Não exigir Developer Experience, Backstage, geração de Starter Kit ou pipeline sofisticada.**
+2. **Lab 15 — Developer Experience:** **somente após** infraestrutura, workloads, observabilidade e governança terem sido validados, definir/experimentar os canais de consumo (Backstage/CLI/Git), padrões, catálogo e abstrações por persona.
+3. **Lab 16 — Golden Path / integração final:** **última etapa**, reaproveitar o app mínimo para demonstrar onboarding via padrões leves, GitHub Actions, promoção GitOps, Argo CD local, telemetria, guardrails e consumo de Capabilities. Não transformar o lab em desenvolvimento de aplicação ou gerador complexo.
+
+A infraestrutura de Database, S3 e Messaging continua sob o **Federated DevOps**, não deve ser provisionada automaticamente pelo app. O **Lab 13A anterior é substituído pelo Lab 16**; não há entrega de Developer Experience antes do Lab 15.
 
 O repositório separado da aplicação de teste será fornecido ou criado somente quando explicitamente solicitado. Nenhum código de aplicação é adicionado ao monorepo da POC por esta decisão.
 
@@ -101,7 +107,7 @@ O repositório separado da aplicação de teste será fornecido ou criado soment
 
 - **Modelo de permissões:** CODEOWNERS/path rules nos exemplos; RBAC/admission/AppProjects/IAM efetivos para impedir mudanças fora do ownership.
 - **Integração CI → GitOps:** definir como a pipeline da aplicação atualiza os manifests versionados, aprovações e promoção entre UAT/PROD.
-- **Golden Paths:** validar o conceito usando a aplicação mínima de demonstração; eventual geração via Backstage/CLI/templates e escolha entre Helm/Kustomize são extensões futuras, **sem exigir um gerador completo**.
+- **Golden Paths:** validar o conceito **no Lab 16, após Developer Experience no Lab 15**, reutilizando a aplicação mínima implantada tecnicamente no Lab 10B. Backstage/CLI/templates e Helm/Kustomize são escolhas futuras; **não exigir um gerador completo**.
 - **Produto e métricas DX:** demonstrar o fluxo da plataforma e a redução da carga cognitiva com a aplicação mínima; métricas de geração de novos serviços são opcionais.
 - **Não implementar Domain Bootstrap agora:** ADR-0005 continua adiado; a proposta de Starter Kit de aplicação é **distinta** do Bootstrap de Domain e não exige esse gerador.
 - **Status:** estes contratos e exemplos descrevem o desenho pretendido, não repositório da aplicação já fornecido ou componentes AWS/EKS implantados.
