@@ -24,11 +24,11 @@
 
 ## 🧱 Visão arquitetural
 
-![Arquitetura de referência da Platform Engineering POC — Hub, Spokes, personas e ownership](docs/architecture-reference.svg)
+![Arquitetura de referência da Platform Engineering POC fornecida pelo autor](docs/arquitetura%20Plataform.png)
 
-[**Ver diagrama em tamanho completo**](docs/architecture-reference.svg) · [Topologia lógica e fluxos detalhados](docs/architecture.md#2-visão-geral)
+[**Ver diagrama em tamanho completo**](docs/arquitetura%20Plataform.png) · [Topologia lógica e fluxos detalhados](docs/architecture.md#2-visão-geral)
 
-> **Legenda:** a imagem descreve o **estado-alvo**. `TerraformStack` é um CRD/controller **proposto**, o Crossplane é **central** e o GitHub Actions de aplicações é **externo ao Hub**, em repositório separado. A topologia de EKS e os mecanismos de observabilidade ainda precisam ser validados nos labs.
+> **Nota de leitura:** esta é a imagem de arquitetura já versionada pelo autor em `docs/`. O desenho é **referência visual da arquitetura-alvo**; a nomenclatura e as decisões vigentes estão detalhadas nos [ADRs](docs/adr/README.md). O contrato declarativo aprovado para estudo é `TerraformStack` (CRD/controller **propostos**), enquanto `TerraformRun` pode representar uma execução individual.
 
 **Environment é o contexto UAT/PROD associado à conta AWS inteira, não apenas ao Core.** O Data Plane contém **Core Infrastructure compartilhada** e **Domains** de negócio/aplicação. Um Domain pode possuir Capabilities, namespaces e apps em ambos os ambientes. **Domain Bootstrap é uma proposta anterior em reavaliação, não um pré-requisito da POC**. O perfil `standard` e seu gerador permanecem descritos para referência, mas não serão implementados agora. Capabilities continuam entregues por Crossplane central e aplicações por Argo CD local.
 

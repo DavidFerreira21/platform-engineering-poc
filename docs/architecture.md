@@ -18,9 +18,9 @@ A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) �
 
 ## 2. Visão geral
 
-![Diagrama de arquitetura de referência com Hub, contas AWS UAT/PROD, quatro camadas e três personas](architecture-reference.svg)
+![Diagrama de arquitetura de referência com Hub, contas AWS UAT/PROD, quatro camadas e três personas](arquitetura%20Plataform.png)
 
-[**Abrir diagrama em tamanho completo**](architecture-reference.svg) · O diagrama é **arquitetura-alvo**; não confirma recursos implantados. `TerraformStack` e os mecanismos de política/drift estão propostos, e GitHub Actions de aplicações opera fora do Hub.
+[**Abrir diagrama em tamanho completo**](arquitetura%20Plataform.png) · O diagrama é **arquitetura-alvo**; não confirma recursos implantados. `TerraformStack` e os mecanismos de política/drift estão propostos, e GitHub Actions de aplicações opera fora do Hub.
 
 ### Topologia lógica (Mermaid)
 
