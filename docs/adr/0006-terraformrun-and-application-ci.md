@@ -8,7 +8,7 @@ A POC usa Kubernetes API como contrato técnico e quatro camadas de ownership: *
 
 - **Foundation / Entity Core:** Terraform/OpenTofu para rede, IAM, dependências, e os três EKS por Environment (Management, PCI e Non-PCI).
 - **Domain Infrastructure:** Crossplane v2 central com XRDs/Compositions/Providers específicos para recursos AWS como ObjectStorage e Database.
-- **Domain Applications:** GitHub Actions para CI/CD em **repositório de aplicação de teste separado**, ainda não fornecido; Argo CD **local no Management EKS** entrega os manifests GitOps em EKS PCI/Non-PCI autorizados.
+- **Domain Applications:** Application Team mantém **código, GitHub Actions e manifests Kubernetes no mesmo repositório de aplicação de teste separado**, ainda não fornecido; Argo CD **local no Management EKS** lê esses manifests GitOps e entrega em EKS PCI/Non-PCI autorizados. O DevOps Federado mantém somente os manifests de Domain Infrastructure.
 
 ## Decisão: TerraformRun CRD + Controller
 
@@ -29,7 +29,7 @@ O CRD referenciará um **módulo/versionamento autorizado**, ação e destino En
 
 ## GitHub Actions e GitOps
 
-O código e a pipeline CI/CD da aplicação de exemplo **não ficarão neste repositório**; o usuário fornecerá um repositório separado posteriormente. GitHub Actions realizará build, tests, scans e publicação de imagem; a entrega será por alteração declarativa GitOps e **Argo CD local**, e não por deploy imperativo padrão da pipeline ao EKS. O workflow `.github/workflows/validate.yml` atual da POC continua exclusivo para validação de documentação e labs.
+O código, a pipeline CI/CD **e os manifests Kubernetes da aplicação de exemplo** **não ficarão neste repositório**; o usuário fornecerá um repositório separado posteriormente. GitHub Actions realizará build, tests, scans e publicação de imagem; a entrega será por alteração declarativa GitOps e **Argo CD local**, e não por deploy imperativo padrão da pipeline ao EKS. O workflow `.github/workflows/validate.yml` atual da POC continua exclusivo para validação de documentação e labs. As três personas e o modelo de Golden Paths são definidos no [ADR-0007](0007-personas-and-developer-experience.md).
 
 ## Observabilidade e Spokes
 
