@@ -2,7 +2,18 @@
 
 [← Lab 02](02-argocd-central.md) · [Índice dos labs](README.md)
 
-O Argo CD central sincroniza o chart do Crossplane no Hub. O Crossplane registra uma API de laboratório e transforma uma instância de `LabMessage` em um ConfigMap no mesmo namespace. O fluxo usa apenas Kubernetes e tem custo AWS zero.
+## Objetivo
+
+Validar a reconciliação de um recurso composto no Hub e observar como o schema de um XRD controla o que a API aceita.
+
+## O que será feito
+
+- Criar o AppProject `platform-crossplane` e a Application `crossplane-core` para instalar o Crossplane Core e seus CRDs via Argo CD.
+- Instalar a função de composição do exercício, aplicar o XRD de `LabMessage` e sua Composition e criar um `LabMessage` em `platform-system`. Conferir as condições do recurso e o ConfigMap criado pelo Crossplane.
+- Tentar gravar uma mensagem vazia, observar a rejeição pela API e confirmar que valores válidos são reconciliados no ConfigMap.
+- Remover os recursos do exercício e manter o Crossplane Core instalado.
+
+O exercício roda no Hub local e tem custo AWS zero.
 
 ## Pré-requisitos
 

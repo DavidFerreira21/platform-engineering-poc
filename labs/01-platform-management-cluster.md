@@ -2,11 +2,18 @@
 
 [← Labs](README.md) · [Arquitetura](../docs/architecture.md) · [Fundamentos: planos](../docs/fundamentos/17-planos-e-responsabilidades.md) · [Roadmap](../docs/learning-roadmap.md)
 
-## Objetivo e limite
+## Objetivo
 
-Preparar **um único Hub local reproduzível** para hospedar mais tarde Argo CD central e Crossplane. Este lab entrega: **kind → rede/portas → namespaces → Traefik → Ingress HTTP de teste**. Argo CD, Crossplane, GitOps e serviços AWS **não são instalados** aqui. As configurações de Argo CD/Crossplane terão labs próprios.
+Preparar um Hub Kubernetes local reproduzível e verificar o caminho de uma requisição HTTP do host até um Pod.
 
-> **Aprendizado progressivo:** rode as etapas em sequência e observe os recursos. O futuro bootstrap completo apenas chamará os mesmos passos; não existirá uma segunda implementação concorrente.
+## O que será feito
+
+- Criar ou reutilizar o cluster kind `platform-management` e preparar os namespaces `platform-system`, `traefik`, `argocd` e `crossplane-system`. Os dois últimos ficam reservados para os labs seguintes.
+- Instalar o Traefik via Helm e publicar o Deployment, o Service e o Ingress do serviço de demonstração `echo`.
+- Validar `demo.localhost:8080`, provocar um `404` com um host desconhecido e recuperar usando o host correto.
+- Reexecutar a instalação no mesmo Hub ou, na limpeza opcional, remover e recriar o cluster local.
+
+O exercício roda no Hub local e tem custo AWS zero.
 
 ## Pré-requisitos
 

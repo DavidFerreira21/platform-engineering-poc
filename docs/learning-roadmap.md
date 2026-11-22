@@ -2,14 +2,14 @@
 
 [← Início](../README.md) · [Arquitetura](architecture.md) · [Fundamentos](fundamentos/README.md)
 
-Construção incremental e observável: cada lab terá pré-requisitos, comandos, evidências, falha controlada, diagnóstico, recuperação, custo e limpeza. **Primeira implementação: Lab 01 (kind, namespaces, rede local e Traefik)**, seguido por **Lab 02 (Argo CD central)**, **Lab 02B (Argo Workflows instalado via GitOps)** e **Lab 03 (Crossplane instalado via GitOps)**, depois `ObjectStorage` e **`Database` com Aurora PostgreSQL**. O Lab 03B registra UAT e PROD no Git e valida os destinos via IAM Identity Center. A primeira Capability AWS será exercitada na UAT. A federação do Hub é uma etapa anterior à primeira Capability AWS. **A ordem pedagógica difere da sequência de provisionamento de uma entidade completa.**
+Construção incremental e observável: cada lab começa com objetivo e escopo, seguidos de pré-requisitos, comandos, evidências, falha controlada, diagnóstico, recuperação, custo e limpeza. **Primeira implementação: Lab 01 (kind, namespaces, rede local e Traefik)**, seguido por **Lab 02 (Argo CD central)**, **Lab 02B (Argo Workflows instalado via GitOps)** e **Lab 03 (Crossplane instalado via GitOps)**, depois `ObjectStorage` e **`Database` com Aurora PostgreSQL**. O Lab 03B registra UAT e PROD no Git e valida os destinos via IAM Identity Center. A primeira Capability AWS será exercitada na UAT. A federação do Hub é uma etapa anterior à primeira Capability AWS. **A ordem pedagógica difere da sequência de provisionamento de uma entidade completa.**
 
 | Fase | Tema | Evidência |
 | :--- | :--- | :--- |
 | **00** | Documentação e monorepo | Conceitos e decisões consistentes |
 | **01** | Hub `kind` + Traefik | API, CoreDNS, namespaces, mapeamento de portas, Ingress HTTP e verificações locais |
 | **02** | [Argo CD central (GitOps)](../labs/02-argocd-central.md) | Bootstrap do Argo CD, acesso local, Git como fonte da verdade e aplicações da plataforma |
-| **02B** | Argo Workflows no Hub por GitOps | Argo CD instala Argo Workflows e CRDs; executar um Workflow local inofensivo, observar Pods/logs/status e validar reexecução e limpeza, sem AWS ou Terraform |
+| **02B** | [Argo Workflows no Hub por GitOps](../labs/02b-argo-workflows.md) | Argo CD instala Argo Workflows e CRDs; executar um Workflow local inofensivo, observar Pods/logs/status e validar reexecução e limpeza, sem AWS ou Terraform |
 | **03** | [Crossplane Core por GitOps](../labs/03-crossplane-core.md) | Argo CD instala o Crossplane; observar CRDs, XRDs, Compositions e status sem AWS |
 | **03B** | [Registro das contas UAT e PROD no Git](../labs/03b-uat-e-autenticacao-aws.md) | Versionar ID, região, baseline de rede e tipos de EKS por Environment. Validar os dois destinos via STS |
 | **04** | `ObjectStorage` real | XRD/Composition/Provider AWS, bucket de laboratório, `Ready`, drift e teardown |

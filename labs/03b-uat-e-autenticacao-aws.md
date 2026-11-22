@@ -2,7 +2,20 @@
 
 [← Lab 03](03-crossplane-core.md) · [Índice dos labs](README.md)
 
-O Platform Team registra duas contas AWS distintas para a `entity-a`. O entregável são dois arquivos `environment.yaml` versionados na Foundation. A validação deste exercício usa consultas de identidade e tem custo AWS zero.
+## Objetivo
+
+Registrar UAT e PROD como destinos AWS distintos da `entity-a` e verificar que cada perfil aponta para a conta declarada.
+
+## O que será feito
+
+- Criar ou revisar os dois arquivos `environment.yaml` na Foundation. Eles declaram o ID da conta, a região, o baseline de rede e os tipos de EKS previstos.
+- Conferir as identidades das duas contas via IAM Identity Center e STS, provocar uma troca de perfis e verificar que o script rejeita a divergência.
+- Revisar os YAMLs e publicar os registros por PR. As contas são pré-requisitos do exercício. As consultas ao STS têm custo AWS zero.
+
+## Pré-requisitos
+
+- AWS CLI v2 e acesso por IAM Identity Center a duas contas AWS existentes, uma para UAT e outra para PROD.
+- Checkout do monorepo com Git disponível e permissão para abrir um PR no repositório usado para o exercício.
 
 ## 1. Criar os registros de conta
 
@@ -26,7 +39,7 @@ Uma flag `true` inclui o componente no escopo desejado. O provisionamento segue 
 
 ## 2. Validar as duas contas
 
-Tenha a AWS CLI v2 e acesso à UAT e à PROD pelo IAM Identity Center. Se precisar configurar os perfis, execute `aws configure sso --profile platform-poc-uat` e `aws configure sso --profile platform-poc-prod`. No assistente de cada perfil, selecione a conta correspondente, o permission set atribuído e a região do YAML. Quando a sessão expirar, renove com `aws sso login --profile <perfil>`. [IAM Identity Center na AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sso.html)
+Se precisar configurar os perfis, execute `aws configure sso --profile platform-poc-uat` e `aws configure sso --profile platform-poc-prod`. No assistente de cada perfil, selecione a conta correspondente, o permission set atribuído e a região do YAML. Quando a sessão expirar, renove com `aws sso login --profile <perfil>`. [IAM Identity Center na AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sso.html)
 
 No portal de acesso AWS, confira cada conta com `aws.accountId` e use a região de seu YAML ao executar o verificador. Informe os valores de cada registro nos comandos abaixo.
 
