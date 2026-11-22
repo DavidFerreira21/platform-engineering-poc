@@ -15,7 +15,7 @@ Os fluxos de ObjectStorage com configurações aprovadas devem seguir automatica
 ## Leitura complementar
 
 - [CNCF — Platforms White Paper](https://tag-app-delivery.cncf.io/whitepapers/platforms/) — material de referência para aprofundamento.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 1 — guardrails versus gates.. Referência temática; explicação e exemplos autorais.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 1 — guardrails versus gates.
 
 ---
 
