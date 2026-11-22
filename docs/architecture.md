@@ -169,10 +169,9 @@ platform-engineering-poc/
 │           ├── payments/
 │           │   ├── domain.yaml          # identidade única
 │           │   ├── uat/
-│           │   │   ├── infrastructure/  # XRs de Capability
-│           │   └── infrastructure/  # UAT: DevOps Federado
+│           │   │   └── infrastructure/  # XRs · DevOps Federado
 │           │   └── prod/
-│           │       └── infrastructure/  # PROD: DevOps Federado
+│           │       └── infrastructure/  # XRs · DevOps Federado
 │           └── orders/
 ├── docs/
 ├── labs/
