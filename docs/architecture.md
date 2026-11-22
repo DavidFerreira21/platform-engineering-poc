@@ -75,7 +75,7 @@ Linhas tracejadas representam integração lógica, **não redes AWS nem permiss
 | Conceito | Definição | Implementação **inicial** |
 | :--- | :--- | :--- |
 | **Entity** | Identidade organizacional que contém Environments e Domains | Organização declarativa no Git |
-| **Environment** | Ambiente UAT/PROD da Entity associado a conta AWS, região e perfis | Registro `environment.yaml` versionado/validado, **não CRD** |
+| **Environment** | Ambiente UAT/PROD da Entity associado a conta AWS, região e componentes previstos de Foundation e Core | Registro `environment.yaml` versionado/validado, **não CRD** |
 | **Domain** | Unidade lógica de negócio que possui aplicações, namespaces, Capabilities, owners, padrões e políticas | Registro **único** `domain.yaml` por Domain, **não XRD** |
 | **Capability** | Produto técnico consumível, com tipo, schema, lifecycle e status próprios | **Crossplane XRD + Composition + Provider** por produto |
 
@@ -88,15 +88,17 @@ Exemplo **ilustrativo** de Environment, sob gestão da Foundation central:
 entity: entity-a
 environment: uat
 aws:
-  accountRef: platform-poc-uat
+  accountId: "111122223333" # fictício
   region: us-east-1
 foundation:
-  profile: standard
+  networkBaseline: true
 core:
-  profile: eks-standard
+  eksManagement: true
+  eksNonPci: true
+  eksPci: true
 ```
 
-A Foundation resolve `aws.accountRef` para a conta aprovada antes da execução. IDs numéricos reais e credenciais ficam fora do Git.
+A Foundation confere `aws.accountId` e a região contra o destino aprovado. As flags de Foundation e Core declaram os componentes previstos. O provisionamento exige execução e aprovação próprias.
 
 Exemplo **ilustrativo** de Domain (identidade única):
 

@@ -2,9 +2,11 @@
 entity: entity-a
 environment: uat
 aws:
-  accountRef: REPLACE_WITH_LOGICAL_ACCOUNT_NAME
+  accountId: "REPLACE_WITH_AWS_ACCOUNT_ID"
   region: REPLACE_WITH_AWS_REGION
 foundation:
-  profile: standard
+  networkBaseline: true
 core:
-  profile: eks-standard
+  eksManagement: true
+  eksNonPci: true
+  eksPci: true

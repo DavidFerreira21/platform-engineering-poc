@@ -36,7 +36,9 @@ if [[ "$(aws configure get region --profile "$profile")" != "$expected_region" ]
   exit 1
 fi
 
-if ! identity="$(AWS_PAGER= AWS_IGNORE_CONFIGURED_ENDPOINT_URLS=true   aws sts get-caller-identity --profile "$profile" --region "$expected_region"     --query '[Account, Arn]' --output text)"; then
+if ! identity="$(AWS_PAGER= AWS_IGNORE_CONFIGURED_ENDPOINT_URLS=true \
+  aws sts get-caller-identity --profile "$profile" --region "$expected_region" \
+    --query '[Account, Arn]' --output text)"; then
   echo "ERRO: falha ao consultar o STS. Confira a sessão do IAM Identity Center." >&2
   exit 1
 fi

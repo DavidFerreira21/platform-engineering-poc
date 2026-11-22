@@ -6,29 +6,40 @@ O Platform Team registra duas contas AWS distintas para a `entity-a`. O entregá
 
 ## 1. Criar os registros de conta
 
-Use uma branch de trabalho a partir da raiz do monorepo. Para criar um registro, copie o [modelo de Environment](../foundation/config/entity-a/uat/environment.example.yaml) e preencha os campos conforme a tabela. Se os registros já estiverem presentes, revise os arquivos versionados.
+Use uma branch de trabalho a partir da raiz do monorepo. Os registros abaixo descrevem as contas desta POC. Para reproduzir o lab em outra organização, copie o [modelo de Environment](../foundation/config/entity-a/uat/environment.example.yaml) em uma branch própria e preencha os IDs e as regiões das suas contas.
 
-| Environment | Registro | `aws.accountRef` | `aws.region` |
-| --- | --- | --- | --- |
-| `uat` | [UAT](../foundation/config/entity-a/uat/environment.yaml) | `platform-poc-uat` | `us-east-1` |
-| `prod` | [PROD](../foundation/config/entity-a/prod/environment.yaml) | `platform-poc-prod` | `us-east-1` |
+| Environment | Registro | Conta nesta POC |
+| --- | --- | --- |
+| `uat` | [UAT](../foundation/config/entity-a/uat/environment.yaml) | `platform-poc-uat` |
+| `prod` | [PROD](../foundation/config/entity-a/prod/environment.yaml) | `platform-poc-prod` |
 
-Os dois registros usam `entity: entity-a`, `foundation.profile: standard` e `core.profile: eks-standard`. O campo `environment` corresponde ao diretório e a `accountRef` identifica a conta aprovada pelo Platform Team. A referência lógica e a região ficam no Git. IDs numéricos reais e credenciais ficam fora do repositório.
+O registro identifica a Entity e o Environment, define o destino AWS e declara o que a plataforma prevê implantar.
+
+| Campo | Significado |
+| --- | --- |
+| `entity` e `environment` | Identidade lógica e ambiente. Os valores correspondem ao caminho na Foundation. |
+| `aws.accountId` e `aws.region` | ID de 12 dígitos entre aspas e região de destino. |
+| `foundation.networkBaseline` | Baseline de rede da Foundation. |
+| `core.eksManagement`, `core.eksNonPci` e `core.eksPci` | Clusters EKS Management, Non-PCI e PCI previstos para o Environment. |
+
+Uma flag `true` inclui o componente no escopo desejado. O provisionamento segue as etapas, aprovações e controles do roteiro. Alterar o YAML apenas registra a intenção.
 
 ## 2. Validar as duas contas
 
 Tenha a AWS CLI v2 e acesso à UAT e à PROD pelo IAM Identity Center. Se precisar configurar os perfis, execute `aws configure sso --profile platform-poc-uat` e `aws configure sso --profile platform-poc-prod`. No assistente de cada perfil, selecione a conta correspondente, o permission set atribuído e a região do YAML. Quando a sessão expirar, renove com `aws sso login --profile <perfil>`. [IAM Identity Center na AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sso.html)
 
-No portal de acesso AWS, confirme os IDs das contas pelas referências lógicas da tabela. Informe os valores apenas no terminal:
+No portal de acesso AWS, confira cada conta com `aws.accountId` e use a região de seu YAML ao executar o verificador. Informe os valores de cada registro nos comandos abaixo.
 
 ```bash
-read -r -p 'ID da conta UAT conferido no portal AWS: ' uat_account
-read -r -p 'ID da conta PROD conferido no portal AWS: ' prod_account
+read -r -p 'aws.accountId do registro UAT: ' uat_account
+read -r -p 'aws.region do registro UAT: ' uat_region
+read -r -p 'aws.accountId do registro PROD: ' prod_account
+read -r -p 'aws.region do registro PROD: ' prod_region
 if [[ "$uat_account" == "$prod_account" ]]; then
   echo 'ERRO: UAT e PROD precisam apontar para contas distintas.'
 else
-  bash foundation/scripts/verify-environment-identity.sh platform-poc-uat "$uat_account" us-east-1 &&
-    bash foundation/scripts/verify-environment-identity.sh platform-poc-prod "$prod_account" us-east-1
+  bash foundation/scripts/verify-environment-identity.sh platform-poc-uat "$uat_account" "$uat_region" &&
+    bash foundation/scripts/verify-environment-identity.sh platform-poc-prod "$prod_account" "$prod_region"
 fi
 ```
 
@@ -39,8 +50,8 @@ O resultado esperado é um `OK` para cada conta. O verificador confere a conta e
 Use o perfil de UAT com o ID esperado da PROD. O verificador deve recusar a divergência antes da chamada ao STS. Em seguida, use o perfil correto de PROD e confirme o resultado `OK`.
 
 ```bash
-bash foundation/scripts/verify-environment-identity.sh platform-poc-uat "$prod_account" us-east-1
-bash foundation/scripts/verify-environment-identity.sh platform-poc-prod "$prod_account" us-east-1
+bash foundation/scripts/verify-environment-identity.sh platform-poc-uat "$prod_account" "$prod_region"
+bash foundation/scripts/verify-environment-identity.sh platform-poc-prod "$prod_account" "$prod_region"
 ```
 
 ## 3. Revisar e publicar
@@ -51,7 +62,7 @@ git diff --cached --check
 git diff --cached -- foundation/config/entity-a/{uat,prod}/environment.yaml
 ```
 
-Confira referências diferentes, a correspondência dos Environments com o caminho de cada arquivo e a ausência de identificadores numéricos. Publique os registros por PR. O aceite do lab exige os dois YAMLs versionados e a identidade validada para cada conta. Ao finalizar, limpe as variáveis do terminal com `unset uat_account prod_account`.
+Confira IDs diferentes, a região, a correspondência dos Environments com o caminho de cada arquivo e as flags esperadas. Mantenha as credenciais no fluxo do IAM Identity Center. Publique os registros por PR. O aceite do lab exige os dois YAMLs versionados e a identidade validada para cada conta. Ao finalizar, limpe as variáveis do terminal com `unset uat_account uat_region prod_account prod_region`.
 
 ## Antes do Lab 04
 
