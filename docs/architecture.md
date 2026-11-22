@@ -88,13 +88,15 @@ Exemplo **ilustrativo** de Environment, sob gestão da Foundation central:
 entity: entity-a
 environment: uat
 aws:
-  accountId: "111122223333" # fictício
+  accountRef: platform-poc-uat
   region: us-east-1
 foundation:
   profile: standard
 core:
   profile: eks-standard
 ```
+
+A Foundation resolve `aws.accountRef` para a conta aprovada antes da execução. IDs numéricos reais e credenciais ficam fora do Git.
 
 Exemplo **ilustrativo** de Domain (identidade única):
 

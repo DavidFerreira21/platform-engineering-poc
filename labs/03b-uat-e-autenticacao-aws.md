@@ -1,50 +1,46 @@
-# Lab 03B — Registro de UAT e acesso temporário à AWS
+# Lab 03B — Registro da conta UAT no Git
 
 [← Lab 03](03-crossplane-core.md) · [Índice dos labs](README.md)
 
-O Platform Team registra uma conta UAT existente e confirma, via STS, que o perfil do IAM Identity Center aponta para ela. O teste usa apenas consultas à AWS. A autenticação do Provider AWS no Hub tem um critério de aceite próprio antes do primeiro ObjectStorage.
+O Platform Team registra uma conta AWS existente como destino do Environment `uat` da `entity-a`. O entregável é o `environment.yaml` versionado na Foundation. O exercício usa consultas de identidade e tem custo AWS zero.
 
-## Pré-requisitos
+## 1. Criar o registro da UAT
 
-- Lab 03 concluído e contexto `kind-platform-management` disponível.
-- AWS CLI v2, `kubectl` e Python 3 para inspecionar o discovery OIDC do Hub.
-- Uma conta membro UAT com acesso pelo IAM Identity Center. Localize o ID da conta e o permission set no portal de acesso AWS. Confirme a região de trabalho com o Platform Team.
+Use uma branch de trabalho a partir da raiz do monorepo. Para criar o registro pela primeira vez, copie o [modelo](../foundation/config/entity-a/uat/environment.example.yaml) para `foundation/config/entity-a/uat/environment.yaml` e preencha os valores abaixo. Se o arquivo já estiver presente, revise o [registro versionado](../foundation/config/entity-a/uat/environment.yaml).
 
-## 1. Registrar o destino localmente
-
-A partir da raiz do monorepo, copie o [template de UAT](../foundation/config/entity-a/uat/environment.example.yaml) para fora do Git. Preencha `aws.accountId` e `aws.region` com os valores confirmados. Preserve o ID entre aspas.
-
-```bash
-uat_dir="${XDG_CONFIG_HOME:-$HOME/.config}/platform-engineering-poc/entity-a/uat"
-mkdir -p "$uat_dir"
-if [[ ! -e "$uat_dir/environment.yaml" ]]; then
-  install -m 600 foundation/config/entity-a/uat/environment.example.yaml "$uat_dir/environment.yaml"
-fi
+```yaml
+entity: entity-a
+environment: uat
+aws:
+  accountRef: platform-poc-uat
+  region: us-east-1
+foundation:
+  profile: standard
+core:
+  profile: eks-standard
 ```
 
-Esse arquivo registra o destino lógico. O perfil SSO fica na configuração da AWS CLI e o cache da sessão fica no diretório do usuário.
+- `entity` e `environment` devem corresponder ao caminho da Foundation.
+- `aws.accountRef` é a referência lógica pela qual o Platform Team identifica a conta aprovada. O vínculo com o ID numérico é conferido no portal AWS e na validação via STS. O repositório guarda a referência lógica e a região. IDs numéricos reais e credenciais ficam fora do Git.
+- `foundation.profile` e `core.profile` identificam os perfis de referência das duas camadas. São campos declarativos do registro de Environment.
 
-## 2. Autenticar e confirmar conta e região
+## 2. Validar o destino no terminal
 
-```bash
-aws configure sso --profile platform-poc-uat
-```
+Para o teste, tenha a AWS CLI v2 e um perfil do IAM Identity Center apontando para a conta UAT. Se precisar configurar o perfil, use `aws configure sso --profile platform-poc-uat` e selecione a conta UAT, o permission set atribuído e a região do registro. Use `aws sso login --profile platform-poc-uat` quando a sessão expirar. [Configuração do IAM Identity Center na AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sso.html)
 
-No assistente, reutilize a sessão do IAM Identity Center quando ela já existir. Selecione a conta membro UAT, o permission set atribuído e a região do registro. Quando precisar iniciar uma sessão nova, use `aws sso login --profile platform-poc-uat`. A sessão pode ser reutilizada até expirar. [Configuração do IAM Identity Center na AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sso.html)
-
-No mesmo terminal, informe os valores esperados a partir da cópia local do registro.
+Confira no portal AWS que o nome da conta corresponde a `aws.accountRef`, informe o ID confirmado apenas no terminal e use a região do YAML.
 
 ```bash
-read -r -p 'ID da conta UAT no registro: ' uat_account
-read -r -p 'Região UAT no registro: ' uat_region
+read -r -p 'ID da conta UAT conferido no portal AWS: ' uat_account
+uat_region=us-east-1
 bash foundation/scripts/verify-uat-identity.sh platform-poc-uat "$uat_account" "$uat_region"
 ```
 
-O script deve retornar `OK` após verificar a conta e a região do perfil e conferir a conta e a role SSO retornadas pelo STS. A região é selecionada na CLI. A resposta do STS confirma a identidade, sem atestar que todos os serviços ou controles regionais permitem operações nesse destino. O teste de identidade usa o permission set disponível na UAT. Cada operação de infraestrutura exige permissões próprias e aprovação específica.
+O resultado esperado é `OK`. O STS confirma a conta e a role da sessão. O script também confere se a região foi configurada no perfil.
 
-## 3. Provocar uma divergência e recuperar
+### Falha controlada e recuperação
 
-Escolha uma região diferente da registrada e passe-a como destino esperado. O script deve rejeitar a divergência antes de consultar o STS.
+Repita a verificação com uma região diferente da declarada. O primeiro comando deve recusar a divergência antes de chamar o STS. O segundo deve retornar `OK`.
 
 ```bash
 wrong_region=us-west-2
@@ -53,21 +49,16 @@ bash foundation/scripts/verify-uat-identity.sh platform-poc-uat "$uat_account" "
 bash foundation/scripts/verify-uat-identity.sh platform-poc-uat "$uat_account" "$uat_region"
 ```
 
-O primeiro comando de verificação deve informar que a região do perfil difere do registro. O segundo deve retornar `OK`. A mesma verificação rejeita um perfil configurado para outra conta. Se o STS indicar sessão expirada, renove o login SSO e repita a verificação com o perfil da UAT.
-
-## 4. Inspecionar a identidade de workload do Hub
-
-A sessão SSO é do operador. O caminho proposto para o Provider AWS em `kind` usa `WebIdentity` e uma role dedicada na UAT. O Kubernetes projeta um token rotativo para uma ServiceAccount fixa e o provider o troca por credenciais temporárias no STS.
+## 3. Revisar e publicar
 
 ```bash
-kubectl --context kind-platform-management get --raw /.well-known/openid-configuration |
-  python3 -c 'import json, sys; d = json.load(sys.stdin); print(d["issuer"]); print(d["jwks_uri"])'
+git add foundation/config/entity-a/uat/environment.yaml
+git diff --cached --check
+git diff --cached -- foundation/config/entity-a/uat/environment.yaml
 ```
 
-No Hub padrão, o issuer e o JWKS usam endereços internos. Para federar com o IAM, a Foundation precisa aprovar e operar um issuer HTTPS cujo discovery e JWKS sejam alcançáveis pela AWS. A trust policy deve limitar a audiência a `sts.amazonaws.com` e o subject à ServiceAccount exata. A API Kubernetes e a chave privada de assinatura ficam privadas. O ProviderConfig e a role serão vinculados pela plataforma ao destino UAT. [OIDC no IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html) · [Autenticação do Provider AWS](https://github.com/crossplane-contrib/provider-upjet-aws/blob/main/AUTHENTICATION.md)
+Revise a referência da conta, a região e o caminho do Environment. Publique o registro por PR na branch de trabalho. O aceite do lab é o YAML versionado e a verificação do destino concluída. Ao finalizar, use `unset uat_account uat_region wrong_region` para limpar os valores do terminal.
 
-**Gate para o Lab 04:** após aprovar os recursos de identidade, confirmar `GetCallerIdentity` a partir do Hub com a ServiceAccount e a role dedicadas, repetir após a expiração da primeira sessão STS e verificar a rejeição de outra ServiceAccount ou audiência. O teste inicial da role não precisa de permissão para criar buckets. A role de ObjectStorage terá política própria e autorização de provisionamento.
+## Antes do Lab 04
 
-## 5. Limpeza
-
-Esta execução consulta a AWS e o Hub, sem criar recursos faturáveis. A cópia local do Environment e o perfil SSO podem ser reutilizados nos próximos labs. O comando `aws sso logout` encerra sessões SSO armazenadas pela AWS CLI e pode afetar outros perfis.
+A primeira Capability AWS exige uma identidade de workload dedicada para o Provider no Hub. A opção proposta é `WebIdentity` com issuer HTTPS verificável pela AWS, audiência `sts.amazonaws.com` e confiança limitada à ServiceAccount prevista. Teste STS no Hub, renovação da sessão e rejeição de outra identidade antes de autorizar ObjectStorage. [OIDC no IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html) · [Autenticação do Provider AWS](https://github.com/crossplane-contrib/provider-upjet-aws/blob/main/AUTHENTICATION.md)

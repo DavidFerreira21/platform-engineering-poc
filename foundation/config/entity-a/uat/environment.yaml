@@ -1,0 +1,9 @@
+entity: entity-a
+environment: uat
+aws:
+  accountRef: platform-poc-uat
+  region: us-east-1
+foundation:
+  profile: standard
+core:
+  profile: eks-standard

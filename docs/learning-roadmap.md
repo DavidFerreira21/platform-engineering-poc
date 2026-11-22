@@ -2,7 +2,7 @@
 
 [← Início](../README.md) · [Arquitetura](architecture.md) · [Fundamentos](fundamentos/README.md)
 
-Construção incremental e observável: cada lab terá pré-requisitos, comandos, evidências, falha controlada, diagnóstico, recuperação, custo e limpeza. **Primeira implementação: Lab 01 (kind, namespaces, rede local e Traefik)**, seguido por **Lab 02 (Argo CD central)**, **Lab 02B (Argo Workflows instalado via GitOps)** e **Lab 03 (Crossplane instalado via GitOps)**, depois `ObjectStorage` e **`Database` com Aurora PostgreSQL**. A conta inicial será apenas UAT. O Lab 03B valida o acesso humano via IAM Identity Center. A federação do Hub é uma etapa anterior à primeira Capability AWS. **A ordem pedagógica difere da sequência de provisionamento de uma entidade completa.**
+Construção incremental e observável: cada lab terá pré-requisitos, comandos, evidências, falha controlada, diagnóstico, recuperação, custo e limpeza. **Primeira implementação: Lab 01 (kind, namespaces, rede local e Traefik)**, seguido por **Lab 02 (Argo CD central)**, **Lab 02B (Argo Workflows instalado via GitOps)** e **Lab 03 (Crossplane instalado via GitOps)**, depois `ObjectStorage` e **`Database` com Aurora PostgreSQL**. A conta inicial será apenas UAT. O Lab 03B registra a conta UAT no Git e valida o destino via IAM Identity Center. A federação do Hub é uma etapa anterior à primeira Capability AWS. **A ordem pedagógica difere da sequência de provisionamento de uma entidade completa.**
 
 | Fase | Tema | Evidência |
 | :--- | :--- | :--- |
@@ -11,7 +11,7 @@ Construção incremental e observável: cada lab terá pré-requisitos, comandos
 | **02** | [Argo CD central (GitOps)](../labs/02-argocd-central.md) | Bootstrap do Argo CD, acesso local, Git como fonte da verdade e aplicações da plataforma |
 | **02B** | Argo Workflows no Hub por GitOps | Argo CD instala Argo Workflows e CRDs; executar um Workflow local inofensivo, observar Pods/logs/status e validar reexecução e limpeza, sem AWS ou Terraform |
 | **03** | [Crossplane Core por GitOps](../labs/03-crossplane-core.md) | Argo CD instala o Crossplane; observar CRDs, XRDs, Compositions e status sem AWS |
-| **03B** | [UAT e autenticação AWS](../labs/03b-uat-e-autenticacao-aws.md) | Registrar o Environment, validar o acesso humano temporário via STS e inspecionar o issuer do Hub. Federação do Provider AWS exige validação antes de ObjectStorage |
+| **03B** | [Registro da conta UAT no Git](../labs/03b-uat-e-autenticacao-aws.md) | Versionar referência lógica, região e perfis no Environment. Validar a conta esperada via STS |
 | **04** | `ObjectStorage` real | XRD/Composition/Provider AWS, bucket de laboratório, `Ready`, drift e teardown |
 | **04B** | `Database` com Amazon Aurora PostgreSQL | Contrato de Database e cluster Aurora PostgreSQL em UAT, sujeito a custo, rede, IAM, plano e teardown autorizados |
 | **05** | Entity, Environment e Domain (registros lógicos) | Schema e validação de identidade/ownership/destino, **sem depender de Domain Bootstrap** |
@@ -43,7 +43,7 @@ Construção incremental e observável: cada lab terá pré-requisitos, comandos
 
 **Duas utilizações distintas da mesma aplicação mínima:** a primeira é **smoke test técnico do Data Plane no Lab 10B**, depois de provisionar EKS e configurar Argo CD local (sem experiência de portal/Golden Path). A segunda é a **jornada final no Lab 16**, somente **depois** de arquitetura de DX do Lab 15 e de observabilidade/governança. O app é preferencialmente **Python + Flask**, de repositório separado, sem foco em desenvolvimento. Não implementar um produto de software nem um gerador sofisticado. **Platform Team** cuida da plataforma/Core; **Federated DevOps Team** mantém Domain Infrastructure no monorepo; **Application Team** mantém código, CI e manifests no repo separado. Lab 10C valida ownership. Ver [ADR-0007](adr/0007-personas-and-developer-experience.md).
 
-**Conta UAT:** registrar o destino em `foundation/config/entity-a/uat/environment.example.yaml` (template sem dados reais). Validar conta e região localmente com IAM Identity Center. A federação do Provider AWS no Hub exige validação antes do primeiro provisionamento. Credenciais ficam fora do Git.
+**Conta UAT:** versionar o destino em `foundation/config/entity-a/uat/environment.yaml` com referência lógica, região e perfis. Validar conta e região localmente com IAM Identity Center. A federação do Provider AWS no Hub exige validação antes do primeiro provisionamento. Credenciais ficam fora do Git.
 
 **Segurança:** toda operação AWS precisa de conta/região confirmadas via STS, IAM mínimo, estimativa de custos, aprovação específica e plano de remoção. O Hub permanece em `kind` inicialmente e os EKS reais favorecem Auto Mode, sujeitos a compatibilidade e PCI. Não duplicar ownership Terraform/Crossplane, versionar segredos nem executar `destroy` indiscriminadamente.
 
