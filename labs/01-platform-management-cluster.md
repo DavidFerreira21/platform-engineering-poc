@@ -1,12 +1,19 @@
-# Lab 01 — Preparação do Platform Management Cluster: kind, rede e Traefik
+# Etapa 01 — Preparação do Platform Management Cluster: kind, rede e Traefik
 
-[← Labs](README.md) · [Arquitetura](../docs/architecture.md) · [Fundamentos: planos](../docs/fundamentos/17-planos-e-responsabilidades.md) · [Roadmap](../docs/learning-roadmap.md)
+[← Guias das etapas](README.md) · [Arquitetura](../docs/architecture.md) · [Fundamentos: planos](../docs/fundamentos/17-planos-e-responsabilidades.md) · [Roadmap](../docs/learning-roadmap.md)
 
-## Objetivo e limite
+## Objetivo
 
-Preparar **um único Hub local reproduzível** para hospedar mais tarde Argo CD central e Crossplane. Este lab entrega: **kind → rede/portas → namespaces → Traefik → Ingress HTTP de teste**. Argo CD, Crossplane, GitOps e serviços AWS **não são instalados** aqui. As configurações de Argo CD/Crossplane terão labs próprios.
+Preparar um Hub Kubernetes local reproduzível e verificar o caminho de uma requisição HTTP do host até um Pod.
 
-> **Aprendizado progressivo:** rode as etapas em sequência e observe os recursos. O futuro bootstrap completo apenas chamará os mesmos passos; não existirá uma segunda implementação concorrente.
+## O que será feito
+
+- Criar ou reutilizar o cluster kind `platform-management` e preparar os namespaces `platform-system`, `traefik`, `argocd` e `crossplane-system`. Os dois últimos ficam reservados para as próximas etapas.
+- Instalar o Traefik via Helm e publicar o Deployment, o Service e o Ingress do serviço de demonstração `echo`.
+- Validar `demo.localhost:8080`, provocar um `404` com um host desconhecido e recuperar usando o host correto.
+- Reexecutar a instalação no mesmo Hub ou, na limpeza opcional, remover e recriar o cluster local.
+
+O exercício roda no Hub local e tem custo AWS zero.
 
 ## Pré-requisitos
 
@@ -85,7 +92,7 @@ Browser / curl (127.0.0.1:8080)
     → Deployment echo :5678
 ```
 
-A porta 8443 fica preparada para HTTPS futuro, mas **não configuramos CA/certificado TLS confiável** neste lab. Não expor dashboard, secrets ou endpoints administrativos.
+A porta 8443 fica preparada para HTTPS futuro, mas **não configuramos CA/certificado TLS confiável** nesta etapa. Não expor dashboard, secrets ou endpoints administrativos.
 
 ## Etapa 5 — Observar, provocar erro e recuperar
 
@@ -99,7 +106,7 @@ curl --noproxy '*' -i --resolve desconhecido.localhost:8080:127.0.0.1 http://des
 
 ## Etapa 6 — Limpeza e reexecução
 
-Para **repetir o Lab sem apagar o cluster**, `create.sh` e `install-traefik.sh` podem ser chamados novamente (manifests declarativos / Helm upgrade). Para **zerar todo o Hub**, inclusive configurações futuras, é necessário confirmar explicitamente:
+Para **repetir a etapa sem apagar o cluster**, `create.sh` e `install-traefik.sh` podem ser chamados novamente (manifests declarativos / Helm upgrade). Para **zerar todo o Hub**, inclusive configurações futuras, é necessário confirmar explicitamente:
 
 ```bash
 bash platform/hub/scripts/delete.sh --confirm
@@ -122,6 +129,6 @@ bash platform/hub/scripts/verify.sh
 
 ## Próximas etapas
 
-**Lab 02: Argo CD central** — bootstrap GitOps e aplicações da plataforma. **Lab 03: Crossplane** — instalação por GitOps, XRDs e Compositions; depois Capabilities AWS. Ao adotar Traefik no Argo CD, documentar uma **transferência de ownership Helm → Argo CD**, sem dois reconciliadores gerenciando o release simultaneamente. Não executar o bootstrap do Traefik manual depois de adotado pelo GitOps.
+Siga para a [Etapa 02 — Argo CD central](02-argocd-central.md), a [Etapa 03 — Argo Workflows](03-argo-workflows.md) e a [Etapa 04 — Crossplane Core](04-crossplane-core.md). Ao adotar Traefik no Argo CD, documentar uma **transferência de ownership Helm → Argo CD**, sem dois reconciliadores gerenciando o release simultaneamente. Não executar o bootstrap do Traefik manual depois de adotado pelo GitOps.
 
 Fontes: [kind — Configuration](https://kind.sigs.k8s.io/docs/user/configuration/) · [Traefik — Setup on Kubernetes](https://doc.traefik.io/traefik/setup/kubernetes/) · [Traefik Helm Chart](https://github.com/traefik/traefik-helm-chart).

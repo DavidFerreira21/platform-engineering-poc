@@ -2,7 +2,7 @@
 
 O Data Plane é composto de **Entities**, com Environments UAT/PROD e duas áreas de infraestrutura: **Core Infrastructure** (compartilhada) e **Domains** de negócio/aplicação. Ambos pertencem ao Data Plane.
 
-**Environment é a conta AWS inteira**, não sinônimo de Core. A divisão padrão de ownership é **Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications**. Uma Entity pode ter diversos Domains; cada Domain é identidade única que possui Capabilities e aplicações em UAT e/ou PROD. **Domain Bootstrap é uma proposta documentada, atualmente adiada/em reavaliação**. Não exigir um gerador para que Capabilities e aplicações sejam entregues pelos reconciliadores Crossplane central e Argo CD local.
+**Environment é a conta AWS inteira**, não sinônimo de Core. A divisão padrão de ownership é **Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications**. Uma Entity pode ter diversos Domains; cada Domain é identidade única que possui Capabilities e aplicações em UAT e/ou PROD.
 
 ## Management EKS e AWS Runtime (topologia-alvo)
 
@@ -12,15 +12,13 @@ O **AWS Runtime** engloba Core Infrastructure (recursos compartilhados) e Domain
 
 **Domain Applications:** código, GitHub Actions **e manifests Kubernetes da aplicação** ficarão **juntos no repositório próprio da squad, previsto para uma etapa posterior**; Argo CD local aplica esses manifests em EKS PCI/Não PCI autorizado. O **Application Team** é owner desse repositório.
 
-**Domain Bootstrap** continua registrado como hipótese, mas a implementação foi **adiada e está em reavaliação**.
-
 ## Personas e consumo da infraestrutura
 
 - **Platform Team:** responsável pelos mecanismos da plataforma, contratos, Foundation e Entity Core (inclusive EKS compartilhado), aprovações/guardrails e Golden Paths.
 - **Federated DevOps Team:** ponte entre plataforma e squad; responsável por propor e gerenciar Capabilities de **Domain Infrastructure** (Database, ObjectStorage, Messaging e upgrades) via manifests no monorepo.
 - **Application Team:** código e ciclo de **Domain Applications** num repositório próprio; consome Golden Paths/Starter Kits sem precisar conhecer os motores internos.
 
-**App mínima de demonstração (preferência Python + Flask):** primeiro executar **smoke test no EKS após Argo CD local (Lab 10B)**; após observabilidade, segurança e construção da **Developer Experience (Lab 15)**, reutilizá-la no **Golden Path / integração final (Lab 16)** com GitHub Actions e telemetria. **Não há necessidade de desenvolver aplicação complexa ou gerador completo de Starter Kits**. O conceito de Golden Path continua válido para evolução futura. A criação de Database/S3 permanece demanda do DevOps Federado. [ADR-0007](../docs/adr/0007-personas-and-developer-experience.md).
+**App mínima de demonstração (preferência Python + Flask):** primeiro executar **smoke test no EKS após Argo CD local (Etapa 17)**; após observabilidade, segurança e construção da **Developer Experience (Etapa 22)**, reutilizá-la no **Golden Path / integração final (Etapa 24)** com GitHub Actions e telemetria. **Não há necessidade de desenvolver aplicação complexa ou gerador completo de Starter Kits**. O conceito de Golden Path continua válido para evolução futura. A criação de Database/S3 permanece demanda do DevOps Federado. [ADR-0007](../docs/adr/0007-personas-and-developer-experience.md).
 
 ## Organização proposta
 

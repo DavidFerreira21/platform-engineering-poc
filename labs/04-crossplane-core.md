@@ -1,12 +1,23 @@
-# Lab 03 — Crossplane Core via GitOps
+# Etapa 04 — Crossplane Core via GitOps
 
-[← Lab 02](02-argocd-central.md) · [Índice dos labs](README.md)
+[← Etapa 03](03-argo-workflows.md) · [Guias das etapas](README.md)
 
-O Argo CD central sincroniza o chart do Crossplane no Hub. O Crossplane registra uma API de laboratório e transforma uma instância de `LabMessage` em um ConfigMap no mesmo namespace. O fluxo usa apenas Kubernetes e tem custo AWS zero.
+## Objetivo
+
+Validar a reconciliação de um recurso composto no Hub e observar como o schema de um XRD controla o que a API aceita.
+
+## O que será feito
+
+- Criar o AppProject `platform-crossplane` e a Application `crossplane-core` para instalar o Crossplane Core e seus CRDs via Argo CD.
+- Instalar a função de composição do exercício, aplicar o XRD de `LabMessage` e sua Composition e criar um `LabMessage` em `platform-system`. Conferir as condições do recurso e o ConfigMap criado pelo Crossplane.
+- Tentar gravar uma mensagem vazia, observar a rejeição pela API e confirmar que valores válidos são reconciliados no ConfigMap.
+- Remover os recursos do exercício e manter o Crossplane Core instalado.
+
+O exercício roda no Hub local e tem custo AWS zero.
 
 ## Pré-requisitos
 
-- Hub do Lab 01 com Argo CD central acessível conforme o Lab 02. No roteiro, o Lab 02B vem antes deste lab.
+- Hub da Etapa 01 com Argo CD central acessível conforme a Etapa 02 e Argo Workflows verificado na Etapa 03.
 - `kubectl` com o contexto `kind-platform-management` e conectividade do Hub ao repositório Helm e aos registries das imagens e da função.
 - Execute os comandos da raiz do monorepo. Nos exemplos, `hub` seleciona explicitamente o contexto local.
 
@@ -35,7 +46,7 @@ hub wait --for=condition=Established --timeout=120s \
 hub get providers.pkg.crossplane.io
 ```
 
-Confirme `Synced`, `Healthy` e a versão `2.4.3`. Num Hub dedicado a estes labs, a lista de Providers deve estar vazia. Se o chart não sincronizar, consulte `hub -n argocd describe application crossplane-core` e confira a origem Helm a partir dos logs de `hub -n argocd logs deployment/argocd-repo-server`.
+Confirme `Synced`, `Healthy` e a versão `2.4.3`. Num Hub dedicado a estas etapas, a lista de Providers deve estar vazia. Se o chart não sincronizar, consulte `hub -n argocd describe application crossplane-core` e confira a origem Helm a partir dos logs de `hub -n argocd logs deployment/argocd-repo-server`.
 
 ## 2. Registrar e consumir uma API local
 
@@ -92,4 +103,4 @@ hub delete -f "$demo/composition.yaml" -f "$demo/xrd.yaml" -f "$demo/function.ya
   --ignore-not-found --timeout=120s
 ```
 
-Mantenha a Application `crossplane-core` sincronizada para os próximos labs. [Documentação do Crossplane](https://docs.crossplane.io/latest/guides/function-patch-and-transform/)
+Mantenha a Application `crossplane-core` sincronizada para as próximas etapas. [Documentação do Crossplane](https://docs.crossplane.io/latest/guides/function-patch-and-transform/)

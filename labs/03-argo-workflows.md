@@ -1,12 +1,22 @@
-# Lab 02B — Argo Workflows via GitOps
+# Etapa 03 — Argo Workflows via GitOps
 
-[← Lab 02](02-argocd-central.md) · [Índice dos labs](README.md)
+[← Etapa 02](02-argocd-central.md) · [Guias das etapas](README.md)
 
-O Argo CD instala o controller e os CRDs no Hub kind. O exercício consiste em submeter um Workflow, acompanhar o Pod, provocar uma falha controlada no contêiner e executar novamente com o parâmetro corrigido. O exercício usa apenas Kubernetes local e tem custo AWS zero.
+## Objetivo
+
+Executar um Workflow local e usar o estado da execução, os Pods e os logs para diagnosticar uma falha e confirmar a recuperação.
+
+## O que será feito
+
+- Criar o namespace `argo-workflows`, o AppProject `platform-workflows` e a Application `argo-workflows`. Sincronizar pelo Argo CD a instalação do controller, dos CRDs e da ServiceAccount do executor.
+- Submeter três execuções do mesmo manifesto e observar os estados `Succeeded`, `Failed` e `Succeeded`. A segunda execução usa um parâmetro que provoca uma falha no contêiner.
+- Remover os três Workflows e seus Pods. O controller fica disponível para as próximas etapas.
+
+O exercício roda no Hub local e tem custo AWS zero.
 
 ## Pré-requisitos
 
-- Lab 02 concluído, com o Argo CD central acessível.
+- Etapa 02 concluído, com o Argo CD central acessível.
 - `kubectl` com o contexto `kind-platform-management`. O Hub precisa de acesso ao repositório Helm e aos registries das imagens.
 - Execute os comandos na raiz do monorepo e no mesmo terminal.
 
@@ -79,4 +89,4 @@ hub -n argo-workflows get workflows -l lab.platform.example/exercise=lab02b
 hub -n argo-workflows get pods -l "workflows.argoproj.io/workflow in (${run##*/},${failed##*/},${recovered##*/})"
 ```
 
-As duas consultas devem retornar listas vazias. Mantenha o controller instalado para uso nos próximos labs. [Documentação do Argo Workflows](https://argo-workflows.readthedocs.io/en/latest/installation/)
+As duas consultas devem retornar listas vazias. Mantenha o controller instalado para uso nas próximas etapas. [Documentação do Argo Workflows](https://argo-workflows.readthedocs.io/en/latest/installation/)

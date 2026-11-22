@@ -28,9 +28,9 @@ jobs:
               Path("platform/hub/traefik/values.yaml"),
               Path("platform/hub/traefik/demo.yaml"),
               Path("platform/hub/traefik/chart-version.txt"),
-              Path("foundation/config/entity-a/uat/environment.example.yaml"),
+              Path("foundation/environment.example.yaml"),
           ]
           for config in configs:
-              assert config.is_file() and config.read_text(encoding="utf-8").strip()
+              assert config.is_file() and config.read_text(encoding="utf-8").strip(), f"Configuração ausente ou vazia: {config}"
           print("Configurações de laboratório presentes.")
           PY

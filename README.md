@@ -1,26 +1,36 @@
 # Platform Engineering POC
 
-> Plataforma **Kubernetes-native** construída em labs incrementais, com governança central e autonomia federada por **Domain**.
+> Plataforma **Kubernetes-native** construída em fases incrementais, com governança central e autonomia federada por **Domain**.
 
 **`Kubernetes API` · `Crossplane v2` · `Argo CD` · `Argo Workflows` · `TerraformStack (proposto)` · `GitHub Actions (app separada)` · `OpenTelemetry` · `AWS`**
 
 > [!NOTE]
-> **Estado atual:** arquitetura-alvo documentada; os componentes AWS/Kubernetes descritos não estão necessariamente implantados. As pastas representam a organização do projeto e etapas futuras dos labs.
+> **Estado atual:** arquitetura-alvo documentada; os componentes AWS/Kubernetes descritos não estão necessariamente implantados. As pastas representam a organização do projeto e as etapas previstas no roteiro.
 
 > [!NOTE]
 > Projeto **pessoal de laboratório**, independente de qualquer iniciativa corporativa. A arquitetura abaixo é **alvo**, não comprovação de recursos implantados.
 
-## 🧭 Navegação
+## Por onde começar
 
-| Página | Conteúdo |
+1. Leia os [Fundamentos](docs/fundamentos/README.md). As 24 aulas apresentam Engenharia de Plataforma, produto interno, self-service, Golden Paths, governança e os conceitos usados na POC.
+2. Leia a [Arquitetura](docs/architecture.md). Use o diagrama de referência para entender a topologia, as três personas, a responsabilidade de cada plano e como Entity, Environment, Domain e Capability se relacionam.
+3. Consulte o [Roteiro prático](docs/learning-roadmap.md) e execute os [guias das etapas](labs/README.md) na sequência. Cada guia começa pelo objetivo, pelo que será feito e pelos pré-requisitos.
+
+Para consultar detalhes, veja a [estrutura do monorepo](docs/repository-structure.md), as [decisões arquiteturais](docs/adr/README.md) e as [orientações para agentes](AGENTS.md).
+
+## Cenário de demonstração
+
+Uma transportadora global fictícia recebe e distribui encomendas em centros de distribuição de vários países. Cada centro tem suas próprias instalações, equipamentos e rotinas de trabalho. Nos horários de pico, vários centros registram recebimentos ao mesmo tempo.
+
+A POC representa a transportadora como **uma única Entity**, a `entity-a`, com ambientes **UAT** e **PROD**. Dentro dela, as squads de produto cuidam de Domains com responsabilidades distintas.
+
+| Domain | Responsabilidade da squad |
 | :--- | :--- |
-| [🏗️ Arquitetura](docs/architecture.md) | Modelo, topologia, ownership, contratos e fluxo completo |
-| [🗂️ Monorepo](docs/repository-structure.md) | Responsabilidades e localização das configurações |
-| [📝 Decisões vigentes](docs/adr/README.md) | ADRs atuais, sem versões contraditórias |
-| [🧪 Roteiro prático](docs/learning-roadmap.md) | Fases de laboratório, AWS real e validações |
-| [▶️ Lab 01: Hub kind + Traefik](labs/01-platform-management-cluster.md) | Preparar cluster, namespaces, portas e ingress HTTP local |
-| [📖 Fundamentos](docs/fundamentos/README.md) | 24 aulas conceituais pt-BR |
-| [🤖 Orientações para agentes](AGENTS.md) | Padrões de implementação e segurança |
+| **Rastreamento de Encomendas** | Registrar os eventos do percurso e permitir a consulta ao histórico de uma encomenda. |
+| **Estoque** | Controlar a disponibilidade de materiais de embalagem e insumos em cada centro. |
+| **Planejamento de Rotas** | Planejar as transferências entre centros e as rotas de entrega. |
+
+O exercício implementa uma fatia do **Rastreamento de Encomendas**. Um operador informa o **Código da encomenda**, clica em **Registrar recebimento** e confere o código e o horário na lista de recebimentos. A preferência é usar Python + Flask. Na **Etapa 17**, uma versão HTTP mínima valida deploy, health check e rollback. No **Golden Path da Etapa 24**, a mesma aplicação grava e consulta os recebimentos no Aurora PostgreSQL, solicitado pelo DevOps Federado como Capability. [ADR-0007](docs/adr/0007-personas-and-developer-experience.md)
 
 ## 🧱 Visão arquitetural
 
@@ -30,7 +40,7 @@
 
 > **Nota de arquitetura:** o diagrama oficial está em `docs/arquitetura Plataform.png` e representa a **topologia-alvo**. Para contratos e decisões atualizadas, consultar os [ADRs](docs/adr/README.md). O nome vigente do contrato declarativo proposto é `TerraformStack` (CRD + controller); `TerraformRun` fica reservado para uma execução individual, se necessário.
 
-**Environment é o contexto UAT/PROD associado à conta AWS inteira, não apenas ao Core.** O Data Plane contém **Core Infrastructure compartilhada** e **Domains** de negócio/aplicação. Um Domain pode possuir Capabilities, namespaces e apps em ambos os ambientes. **Domain Bootstrap é uma proposta anterior em reavaliação, não um pré-requisito da POC**. O perfil `standard` e seu gerador permanecem descritos para referência, mas não serão implementados agora. Capabilities continuam entregues por Crossplane central e aplicações por Argo CD local.
+**Environment é o contexto UAT/PROD associado à conta AWS inteira, não apenas ao Core.** O Data Plane contém **Core Infrastructure compartilhada** e **Domains** de negócio/aplicação. Um Domain pode possuir Capabilities, namespaces e apps em ambos os ambientes. Capabilities continuam entregues por Crossplane central e aplicações por Argo CD local.
 
 ## 👥 Personas e experiência da plataforma
 
@@ -41,8 +51,6 @@
 | **Squads de Produto (Application Team)** | Mantêm código, testes, CI/CD e manifests Kubernetes em repositório próprio | Consomem **Golden Paths / Starter Kits**, sem conhecer os motores internos |
 
 A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership do **DevOps Federado**. Já **código, GitHub Actions e manifests Kubernetes da aplicação** pertencem ao **repositório separado da squad**. O Argo CD local entrega os manifests do repo da aplicação nos EKS autorizados.
-
-**Aplicação mínima de demonstração (preferência: Python + Flask):** o objetivo é validar **a plataforma**, não desenvolver um produto. **Primeiro**, após EKS e Argo CD local, a aplicação serve como **smoke test técnico do Data Plane (Lab 10B)**. **Depois**, com observabilidade e governança consolidadas, estudamos **Developer Experience (Lab 15)** e, **por último**, reaproveitamos a aplicação para provar o Golden Path/integração completa (Lab 16). Não desenvolver Starter Kit completo nem antecipar portal/CI/CD sofisticado para o primeiro teste. Infraestrutura de Domain continua sob DevOps Federado. [ADR-0007](docs/adr/0007-personas-and-developer-experience.md).
 
 ## 🧩 Quatro conceitos fundamentais
 
@@ -72,17 +80,12 @@ A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership 
 - **Domain Applications:** código e workflows CI/CD **GitHub Actions em um repositório de aplicação de teste separado**, a integrar em etapa posterior; deploy GitOps nos EKS via Argo CD local.
 - **Management EKS:** Argo CD local, Operators **a escolher** e OpenTelemetry Collector/gateway para logs e traces; backend central com **Grafana + Loki + Tempo**. Estratégia de métricas/Prometheus em validação.
 - **Ownership:** Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications.
-- **Domain Bootstrap:** documentação preservada, mas **adiado e em reavaliação**, sem implementação neste ciclo.
 
 [Decisão de personas e Golden Paths](docs/adr/0007-personas-and-developer-experience.md)
 
-## 🧰 Domain Bootstrap
-
-**Proposta anterior, adiada e em reavaliação.** O desenho de um gerador por perfil versionado está preservado para rastreabilidade, **sem ser etapa obrigatória nem implementação planejada agora**. A POC adota manifests de **Domain Infrastructure** geridos pelo DevOps Federado neste monorepo e manifests de **Domain Applications** no repositório próprio da squad. Não recriar `applications/` no monorepo por causa do Bootstrap histórico. [Contexto e decisão](docs/adr/0005-domain-bootstrap.md).
-
 ## ☁️ Estratégia AWS
 
-Primeiro Hub `kind` com [Lab 01 executável](labs/01-platform-management-cluster.md), depois Crossplane no Hub; em seguida preparar a **conta UAT existente** e a autenticação AWS, ainda a definir, para `ObjectStorage` real e `Database` com **Amazon Aurora PostgreSQL**. Depois contas UAT/PROD distintas, Terraform Foundation/Core, um EKS Auto Mode de cada vez e GitOps local. A criação automatizada de contas é evolução opcional, justificada em lab futuro.
+A Fase 1 prepara o Hub `kind` e registra as contas UAT e PROD. Em seguida, a POC define os contratos, valida as identidades de workload e monta a execução autorizada. Os primeiros recursos reais ficam em UAT. Terraform aplica rede e EKS, um cluster por vez. Crossplane reconcilia `ObjectStorage` e `Database` com Amazon Aurora PostgreSQL. A automação de criação de contas é uma extensão opcional.
 
 > [!IMPORTANT]
 > Executar AWS somente com conta/região verificadas via STS, IAM mínimo, custo, autorização explícita e plano de cleanup. Não publicar credenciais, kubeconfigs ou Terraform state. Aprovar a documentação **não** autoriza `apply`/`destroy`.

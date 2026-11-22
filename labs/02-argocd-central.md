@@ -1,12 +1,23 @@
-# Lab 02 — Argo CD central no Hub kind
+# Etapa 02 — Argo CD central no Hub kind
 
-[← Lab 01](01-platform-management-cluster.md) · [Índice dos labs](README.md)
+[← Etapa 01](01-platform-management-cluster.md) · [Guias das etapas](README.md)
 
-Neste lab, o Helm faz o bootstrap do Argo CD. Depois, o Argo CD lê uma revisão do Git e sincroniza um ConfigMap no Hub. O exercício permite observar a divergência entre o Git e o cluster e restaurar o valor declarado. O exercício usa apenas recursos locais e tem custo AWS zero.
+## Objetivo
+
+Demonstrar como o Argo CD reconcilia o estado do Hub com uma revisão do Git e restaura um recurso alterado no cluster.
+
+## O que será feito
+
+- Instalar o Argo CD central via Helm, com os CRDs de Application e AppProject, e acessar sua interface por port-forward local.
+- Criar o AppProject `lab02` e a Application `lab02-gitops-demo`. Sincronizar manualmente um commit publicado para criar o ConfigMap de demonstração em `platform-system`.
+- Alterar o ConfigMap no cluster, observar `OutOfSync` e sincronizar novamente para restaurar o valor do Git.
+- Remover os recursos de demonstração e verificar o Hub. O Argo CD fica disponível para a Etapa 03.
+
+O exercício roda no Hub local e tem custo AWS zero.
 
 ## Pré-requisitos
 
-- Lab 01 concluído, com `kind`, `kubectl` e `helm` disponíveis.
+- Etapa 01 concluído, com `kind`, `kubectl` e `helm` disponíveis.
 - Uma revisão publicada neste monorepo que contenha `workflow-plane/argocd/demo/configmap.yaml`.
 - Conectividade do Hub ao GitHub e aos registries das imagens.
 
@@ -77,6 +88,6 @@ kubectl --context kind-platform-management -n argocd delete appproject lab02 --i
 bash platform/hub/scripts/verify.sh
 ```
 
-Encerre o port-forward com Ctrl+C. Mantenha o Argo CD instalado para o Lab 02B.
+Encerre o port-forward com Ctrl+C. Mantenha o Argo CD instalado para a Etapa 03.
 
 Para desinstalar o Argo CD opcionalmente, primeiro confirme que nenhuma outra aplicação depende dele. Execute `helm --kube-context kind-platform-management -n argocd uninstall argocd`. O chart mantém os CRDs. A exclusão dos CRDs é uma operação separada e remove todas as instâncias desses tipos no cluster.

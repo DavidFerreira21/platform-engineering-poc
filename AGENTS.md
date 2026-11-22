@@ -21,7 +21,6 @@ Escrever os documentos **na voz do próprio projeto**, em português brasileiro 
 
 - **Experience Layer:** Backstage, CLI, GitOps e AI/MCP são canais paralelos. Alterações persistentes preferencialmente via PR.
 - **Control Plane:** Kubernetes API Server central, Crossplane Core + XRDs/Compositions/Providers para **Capabilities**; começar `ObjectStorage`, depois `Database` com **Aurora PostgreSQL** em UAT. Crossplane único central, sem cascata.
-- **Domain Bootstrap (hipótese anterior):** proposta de fluxo padronizado de criação de Domain por perfil versionado. **Está em reavaliação e sua implementação foi adiada**; não criar gerador/controller ou torná-lo pré-requisito até nova decisão. Perfil completo de referência exige Database, ObjectStorage, namespace e quotas/policies. Geração idempotente de manifests no Git + PR, Crossplane central aplica recursos AWS e Argo CD local os objetos Kubernetes. Validar `Ready` a partir das dependências; sem banco ainda implantado, não declarar perfil completo pronto. Perfil novo não altera os Domains existentes sem migração deliberada.
 - **Entity / Environment / Domain:** conceitos lógicos e **registros declarativos no Git**. Entity organiza; Environment mapeia UAT/PROD à conta AWS/região; Domain é unidade de negócio, consumo, políticas e ownership de aplicações, namespaces e Capabilities. **Não criar CRD/XRD** para esses três na primeira etapa.
 - **Workflow Plane:** Argo CD central aplica CRs de Capability na Kubernetes API; Argo Workflows e Terraform Executor realizam Foundation e EKS via execução autorizada. Argo CD não executa Terraform. **Não implementar Environment Controller próprio como dependência inicial**.
 - **Observability Plane:** métricas, logs, traces, eventos e auditoria.
@@ -38,32 +37,30 @@ Os YAMLs `domain.yaml` e `environment.yaml` **não são CRs**; validar e resolve
 ## Complemento vigente de arquitetura (21/11/2026)
 
 - **Ownership padrão:** Foundation → Entity Core Infrastructure → Domain Infrastructure → **Domain Applications**.
-- **TerraformStack CRD + Controller:** **propostos**, representam a infraestrutura desejada em Foundation/Entity Core. Argo CD central sincroniza o CR Kubernetes; controller coordena plans iniciais/periódicos via Argo Workflows/Terraform Executor, sinaliza drift em `status.conditions` e consulta Policy Engine (auto apply / aprovação / bloqueio). Não é XRD Crossplane, não executa `apply` em todo reconcile e deve manter idempotência, plan aprovado imutável e state/identidades segregados. `TerraformRun` é somente nome opcional para execução individual, sem segundo CRD obrigatório. Labs **08B-A/B/C**.
-- **CI/CD de aplicação:** GitHub Actions **e os manifests Kubernetes da aplicação** deverão ficar junto ao código **no repositório de aplicação separado, previsto para etapa posterior**. Este monorepo mantém apenas manifests da **Domain Infrastructure**, configurações de plataforma e validações dos labs. Argo CD **local** entrega workloads via GitOps.
+- **TerraformStack CRD + Controller:** **propostos**, representam a infraestrutura desejada em Foundation/Entity Core. Argo CD central sincroniza o CR Kubernetes; controller coordena plans iniciais/periódicos via Argo Workflows/Terraform Executor, sinaliza drift em `status.conditions` e consulta Policy Engine (auto apply / aprovação / bloqueio). Não é XRD Crossplane, não executa `apply` em todo reconcile e deve manter idempotência, plan aprovado imutável e state/identidades segregados. `TerraformRun` é somente nome opcional para execução individual, sem segundo CRD obrigatório. Etapa **07** para o CRD e Etapas **10 e 11** para controller, execução e políticas.
+- **CI/CD de aplicação:** GitHub Actions **e os manifests Kubernetes da aplicação** deverão ficar junto ao código **no repositório de aplicação separado, previsto para etapa posterior**. Este monorepo mantém apenas manifests da **Domain Infrastructure**, configurações de plataforma e validações das etapas. Argo CD **local** entrega workloads via GitOps.
 - **Management EKS:** Argo CD local, espaço para **Operators ainda não escolhidos**, e **OpenTelemetry Collector/gateway** de telemetria para backend central **Grafana, Loki e Tempo**. Prometheus/métricas e segregação PCI serão validados.
-- **Domain Bootstrap:** somente documentado e **adiado/em reavaliação**; não implementá-lo agora.
 - Este projeto é uma POC pessoal e **não deve usar nomes/recursos corporativos**. Documentação de arquitetura não significa execução implantada.
 
-## Labs de personas e Golden Paths
+## Etapas de personas e Golden Path
 
-- **Lab 10C:** simular os três owners; testar autorização de PRs por path/repo, IAM/RBAC, AppProjects e restrições de Environment.
-- **Lab 10B:** **smoke test técnico**, após EKS e Argo CD local, com app Python + Flask mínima (preferencial), manifestos e health check; sem exigência de portal, CI/CD sofisticado ou Golden Path. Integrar o repositório separado na etapa correspondente dos labs, mediante decisão explícita de implementação.
-- **Lab 15:** **Developer Experience** depois de Data Plane, observabilidade, segurança/governança e workflows estarem validados; experimentar contratos, catálogo e canais Backstage/CLI/Git.
-- **Lab 16:** **último passo**, reutilizar a mesma app para demonstrar Golden Path e integração da plataforma de ponta a ponta, GitHub Actions, Argo CD local, Capabilities e telemetria. Não transformar em desenvolvimento de aplicação nem construir gerador completo.
-- Não confundir o **conceito de Golden Path** nem a aplicação mínima demonstrativa com **Domain Bootstrap** (adiado/para reavaliação).
+- **Etapa 21:** simular os três owners; testar autorização de PRs por path/repo, IAM/RBAC, AppProjects e restrições de Environment.
+- **Etapa 17:** **smoke test técnico**, após EKS e Argo CD local, com app Python + Flask mínima (preferencial), manifestos e health check; sem exigência de portal, CI/CD sofisticado ou Golden Path. Integrar o repositório separado na etapa correspondente do roteiro, mediante decisão explícita de implementação.
+- **Etapa 22:** **Developer Experience** depois de Data Plane, observabilidade, segurança/governança e workflows estarem validados; experimentar contratos, catálogo e canais Backstage/CLI/Git.
+- **Etapa 24:** **último passo**, reutilizar a mesma app para demonstrar Golden Path e integração da plataforma de ponta a ponta, GitHub Actions, Argo CD local, Capabilities e telemetria. Não transformar em desenvolvimento de aplicação nem construir gerador completo.
 
 ## Sequência inicial e autenticação
 
-1. Lab 01 cria **somente** Platform Management Cluster local com `kind`; não depender de AWS.
-2. Instalar Crossplane no Hub e estudar XRD/Composition sem provisionar recursos AWS.
-3. Registrar **UAT e PROD** em arquivos `environment.yaml` separados na Foundation, usando o template em `foundation/config/entity-a/uat/environment.example.yaml`. O operador usa IAM Identity Center. A autenticação de workload do Crossplane em `kind` ainda precisa ser validada, sem presumir IRSA/Pod Identity ou usar credenciais permanentes.
-4. Implementar `ObjectStorage` real e depois `Database` como **cluster Aurora PostgreSQL**, com orçamento, IAM, rede e teardown aprovados.
+1. Preparar o Hub `kind` e instalar as ferramentas nas Etapas 01 a 04. A Composition de teste da Etapa 04 roda no Hub local.
+2. Registrar **UAT e PROD** na Etapa 05 em arquivos `environment.yaml` separados na Foundation, usando o modelo em `foundation/environment.example.yaml`. O operador usa IAM Identity Center.
+3. Definir os contratos e validar as identidades de workload na sequência das Etapas 06 a 09. Validar a autenticação do Crossplane em `kind` sem presumir IRSA/Pod Identity ou usar credenciais permanentes.
+4. Preparar o fluxo Terraform nas Etapas 10 e 11, aplicar a rede na 12 e validar `ObjectStorage` e **Aurora PostgreSQL** nas Etapas 13 e 14 com orçamento, IAM, rede e remoção aprovados.
 
-## Monorepo e labs
+## Monorepo, fases e etapas
 
 O arquivo [`docs/arquitetura Plataform.png`](docs/arquitetura%20Plataform.png) é o **diagrama de referência do projeto**, exibido no README e na arquitetura detalhada. **Manter essa imagem como referência; não criar desenhos alternativos sem uma decisão de atualização.** Se um ADR alterar personas, ownership, TerraformStack, topologia ou GitOps, verificar a consistência do diagrama e dos documentos, sem declarar componentes propostos como implantados. Não reintroduzir `TerraformRun` como contrato declarativo principal.
 
-Um único monorepo simula limites. Criar pastas Domain/Foundation somente com conteúdo real dos labs. Manter navegação e links válidos; preservar as 24 aulas em [fundamentos](docs/fundamentos/README.md). O aprendizado exige laboratório observável: pré-requisitos, comandos, falha controlada, diagnóstico, recuperação e cleanup. Preferir Markdown/Mermaid nativo legível. CODEOWNERS sem rulesets não é barreira de acesso.
+Um único monorepo simula limites. Criar pastas Domain/Foundation somente com conteúdo real das etapas. Manter navegação e links válidos; preservar as 24 aulas em [fundamentos](docs/fundamentos/README.md). O [roteiro](docs/learning-roadmap.md) agrupa o trabalho em fases, com uma numeração contínua para as etapas. Cada guia começa com **Objetivo** e **O que será feito**. Declare o resultado esperado, o que será criado ou alterado e o que será validado. Em seguida, inclua pré-requisitos, passos e comandos, evidências, falha controlada, diagnóstico, recuperação e limpeza. Preferir Markdown/Mermaid nativo legível. CODEOWNERS sem rulesets não é barreira de acesso.
 
 ## Segurança
 
