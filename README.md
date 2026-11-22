@@ -44,6 +44,18 @@ flowchart TB
 
 **Environment é o contexto UAT/PROD associado à conta AWS inteira, não apenas ao Core.** O Data Plane contém **Core Infrastructure compartilhada** e **Domains** de negócio/aplicação. Um Domain pode possuir Capabilities, namespaces e apps em ambos os ambientes. **Domain Bootstrap é uma proposta anterior em reavaliação, não um pré-requisito da POC**. O perfil `standard` e seu gerador permanecem descritos para referência, mas não serão implementados agora. Capabilities continuam entregues por Crossplane central e aplicações por Argo CD local.
 
+## 👥 Personas e experiência da plataforma
+
+| Persona | Responsabilidade | Nível de abstração |
+| :--- | :--- | :--- |
+| **Platform Team** | Constrói/opera a plataforma, módulos, contratos, guardrails e Golden Paths | Conhece os motores internos |
+| **Federated DevOps Team** | Gerencia o lifecycle da **Domain Infrastructure** (Database, ObjectStorage, Messaging) a partir das Capabilities aprovadas | Conhece catálogo, contratos e processos de infraestrutura |
+| **Application Team** | Desenvolve código e mantém repositório da aplicação, CI/CD e manifests Kubernetes | Consome **Golden Paths / Starter Kits**, sem precisar entender Crossplane/TerraformStack/Argo internamente |
+
+A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership do **DevOps Federado**. Já **código, GitHub Actions e manifests Kubernetes da aplicação** pertencem ao **repositório separado da squad**. O Argo CD local entrega os manifests do repo da aplicação nos EKS autorizados.
+
+**Aplicação mínima de demonstração (preferência: Python + Flask):** o objetivo é validar **a plataforma**, não desenvolver um produto. **Primeiro**, após EKS e Argo CD local, a aplicação serve como **smoke test técnico do Data Plane (Lab 10B)**. **Depois**, com observabilidade e governança consolidadas, estudamos **Developer Experience (Lab 15)** e, **por último**, reaproveitamos a aplicação para provar o Golden Path/integração completa (Lab 16). Não desenvolver Starter Kit completo nem antecipar portal/CI/CD sofisticado para o primeiro teste. Infraestrutura de Domain continua sob DevOps Federado. [ADR-0007](docs/adr/0007-personas-and-developer-experience.md).
+
 ## 🧩 Quatro conceitos fundamentais
 
 | Conceito | Papel | Representação inicial |
@@ -62,7 +74,7 @@ flowchart TB
 | **Foundation** | Central | Terraform / configuração por Entity e Environment |
 | **Entity Core Infrastructure** | Federado propõe; mudanças críticas sob governança | Terraform para EKS |
 | **Domain Infrastructure** | Federado / Domain | Argo CD central → Crossplane → AWS |
-| **Domain Applications** | Squads | GitHub Actions (repositório separado) → Argo CD local → EKS autorizado |
+| **Domain Applications** | Application Team (repo próprio com código **e manifests Kubernetes**) | GitHub Actions → Argo CD local → EKS autorizado |
 
 **Um único monorepo** simula a organização por Entity/Domain. O Crossplane é central, sem cascata, e Argo CD local administra aplicações. A definição das contas e o provisioning de Foundation não dependem de criar `AWSEnvironment` ou Environment Controller próprio nesta fase.
 
@@ -74,7 +86,7 @@ flowchart TB
 - **Ownership:** Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications.
 - **Domain Bootstrap:** documentação preservada, mas **adiado e em reavaliação**, sem implementação neste ciclo.
 
-**Três experiências do TerraformStack:** (1) Declarative Execution; (2) Drift Detection sem auto apply; (3) Policy-Based Reconciliation com remediação controlada. [Roadmap](docs/learning-roadmap.md).
+[Decisão de personas e Golden Paths](docs/adr/0007-personas-and-developer-experience.md)
 
 ## 🧰 Domain Bootstrap
 

@@ -104,15 +104,31 @@ policies:
 
 Esses YAMLs **não são manifests Kubernetes** e não devem ser sincronizados diretamente pelo Argo CD central. Inicialmente são lidos por validações e ferramentas de workflow. A vinculação confiável **Entity + Environment + Domain → conta/IAM/namespace** precisa ser construída e testada: consumidores não podem escolher credenciais AWS arbitrárias.
 
-**`ObjectStorage` e `Database` são as duas primeiras Capabilities da POC**, nessa ordem. A primeira implementação de `Database` usará **Amazon Aurora PostgreSQL** (cluster Aurora), sem assumir que uma definição lógica de `Database` tenha de se limitar a Aurora em versões futuras; `Messaging` e `ComputeInstance` ficam no roadmap. **Não criar `CapabilityClaim` genérico.** A proposta anterior de **Domain Bootstrap** previa gerar Capabilities e configurações iniciais na criação do Domain; entretanto, **está adiada e em reavaliação**, e não é pré-requisito para Capabilities ou Domain Applications. Ver [Domain Bootstrap](#6-domain-bootstrap-proposta-anterior-em-reavaliação).
+**`ObjectStorage` e `Database` são as duas primeiras Capabilities da POC**, nessa ordem. A primeira implementação de `Database` usará **Amazon Aurora PostgreSQL** (cluster Aurora), sem assumir que uma definição lógica de `Database` tenha de se limitar a Aurora em versões futuras; `Messaging` e `ComputeInstance` ficam no roadmap. **Não criar `CapabilityClaim` genérico.** **Domain Bootstrap é proposta anterior adiada:** previa a criação de Capabilities e configurações iniciais do Domain, mas não será implementado agora. Capabilities e Deployments continuam solicitações independentes. Ver [Domain Bootstrap](#6-domain-bootstrap-proposta-anterior-em-reavaliação).
 
 ### Complemento da arquitetura-alvo (21/11/2026)
 
-- **Contrato Terraform (proposto):** `TerraformStack` é um CRD Kubernetes próprio no Hub que **representa infraestrutura desejada**; o controller observa spec, agenda verificações, detecta drift por `terraform plan`, classifica as alterações com um **Policy Engine** e aciona Argo Workflows/Terraform Executor. O resultado pode ser **auto apply**, **aprovação** ou **bloqueio**. **Não fazer apply a cada reconcile** nem transformar Terraform em provider Crossplane. `TerraformRun` fica reservado como nome eventual de uma execução individual, não é um segundo CRD obrigatório. Ver [ADR-0006](adr/0006-terraformrun-and-application-ci.md).
-- **Domain Applications:** as squads terão **GitHub Actions em um repositório de aplicação de teste separado**, a ser fornecido. O pipeline faz build/testes/scans e publicação, propõe atualização declarativa GitOps; **Argo CD local** em cada Management EKS faz o deploy nos EKS PCI/Non-PCI autorizados. O workflow CI existente neste monorepo só valida a POC.
+- **Contrato Terraform (proposto):** `TerraformRun` é um CRD Kubernetes próprio no Hub, com controller dedicado. O Argo CD central sincroniza o recurso; o controller aciona Argo Workflows e Terraform Executor, com `plan → gate → apply`, state isolado, status e idempotência. **Não fazer apply a cada reconcile**, nem converter Terraform em provider Crossplane. Ver [ADR-0006](adr/0006-terraformrun-and-application-ci.md).
+- **Domain Applications:** as squads terão **código, GitHub Actions e manifests Kubernetes da aplicação no mesmo repositório separado**, a ser fornecido. O pipeline faz build/testes/scans e publicação, propõe atualização declarativa GitOps; **Argo CD local** em cada Management EKS faz o deploy nos EKS PCI/Non-PCI autorizados. O workflow CI existente neste monorepo só valida a POC.
 - **Management EKS:** **Operators ainda a estudar**; usar **OpenTelemetry Collector/gateway** para encaminhar telemetria à camada central, não assumir Loki instalado dentro de todos os Management EKS.
 - **Observabilidade central:** **OpenTelemetry, Grafana, Loki e Tempo**; estratégia de métricas/Prometheus, retenção e fronteiras PCI a validar no laboratório.
 - **Domain Bootstrap:** conceito mantido no ADR-0005 para rastreabilidade, mas **em reavaliação e fora das próximas implementações**. Não é pré-requisito para Foundation, Capabilities ou Domain Applications.
+
+### Personas, limites de abstração e modelo de consumo
+
+Existem **três personas**, não quatro equipes para as quatro camadas de ownership:
+
+| Persona | Papel | Conhecimento e responsabilidades |
+| :--- | :--- | :--- |
+| **Platform Team** | Construir/operar a plataforma como produto | Control/Workflow/Observability Planes, contratos, módulos/Compositions, policies, Golden Paths, Foundation e Entity Core compartilhados |
+| **Federated DevOps Team** | Ponte técnica entre plataforma e squads | Conhece catálogo/contratos e mantém **Domain Infrastructure**, usando Capabilities para Database, ObjectStorage, Messaging, alterações e upgrades; solicita evolução da plataforma quando necessário |
+| **Application Team / Developers** | Construir o produto de negócio | Código, testes, CI/CD, imagens e **manifests Kubernetes da aplicação** no repositório da squad, consumindo Starter Kits e padrões da plataforma sem conhecer motores internos |
+
+**O desenvolvimento não precisa aprender a implementação interna de Crossplane, Terraform ou Argo para criar um serviço.** O DevOps Federado tem conhecimento mais aprofundado de consumo e lifecycle das Capabilities, mas não administra o Control Plane nem os módulos centrais. EKS compartilhado e seu upgrade/provisioning são governados pelo Platform Team (DevOps Federado pode propor).
+
+**Dois tipos de Capabilities:** **Infrastructure Capabilities** (Crossplane especializado, consumido pelo DevOps Federado) e **Application Capabilities** (padrões de runtime/build/deploy/telemetria, consumidos pelos desenvolvedores; **não implicam XRD Crossplane**). Um **Golden Path / Starter Kit** combina padrões e automações para uma jornada específica. Backstage, CLI e Git são canais alternativos; Backstage não é gateway obrigatório.
+
+**Aplicação mínima da POC (preferencialmente Python + Flask):** apenas uma carga de teste. **Após criar EKS e habilitar Argo CD local (Lab 10B)**, fazer smoke test de deploy, conectividade e health check, sem depender de Developer Experience ou Starter Kit. **Após observabilidade e governança**, montar a **Developer Experience (Lab 15)** e **por último** reutilizar o mesmo app na demonstração de Golden Path/integração end-to-end (Lab 16), com CI/CD e telemetria. A POC não pretende desenvolver aplicação complexa ou gerador completo de templates. Infraestrutura Database/S3/Messaging permanece com DevOps Federado. Detalhes em [ADR-0007](adr/0007-personas-and-developer-experience.md).
 
 ## 4. Quatro camadas de ownership
 
@@ -120,8 +136,8 @@ Esses YAMLs **não são manifests Kubernetes** e não devem ser sincronizados di
 | :--- | :--- | :--- | :--- |
 | **Foundation** | Plataforma central; federado pode propor PR | Plataforma central | Conta, landing zone, rede, IAM; **Terraform** e configurações por Entity/Environment |
 | **Entity Core Infrastructure** | DevOps federado nos limites autorizados | Plataforma governa componentes críticos | Três EKS e recursos comuns por Environment; **Terraform para EKS** |
-| **Domain Infrastructure** | DevOps federado / Domain | Crossplane central sob políticas | Capabilities de Domain/Environment via **XRDs** |
-| **Domain Applications** | Squads de produto | CI/CD externo em GitHub Actions + Argo CD local | Build/test/scan/publicação, manifests GitOps, namespaces, policies e workloads Kubernetes |
+| **Domain Infrastructure** | DevOps Federado (solicita/gerencia intenção no Git) | DevOps Federado sob guardrails da plataforma; Crossplane central reconcilia | Capabilities Database, ObjectStorage, Messaging via **XRDs** e contratos aprovados |
+| **Domain Applications** | Application Team | Squad mantém código e manifests no repo da aplicação; GitHub Actions CI/CD + Argo CD local | Código, testes, build/scan/publicação, manifests de aplicação, Deployments/Services/HPA e runtime autorizado |
 
 Um recurso externo tem **um único owner de reconciliação**. Terraform administra Foundation/EKS; Crossplane as Capabilities que lhe forem atribuídas. Core futuro pode conter Capability compartilhada, desde que tenha owner explícito e não seja excluída pela remoção de um Domain consumidor.
 
@@ -153,16 +169,16 @@ platform-engineering-poc/
 │           ├── payments/
 │           │   ├── domain.yaml          # identidade única
 │           │   ├── uat/
-│           │   │   ├── infrastructure/  # XRs de Capability
-│           │   │   └── applications/    # Argo CD local
+│           │   │   └── infrastructure/  # XRs · DevOps Federado
 │           │   └── prod/
-│           │       ├── infrastructure/
-│           │       └── applications/
+│           │       └── infrastructure/  # XRs · DevOps Federado
 │           └── orders/
 ├── docs/
 ├── labs/
 └── tests/
 ```
+
+**Separado deste monorepo:** o repositório da aplicação de teste (a ser fornecido) pertence ao **Application Team** e inclui `src/`, `tests/`, `Dockerfile`, `.github/workflows/` e `k8s/{base,overlays/uat,overlays/prod}`. O **Argo CD local** sincroniza esses manifests diretamente do repositório da aplicação. A pasta `applications/` que aparecia na árvore anterior do monorepo deixa de ser o destino-alvo para código/manifests de aplicação.
 
 **Esta é a árvore-alvo; o primeiro lab cria somente a configuração executável do Hub `kind` e um template declarativo de conta UAT.** Diretórios de Domain/Foundation serão adicionados somente com conteúdo real dos labs. Os README de infraestrutura preexistentes podem permanecer como documentação temporária até a implementação; não são fontes de configuração runtime. A [estrutura](repository-structure.md) especifica essa transição.
 
@@ -174,7 +190,7 @@ O monorepo demonstra autonomia via PR, revisão de paths e eventualmente CODEOWN
 > [!NOTE]
 > Esta seção preserva um desenho anterior para rastreabilidade. **Não implementar nem assumir Domain Bootstrap como obrigatório** neste ciclo. A necessidade do gerador será reavaliada; ele pode não existir na arquitetura final.
 
-O **Domain é uma identidade lógica única na Entity**. **Na proposta anterior**, sua criação usaria **Domain Bootstrap** como fluxo padrão de inicialização: escolhe e valida um perfil versionado, gera sua estrutura e as declarações dos recursos previstos nesse perfil. O processo é iniciado **pela criação do Domain**, não como uma obrigação de executar um Bootstrap independente para cada Environment. O Domain pode solicitar Capabilities adicionais depois. **Cadastrar um Domain não equivale a concluir seu Bootstrap**.
+O **Domain é uma identidade lógica única na Entity**. **No desenho anterior, a criação de um Domain usaria o Domain Bootstrap** como fluxo de inicialização: escolhe e valida um perfil versionado, gera sua estrutura e as declarações dos recursos previstos nesse perfil. O processo é iniciado **pela criação do Domain**, não como uma obrigação de executar um Bootstrap independente para cada Environment. O Domain pode solicitar Capabilities adicionais depois. **Cadastrar um Domain não equivale a concluir seu Bootstrap**.
 
 ### O que o perfil `standard` cria (exemplo da POC)
 
@@ -253,13 +269,13 @@ Argo CD central **sincroniza somente manifests Kubernetes de Capability**. Os re
 ### Domain Applications: GitHub Actions + GitOps local
 
 ```text
-data-plane/entity-a/domains/<domain>/<env>/applications/
+repositorio-da-aplicacao/k8s/overlays/<env>/ (Git da squad)
   → Argo CD no Management EKS daquele Environment
   → EKS PCI ou Non-PCI permitido
   → Namespaces / quotas / policies / Deployments / Services
 ```
 
-O código e as pipelines GitHub Actions da aplicação de teste ficarão **em repositório separado** (não neste monorepo); a pipeline publica imagem e propõe mudanças GitOps. O Domain continua lógico, enquanto **Argo CD local aplica objetos Kubernetes**. Uma Composition Crossplane central não deve possuir esses mesmos namespaces. O controle PCI requer avaliação das permissões de acesso e eventual segregação do GitOps local.
+O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicação** ficarão **juntos no repositório separado da squad** (não neste monorepo). A pipeline publica imagem e propõe mudanças GitOps; o Argo CD local aplica os manifests aprovados. **Manifests de Infrastructure Capabilities** continuam no monorepo sob gestão do DevOps Federado. Uma Composition Crossplane central não deve possuir esses mesmos namespaces. O controle PCI requer avaliação das permissões de acesso e eventual segregação do GitOps local.
 
 ## 8. Segurança, exclusão, drift e falhas
 
@@ -273,7 +289,7 @@ O código e as pipelines GitHub Actions da aplicação de teste ficarão **em re
 
 **Fluxo operacional alvo, sem Domain Bootstrap obrigatório:** Foundation cria/adota contas e rede → Entity Core prepara EKS e Argo CD local → manifests de Capabilities aprovados são reconciliados por Crossplane central → workloads de Domain Applications são entregues por Argo CD local. **O fluxo Domain Bootstrap descrito na seção 6 está adiado e em reavaliação.**
 
-**POC pedagógica:** baseline → Hub `kind` → Argo CD central/Argo Workflows → Crossplane local sem AWS → configuração UAT e autenticação AWS (a definir) → `ObjectStorage` e `Database` Aurora PostgreSQL → registro de Domain/Environment + GitOps central → Terraform/Argo Workflows → `TerraformStack` CRD/controller (propostos) → Core/EKS incremental → Argo CD local e CI/CD da aplicação em repositório separado → UAT/PROD segregados → eventual criação de contas. **Sem Bootstrap obrigatório.** **Não criar seis EKS simultaneamente**, nem implementar um controller de lifecycle apenas para manter uma ideia anterior.
+**POC pedagógica:** baseline → Hub `kind` → Argo CD central/Argo Workflows → Crossplane local sem AWS → configuração UAT e autenticação AWS (a definir) → `ObjectStorage` e `Database` Aurora PostgreSQL → registro Domain/Environment + GitOps central → Terraform/Argo Workflows → contrato declarativo Terraform (proposto) → Core/EKS incremental → Argo CD local → **smoke test de app mínima (Lab 10B)** → UAT/PROD segregados → Observability Plane → segurança/governança → extensões opcionais → **Developer Experience (Lab 15)** → **Golden Path integrado (Lab 16, último passo)**. **Sem Bootstrap obrigatório.** **Não criar seis EKS simultaneamente**, nem implementar um controller de lifecycle apenas para manter uma ideia anterior.
 
 ## 10. Decisões vigentes e pontos abertos
 

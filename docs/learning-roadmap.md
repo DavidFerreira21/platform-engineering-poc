@@ -18,24 +18,28 @@ Construção incremental e observável: cada lab terá pré-requisitos, comandos
 | **06** | Argo CD central + primeira Capability de Domain | GitOps de `ObjectStorage` → Crossplane → AWS, com destino autorizado e isolamento |
 | **07** | Foundation Terraform reutilizável | Config central por Entity/Environment, plan/state isolado |
 | **08** | Integração Argo Workflows + gates + Terraform Executor | Reutilizar o Lab 02B; validar plan/apply, state seguro, aprovação e auditoria |
-| **08B-A** | `TerraformStack` — Declarative Execution | Aplicar CR via Argo CD central; controller valida intenção, executa plan em Argo Workflow e respeita política/gate, começando com executor simulado |
-| **08B-B** | `TerraformStack` — Drift Detection | Plan periódico/manual, distinção entre drift externo e mudança Git, atualização de status/conditions e evidências, **sem auto apply** |
-| **08B-C** | `TerraformStack` — Policy-Based Reconciliation | Policy Engine avalia recurso, atributo, Environment e origem; auto apply permitido, aprovação de plano ou bloqueio; revalidação do plano e segurança do state |
-| **09** | Entity Core e EKS Auto Mode incremental | Um EKS por vez, verificando custo, identidade e PCI |
-| **10** | Argo CD local + Operators / gateway de telemetria | Management EKS faz GitOps para EKS PCI/Non-PCI autorizados; Operators a escolher e OTel Collector/gateway |
-| **10B** | CI/CD de Domain Applications (repo separado) | GitHub Actions faz build/test/scan/publica no futuro repo da aplicação de teste; Argo CD local faz o deploy GitOps |
-| **11** | Duas contas AWS UAT/PROD | Credenciais e recursos segregados |
-| **12** | Observabilidade OpenTelemetry / Grafana / Loki / Tempo | Gateway nos spokes, logs/traces centralizados, métricas, alertas e segregação de acesso |
-| **13** | Backstage / CLI / AI-MCP | Consumo dos contratos sem API paralela |
-| **14** | Extensão opcional: criação de contas | Justificar contrato/controlador de lifecycle se necessário |
-| **14B** | Reavaliar Domain Bootstrap (opcional) | ADR preservado; decidir posteriormente se este gerador terá utilidade, **sem implementá-lo agora** |
-| **15** | Segurança, custo e recuperação | Testes de isolamento e cleanup |
+| **08B** | `TerraformRun` CRD + Controller (**propostos**) | Validação, status, idempotência, disparo único do Argo Workflow e gates (primeiro com executor simulado) |
+| **09** | Entity Core e EKS Auto Mode incremental | Criar **um EKS por vez** a partir do Foundation/Core, validar identidade, custo, rede e controles PCI |
+| **10** | Argo CD local + configuração do Management EKS | Management EKS gerencia GitOps para EKS PCI/Não PCI autorizados; selecionar Operators progressivamente, validar conectividade e RBAC |
+| **10B** | Smoke test técnico do Data Plane com app mínima | **Somente após EKS + Argo CD local funcionarem:** subir app HTTP mínima, preferencialmente Python + Flask, de **repositório separado** e verificar deploy, conectividade, health check e rollback simples; sem portal, Golden Path ou DX |
+| **10C** | Validação de ownership e permissões por persona | Simular Platform Team, Federated DevOps e Application Team; PRs autorizados/negados por path e repositório, AppProjects, RBAC e IAM |
+| **11** | UAT/PROD segregados | Evoluir para duas contas AWS separadas, com isolamento de identidade, GitOps, acesso e recursos |
+| **12** | Observability Plane — OpenTelemetry / Grafana / Loki / Tempo | Implementar coleta/encaminhamento nos spokes e backends centrais; usar a aplicação mínima, workloads sintéticos e os controllers para provar logs/traces/métricas, alertas e auditoria |
+| **13** | Segurança, custo e recuperação — consolidação | Validar gates, isolamento PCI/Não PCI, custos, políticas, falhas, recuperação e teardown; controles mínimos são exigidos **desde os primeiros labs** |
+| **14** | Extensão opcional: criação de contas | Justificar contrato/controller de lifecycle se houver necessidade real; não bloquear fases finais |
+| **14B** | Reavaliar Domain Bootstrap (opcional) | ADR preservado; decidir se esse gerador será necessário, **sem implementá-lo por padrão nem bloquear DX** |
+| **15** | Developer Experience — canais e padrões de consumo | Com plataforma funcional, definir/validar experiência para as três personas: catálogo, abstrações, Application Capabilities, Backstage/CLI/Git e padrões de uso. Não exigir Backstage como gateway |
+| **16** | Golden Path / integração final da plataforma | **Última etapa:** demonstrar jornada de onboarding e entrega com a aplicação mínima já usada no Lab 10B, repositório separado, padrões/Starter Kit leves, CI/CD, GitOps, Capabilities, políticas e observabilidade; medir carga cognitiva **sem desenvolver aplicação complexa** |
+
+**Macroetapas / dependências:** (1) Hub/Control/Workflow; (2) AWS/Capabilities/Foundation/TerraformStack e Data Plane/EKS; (3) GitOps local e **smoke test mínimo**; (4) UAT/PROD e observabilidade; (5) segurança e extensões opcionais; (6) **Developer Experience**; (7) **Golden Path / demonstração integrada final**. **Não** antecipar DX/Starter Kit para habilitar testes de EKS, nem esperar DX para observar workloads. As fases numeradas 14/14B são opcionais e não bloqueiam 15/16.
 
 **Ordem dos componentes no Hub:** `kind` e Traefik → Argo CD central → **Argo Workflows via Argo CD** → Crossplane Core via Argo CD. O Lab 02B instala e observa o motor com um fluxo de teste local; integração com Terraform, gates humanos e permissões AWS fica para o Lab 08. Não confundir instalar o workflow controller com habilitar execução de infraestrutura real.
 
 **GitOps vs drift:** Argo CD central sincroniza o manifesto `TerraformStack` na Kubernetes API; **TerraformStack Controller**, e não Argo CD, detecta drift AWS executando plans periódicos. `Synced` no Argo CD não significa `Ready` na AWS. O controller só aplica depois da avaliação do Policy Engine e do gate apropriado. Ver [ADR-0006](adr/0006-terraformrun-and-application-ci.md).
 
 **Não implementar `AWSEnvironment` CRD ou Environment Controller próprio como pré-requisito inicial.** Environment e Domain são registros lógicos; somente Capabilities precisam de XRD no primeiro ciclo. **Domain Bootstrap está em reavaliação e adiado**, não é pré-requisito dos labs. **O Argo CD local** aplica namespaces/policies e workloads Kubernetes. `Database` seguirá `ObjectStorage`, com Aurora PostgreSQL, custos e teardown aprovados. `TerraformStack` (com controller, drift e policies) e CI/CD externo são propostas, **não componentes implantados**.
+
+**Duas utilizações distintas da mesma aplicação mínima:** a primeira é **smoke test técnico do Data Plane no Lab 10B**, depois de provisionar EKS e configurar Argo CD local (sem experiência de portal/Golden Path). A segunda é a **jornada final no Lab 16**, somente **depois** de arquitetura de DX do Lab 15 e de observabilidade/governança. O app é preferencialmente **Python + Flask**, de repositório separado, sem foco em desenvolvimento. Não implementar um produto de software nem um gerador sofisticado. **Platform Team** cuida da plataforma/Core; **Federated DevOps Team** mantém Domain Infrastructure no monorepo; **Application Team** mantém código, CI e manifests no repo separado. Lab 10C valida ownership. Ver [ADR-0007](adr/0007-personas-and-developer-experience.md).
 
 **Conta UAT:** registrar o destino em `foundation/config/entity-a/uat/environment.example.yaml` (template sem dados reais). Conta, região, credenciais e método de autenticação ainda precisam ser definidos e validados no início dos labs AWS. Nenhuma chave ou segredo deve ser versionado.
 

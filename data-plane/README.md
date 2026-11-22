@@ -10,9 +10,17 @@ Em cada conta UAT/PROD, a topologia prevê **Management EKS**, **EKS PCI** e **E
 
 O **AWS Runtime** engloba Core Infrastructure (recursos compartilhados) e Domain Infrastructure (recursos de cada domínio). **Terraform** cria Foundation e Entity Core como rede, dependências e EKS; **Crossplane** reconcilia Capabilities AWS de Domain, e pode operar Capabilities comuns quando o ownership for explícito. Um recurso não terá Terraform e Crossplane como owners simultâneos.
 
-**Domain Applications:** GitHub Actions será usado para CI/CD **em outro repositório de aplicação de teste, ainda não fornecido**; Argo CD local aplica os manifests de workloads em EKS PCI ou Não-PCI autorizado.
+**Domain Applications:** código, GitHub Actions **e manifests Kubernetes da aplicação** ficarão **juntos no repositório separado da squad, ainda não fornecido**; Argo CD local aplica esses manifests em EKS PCI/Não PCI autorizado. O **Application Team** é owner desse repositório.
 
 **Domain Bootstrap** continua registrado como hipótese, mas a implementação foi **adiada e está em reavaliação**.
+
+## Personas e consumo da infraestrutura
+
+- **Platform Team:** responsável pelos mecanismos da plataforma, contratos, Foundation e Entity Core (inclusive EKS compartilhado), aprovações/guardrails e Golden Paths.
+- **Federated DevOps Team:** ponte entre plataforma e squad; responsável por propor e gerenciar Capabilities de **Domain Infrastructure** (Database, ObjectStorage, Messaging e upgrades) via manifests no monorepo.
+- **Application Team:** código e ciclo de **Domain Applications** num repositório próprio; consome Golden Paths/Starter Kits sem precisar conhecer os motores internos.
+
+**App mínima de demonstração (preferência Python + Flask):** primeiro executar **smoke test no EKS após Argo CD local (Lab 10B)**; após observabilidade, segurança e construção da **Developer Experience (Lab 15)**, reutilizá-la no **Golden Path / integração final (Lab 16)** com GitHub Actions e telemetria. **Não há necessidade de desenvolver aplicação complexa ou gerador completo de Starter Kits**. O conceito de Golden Path continua válido para evolução futura. A criação de Database/S3 permanece demanda do DevOps Federado. [ADR-0007](../docs/adr/0007-personas-and-developer-experience.md).
 
 ## Organização proposta
 
@@ -26,12 +34,12 @@ data-plane/
         └── payments/
             ├── domain.yaml      # owners e políticas comuns
             ├── uat/
-            │   ├── infrastructure/
-            │   └── applications/
+            │   └── infrastructure/      # DevOps Federado
             └── prod/
-                ├── infrastructure/
-                └── applications/
+                └── infrastructure/      # DevOps Federado
 ```
+
+O repositório da aplicação, **separado deste monorepo**, concentrará `src/`, `tests/`, `Dockerfile`, `.github/workflows/` e `k8s/` (base/overlays UAT e PROD), sob gestão do Application Team.
 
 Por enquanto, os diretórios históricos [UAT](uat/README.md) e [PROD](prod/README.md) são **marcadores documentais**, sem recursos implantados. Migraremos para a organização por entidade durante os labs, evitando duplicação de configurações.
 

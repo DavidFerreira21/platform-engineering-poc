@@ -4,6 +4,15 @@
 
 Consultar [arquitetura](docs/architecture.md), [decisões](docs/adr/README.md), [estrutura](docs/repository-structure.md) e [roadmap](docs/learning-roadmap.md) antes de implementar. Documentar em **português brasileiro**, preservando nomes técnicos. Não reintroduzir modelos superados do histórico Git.
 
+## Personas e níveis de abstração (ADR-0007)
+
+- **Platform Team:** mantém os motores, contratos, Golden Paths, Foundation e Entity Core compartilhado; provê governança.
+- **Federated DevOps Team:** ponte técnica entre a plataforma e as squads; consome contratos especializados para **Domain Infrastructure** (Database, ObjectStorage, Messaging), faz upgrades/alterações do Domain e pode solicitar evolução de Capability. Não administra EKS compartilhado nem implementa Controllers da plataforma por padrão.
+- **Application Team / Developers:** mantém **código, testes, GitHub Actions, imagens e manifests Kubernetes no repositório da aplicação separado**; usa Application Capabilities e Golden Paths/Starter Kits para não precisar aprender Crossplane/Terraform/Argo internamente.
+- **Infrastructure Capability** é produto técnico (XRD Crossplane). **Application Capability** é padrão reutilizável de app/runtime/CI/deploy/observabilidade, **não obrigatoriamente CRD/XRD**. Golden Path combina padrões, templates e automações.
+- **Aplicação de demonstração:** preferir **Python + Flask mínimo** (serviço HTTP simples + health check), apenas para exercitar plataforma: GitHub Actions, imagem, manifests K8s, Argo CD local, OpenTelemetry e policies. **Java foi somente exemplo**. Golden Paths/Starter Kits são conceitos de DX, **não construir gerador completo ou aplicação de negócio** neste laboratório. Backstage, CLI e Git permanecem canais possíveis. **Não provisionar Database/S3 automaticamente sem DevOps Federado**.
+- **Monorepo de lab:** manter manifests de `Domain Infrastructure` por Domain/Environment sob DevOps Federado; **não adicionar** pastas `applications/` do Domain como destino obrigatório, pois esses manifests pertencem à aplicação separada. Revisão por path, IAM, RBAC, Admission e AppProject devem comprovar os limites de acesso.
+
 ## Modelo vigente
 
 - **Experience Layer:** Backstage, CLI, GitOps e AI/MCP são canais paralelos. Alterações persistentes preferencialmente via PR.
@@ -25,19 +34,19 @@ Os YAMLs `domain.yaml` e `environment.yaml` **não são CRs**; validar e resolve
 ## Complemento vigente de arquitetura (21/11/2026)
 
 - **Ownership padrão:** Foundation → Entity Core Infrastructure → Domain Infrastructure → **Domain Applications**.
-- **TerraformStack CRD + Controller:** **propostos**, representam infraestrutura desejada de Foundation/Entity Core na Kubernetes API, sincronizada pelo Argo CD central. O controller executa `plan` via Argo Workflows/Terraform Executor para **criação e drift periódico**, avalia **Policy Engine** com decisões auto apply / aprovação / bloqueio e atualiza status. `Synced` no Argo CD não significa ausência de drift AWS. Não é XRD Crossplane e não executa `apply` a cada reconcile. `TerraformRun` é nome reservado opcional de execução individual, sem CRD obrigatório. A aprovação deve corresponder ao plano imutável; state e destino são controlados pela plataforma.
-- **CI/CD de aplicação:** GitHub Actions deverá operar em **repositório de aplicação de teste separado, ainda não fornecido**; este monorepo mantém apenas documentação/contratos e validações dos labs. Argo CD **local** entrega workloads via GitOps.
+- **TerraformRun CRD + Controller:** **propostos**, expõem solicitação declarativa de módulos Terraform via Kubernetes API; o controller aciona Argo Workflows + Terraform Executor com `plan`, gates, `apply`, status, idempotência e state segregado. Não é XRD de Capability e não executa `apply` a cada reconcile.
+- **CI/CD de aplicação:** GitHub Actions **e os manifests Kubernetes da aplicação** deverão ficar junto ao código **no repositório de aplicação separado, ainda não fornecido**. Este monorepo mantém apenas manifests da **Domain Infrastructure**, configurações de plataforma e validações dos labs. Argo CD **local** entrega workloads via GitOps.
 - **Management EKS:** Argo CD local, espaço para **Operators ainda não escolhidos**, e **OpenTelemetry Collector/gateway** de telemetria para backend central **Grafana, Loki e Tempo**. Prometheus/métricas e segregação PCI serão validados.
 - **Domain Bootstrap:** somente documentado e **adiado/em reavaliação**; não implementá-lo agora.
 - Este projeto é uma POC pessoal e **não deve usar nomes/recursos corporativos**. Documentação de arquitetura não significa execução implantada.
 
-## Evolução didática do TerraformStack
+## Labs de personas e Golden Paths
 
-1. **08B-A — Declarative Execution:** manifesto Git → Argo CD central → CR TerraformStack → controller → plan/aprovação/apply, inicialmente com executor simulado.
-2. **08B-B — Drift Detection:** plans periódicos, status e diagnóstico, **sem auto apply** de drift.
-3. **08B-C — Policy-Based Reconciliation:** políticas versionadas para auto apply, aprovação ou bloqueio; diferenciar drift externo de mudança pedida no Git, verificar atributos/criticidade e usar plano aprovado/revalidado.
-
-As três etapas são **arquitetura-alvo**, não funcionalidades existentes. Nenhuma mudança documental autoriza apply/destroy AWS.
+- **Lab 10C:** simular os três owners; testar autorização de PRs por path/repo, IAM/RBAC, AppProjects e restrições de Environment.
+- **Lab 10B:** **smoke test técnico**, após EKS e Argo CD local, com app Python + Flask mínima (preferencial), manifestos e health check; sem exigência de portal, CI/CD sofisticado ou Golden Path. Repositório separado será fornecido/criado apenas quando solicitado.
+- **Lab 15:** **Developer Experience** depois de Data Plane, observabilidade, segurança/governança e workflows estarem validados; experimentar contratos, catálogo e canais Backstage/CLI/Git.
+- **Lab 16:** **último passo**, reutilizar a mesma app para demonstrar Golden Path e integração da plataforma de ponta a ponta, GitHub Actions, Argo CD local, Capabilities e telemetria. Não transformar em desenvolvimento de aplicação nem construir gerador completo.
+- Não confundir o **conceito de Golden Path** nem a aplicação mínima demonstrativa com **Domain Bootstrap** (adiado/para reavaliação).
 
 ## Sequência inicial e autenticação
 

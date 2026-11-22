@@ -11,11 +11,11 @@ A POC utiliza **um único repositório** para demonstrar responsabilidades que p
 | `foundation/modules/` + `foundation/config/<entity>/<env>/` | **Foundation** · equipe central, Terraform reutilizável |
 | `data-plane/<entity>/core-infrastructure/<env>/` | **Entity Core** · compartilhado por ambiente, EKS por Terraform |
 | `data-plane/<entity>/domains/<domain>/domain.yaml` | **Domain** · registro lógico único, não CRD |
-| `data-plane/<entity>/domains/<domain>/<env>/infrastructure/` | **Domain Infra** · Capabilities por Crossplane central |
-| `data-plane/<entity>/domains/<domain>/<env>/applications/` | **Domain Applications** · GitHub Actions (repo externo) + Argo CD local |
+| `data-plane/<entity>/domains/<domain>/<env>/infrastructure/` | **Domain Infrastructure** · manifests de Capabilities sob gestão do DevOps Federado; Crossplane central é reconciliador |
+| **Repositório separado da aplicação**: `src/`, `tests/`, `.github/workflows/`, `k8s/` | **Domain Applications** · Application Team (código, manifests K8s, CI/CD) + Argo CD local |
 | `control-plane/`, `workflow-plane/`, `observability-plane/`, `platform/hub/` | Código e configuração da plataforma central |
 
-O **Domain Bootstrap** usa um perfil versionado definido pela plataforma e gera, mediante PR/validação, manifests de Capabilities obrigatórias sob `infrastructure/` e namespaces/policies sob `applications/` (por ambiente); o Argo CD central e o local são os únicos aplicadores. O gerador é um componente do **Workflow Plane** a implementar. A identidade do Domain permanece única. [Fluxo detalhado](architecture.md#6-domain-bootstrap-criação-padronizada-do-domain).
+**Domain Bootstrap está adiado e em reavaliação:** a ideia anterior previa um gerador de manifests em `infrastructure/` e `applications/`, porém **não é requisito do modelo atual**. Os manifests de infraestrutura pertencem ao DevOps Federado no monorepo; **manifests da aplicação pertencem ao repositório separado da squad**, gerado futuramente por Golden Path. Ver [ADR-0007](adr/0007-personas-and-developer-experience.md).
 
 **Environment é a conta AWS UAT/PROD inteira**, não a pasta de Core. O Core é a parte compartilhada e o Domain possui os recursos de negócio. Ambos ficam no **Data Plane**. O registro de Environment fica na Foundation por ownership central, mas descreve o destino de todos os recursos do Environment.
 
@@ -25,6 +25,10 @@ O **Domain Bootstrap** usa um perfil versionado definido pela plataforma e gera,
 - **GitHub Actions das aplicações:** será mantido **em repositório de aplicação de teste separado**, ainda não informado. Este monorepo não incluirá código/CI da aplicação.
 - **Management EKS:** Argo CD local, Operators a escolher e OpenTelemetry Collector/gateway para observabilidade central (Grafana/Loki/Tempo).
 - **Domain Bootstrap:** documentação existente preservada, mas implementação adiada e em reavaliação.
+
+### Três personas e a fronteira entre repositórios
+
+**Platform Team:** mantém plataforma, Foundation, Core compartilhado, Capabilities e Golden Paths. **Federated DevOps Team:** gerencia a intenção e o lifecycle de **Domain Infrastructure** no monorepo. **Application Team:** mantém código, testes, imagens, GitHub Actions e manifests Kubernetes no **mesmo repositório de aplicação**. Os paths `applications/` no monorepo eram apenas exemplos anteriores; **não criá-los** para Application Team neste lab. Backstage/CLI/Git são canais de consumo do Starter Kit, não imposição de um único frontend. Ver [ADR-0007](adr/0007-personas-and-developer-experience.md).
 
 ### Primeira implementação
 
