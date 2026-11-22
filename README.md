@@ -20,11 +20,17 @@ Para consultar detalhes, veja a [estrutura do monorepo](docs/repository-structur
 
 ## Cenário de demonstração
 
-Um grupo fictício tem duas empresas de manutenção, uma no Brasil e outra no Chile. As duas usam **Solicitações de Materiais**, um produto interno para registrar pedidos de itens usados no trabalho diário. Cada empresa executa sua própria instância, com dados separados e regras locais, como o catálogo de materiais disponíveis.
+Uma transportadora global fictícia recebe e distribui encomendas em centros de distribuição de vários países. Cada centro tem suas próprias instalações, equipamentos e rotinas de trabalho. Nos horários de pico, vários centros registram recebimentos ao mesmo tempo.
 
-Cada empresa é uma **Entity** e tem seus próprios **Environments** UAT e PROD. **Solicitações de Materiais** é o **Domain** que reúne a infraestrutura e a aplicação em cada Entity. O primeiro exercício usa a empresa do Brasil como `entity-a`. A empresa do Chile ilustra como a plataforma poderia atender outra Entity com o mesmo produto.
+A POC representa a transportadora como **uma única Entity**, a `entity-a`, com ambientes **UAT** e **PROD**. Dentro dela, as squads de produto cuidam de Domains com responsabilidades distintas.
 
-A aplicação prevista tem um campo **Material**, um botão **Adicionar solicitação** e uma lista para conferir o registro gravado. A preferência é usar Python + Flask. Na **Etapa 17**, uma versão HTTP mínima valida deploy, health check e rollback. No **Golden Path da Etapa 24**, a mesma aplicação grava e lista solicitações no Aurora PostgreSQL. O DevOps Federado solicita o banco como Capability. [ADR-0007](docs/adr/0007-personas-and-developer-experience.md)
+| Domain | Responsabilidade da squad |
+| :--- | :--- |
+| **Rastreamento de Encomendas** | Registrar os eventos do percurso e permitir a consulta ao histórico de uma encomenda. |
+| **Estoque** | Controlar a disponibilidade de materiais de embalagem e insumos em cada centro. |
+| **Planejamento de Rotas** | Planejar as transferências entre centros e as rotas de entrega. |
+
+O exercício implementa uma fatia do **Rastreamento de Encomendas**. Um operador informa o **Código da encomenda**, clica em **Registrar recebimento** e confere o código e o horário na lista de recebimentos. A preferência é usar Python + Flask. Na **Etapa 17**, uma versão HTTP mínima valida deploy, health check e rollback. No **Golden Path da Etapa 24**, a mesma aplicação grava e consulta os recebimentos no Aurora PostgreSQL, solicitado pelo DevOps Federado como Capability. [ADR-0007](docs/adr/0007-personas-and-developer-experience.md)
 
 ## 🧱 Visão arquitetural
 
