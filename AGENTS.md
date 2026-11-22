@@ -10,7 +10,7 @@ Consultar [arquitetura](docs/architecture.md), [decisões](docs/adr/README.md), 
 - **Federated DevOps Team:** ponte técnica entre a plataforma e as squads; consome contratos especializados para **Domain Infrastructure** (Database, ObjectStorage, Messaging), faz upgrades/alterações do Domain e pode solicitar evolução de Capability. Não administra EKS compartilhado nem implementa Controllers da plataforma por padrão.
 - **Application Team / Developers:** mantém **código, testes, GitHub Actions, imagens e manifests Kubernetes no repositório da aplicação separado**; usa Application Capabilities e Golden Paths/Starter Kits para não precisar aprender Crossplane/Terraform/Argo internamente.
 - **Infrastructure Capability** é produto técnico (XRD Crossplane). **Application Capability** é padrão reutilizável de app/runtime/CI/deploy/observabilidade, **não obrigatoriamente CRD/XRD**. Golden Path combina padrões, templates e automações.
-- **Primeiro Golden Path planejado:** Java Service (Spring Boot opção a validar) gerando esqueleto do código, Dockerfile, pipeline GitHub Actions, manifests K8s base/overlays, probes, limites, OpenTelemetry e gates. Backstage, CLI e Git são canais alternativos. **Não provisionar Database/S3 de Domain Infrastructure automaticamente pelo Starter Kit sem DevOps Federado**.
+- **Aplicação de demonstração:** preferir **Python + Flask mínimo** (serviço HTTP simples + health check), apenas para exercitar plataforma: GitHub Actions, imagem, manifests K8s, Argo CD local, OpenTelemetry e policies. **Java foi somente exemplo**. Golden Paths/Starter Kits são conceitos de DX, **não construir gerador completo ou aplicação de negócio** neste laboratório. Backstage, CLI e Git permanecem canais possíveis. **Não provisionar Database/S3 automaticamente sem DevOps Federado**.
 - **Monorepo de lab:** manter manifests de `Domain Infrastructure` por Domain/Environment sob DevOps Federado; **não adicionar** pastas `applications/` do Domain como destino obrigatório, pois esses manifests pertencem à aplicação separada. Revisão por path, IAM, RBAC, Admission e AppProject devem comprovar os limites de acesso.
 
 ## Modelo vigente
@@ -43,8 +43,8 @@ Os YAMLs `domain.yaml` e `environment.yaml` **não são CRs**; validar e resolve
 ## Labs de personas e Golden Paths
 
 - **Lab 10C:** simular os três owners; testar autorização de PRs por path/repo, IAM/RBAC, AppProjects e restrições de Environment.
-- **Lab 13A:** validar Java Service Starter Kit end-to-end: geração de repo, build/CI, manifests K8s no repo da app, OpenTelemetry e deploy por Argo CD local; não criar novo repo de app até ele ser fornecido/solicitado explicitamente.
-- Não confundir **Java Golden Path** com **Domain Bootstrap** (adiado/para reavaliação).
+- **Lab 13A:** demonstrar **app mínima Python + Flask (preferencial)** e fluxo GitHub Actions → manifests GitOps no repo da aplicação → Argo CD local → workload/telemetria. **Não transformar este lab em projeto de desenvolvimento de aplicação nem exigir um Starter Kit completo**; não criar repo da app até ser fornecido/solicitado explicitamente.
+- Não confundir o **conceito de Golden Path** nem a aplicação mínima demonstrativa com **Domain Bootstrap** (adiado/para reavaliação).
 
 ## Sequência inicial e autenticação
 
