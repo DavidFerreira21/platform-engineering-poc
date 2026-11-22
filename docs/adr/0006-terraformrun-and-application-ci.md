@@ -1,44 +1,116 @@
-# ADR-0006 — TerraformRun declarativo e CI/CD de Domain Applications
+# ADR-0006 — TerraformStack declarativo, drift e CI/CD de Domain Applications
 
-**Estado:** decisão de arquitetura-alvo; implementação pendente · **Data:** 21/11/2026
+**Estado:** decisão de arquitetura-alvo; implementação pendente · **Data original:** 21/11/2026 · **Revisão:** 21/11/2026
 
-## Contexto e ownership
+## Contexto e objetivo
 
-A POC usa Kubernetes API como contrato técnico e quatro camadas de ownership: **Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications**.
+A POC usa a **Kubernetes API como contrato técnico** e quatro camadas de ownership: **Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications**.
 
-- **Foundation / Entity Core:** Terraform/OpenTofu para rede, IAM, dependências, e os três EKS por Environment (Management, PCI e Non-PCI).
-- **Domain Infrastructure:** Crossplane v2 central com XRDs/Compositions/Providers específicos para recursos AWS como ObjectStorage e Database.
-- **Domain Applications:** GitHub Actions para CI/CD em **repositório de aplicação de teste separado**, ainda não fornecido; Argo CD **local no Management EKS** entrega os manifests GitOps em EKS PCI/Non-PCI autorizados.
+- **Foundation / Entity Core Infrastructure:** Terraform/OpenTofu provisiona a base, rede, IAM, dependências e os três EKS por Environment (Management, PCI e Non-PCI).
+- **Domain Infrastructure:** Crossplane v2 central reconcilia Capabilities AWS através de XRDs especializados, sem compartilhar ownership dos mesmos recursos com Terraform.
+- **Domain Applications:** CI/CD de aplicação com GitHub Actions em **repositório separado**, ainda a fornecer; Argo CD local entrega manifests GitOps nos destinos autorizados.
 
-## Decisão: TerraformRun CRD + Controller
+**Intenção desta decisão:** oferecer, para módulos Terraform, **experiência declarativa semelhante à do Crossplane**: manifestos de intenção versionados no Git, provisionamento inicial condicionado a políticas, detecção recorrente de drift, e remediação automática ou com aprovação conforme riscos. Não se trata apenas de disparar uma execução única de Terraform.
 
-No Control Plane do Hub, criar futuramente um **CRD Kubernetes próprio** de nome de trabalho `TerraformRun` (`platform.example.io/v1alpha1`) e um **controller dedicado**. Não é XRD de Capability nem Crossplane executando Terraform.
+## Decisão 1 — TerraformStack representa a infraestrutura desejada
 
-Fluxo planejado:
+O recurso de consumo passa a ter o nome de trabalho **`TerraformStack`**, implementado futuramente como **CRD Kubernetes próprio**, observado por um **TerraformStack Controller** no Control Plane do Hub. **Não é XRD Crossplane**.
 
-```text
-PR/validação Git → Argo CD central → Kubernetes API / TerraformRun
-→ Controller TerraformRun → Argo Workflows → Terraform Executor
-→ plan → gate/aprovação → apply → verificação/status
-→ AWS Foundation / Entity Core
+- O `spec` referencia **módulo aprovado e versão/revisão fixada**, entradas autorizadas e o destino lógico `Entity + Environment`; o controller resolve, em cadastro confiável, credenciais AWS, backend/state e permissões.
+- O recurso mantém o ciclo de vida da **infraestrutura desejada**; não representa apenas um `terraform apply`.
+- O `status` expõe condições, última verificação, revisão observada, resumo do último plan, classificação, referência de workflow, estado de aprovação e divergência detectada. Não guardar segredos nem todo o plan em `status`.
+- `TerraformRun` fica **reservado como nome opcional para uma execução imutável** (ou pode ser substituído por um Argo Workflow criado pelo controller). **Não criar um segundo CRD só para representar runs antes de existir justificativa.**
+- **Entity/Environment/Domain continuam registros lógicos Git**, não CRDs criados por esta decisão.
+
+### Exemplo ilustrativo de contrato (NÃO implementado)
+
+```yaml
+apiVersion: platform.example.io/v1alpha1
+kind: TerraformStack
+metadata:
+  name: network-uat
+spec:
+  module:
+    name: aws-network
+    version: "1.0.0"
+  target:
+    entity: entity-a
+    environment: uat
+  inputs:
+    networkProfile: standard
+  reconciliation:
+    interval: 30m
+    policyRef: foundation-default
 ```
 
-O CRD referenciará um **módulo/versionamento autorizado**, ação e destino Entity/Environment resolvido por configuração confiável. Não permitir que consumidores definam livremente role, account ID, backend ou state. O controller valida RBAC/escopo e registra a referência do Workflow e seu status.
+Este YAML é **intenção declarativa, não manifesto funcional**. Schema, nomes, catálogo de módulos, versionamento e parâmetros finais serão validados nos labs.
 
-**Terraform não é reconciliação contínua**: não executar `apply` novamente a cada evento de reconciliação. É necessário definir idempotência por solicitação/generation, revisão imutável do plano aprovado, limites de concorrência por state, retries controlados, política de exclusão, gates para PROD e operações destrutivas. Terraform state fica fora do Git e segregado. O Lab 08 valida o executor; um Lab 08B validará CRD + controller.
+## Decisão 2 — GitOps aplica a intenção; Argo Workflows executa Terraform
 
-## GitHub Actions e GitOps
+```text
+Backstage / CLI / pessoa → PR + validações + aprovação Git
+  → Argo CD CENTRAL → Kubernetes API / TerraformStack (objeto Kubernetes)
+  → TerraformStack Controller (validação + agendamento)
+  → Argo Workflows → Terraform Executor → terraform plan
+  → avaliação de políticas: auto apply / aprovação / bloqueio
+  → terraform apply do plano aprovado, quando autorizado
+  → AWS Foundation / Entity Core → verificação → status do TerraformStack
+```
 
-O código e a pipeline CI/CD da aplicação de exemplo **não ficarão neste repositório**; o usuário fornecerá um repositório separado posteriormente. GitHub Actions realizará build, tests, scans e publicação de imagem; a entrega será por alteração declarativa GitOps e **Argo CD local**, e não por deploy imperativo padrão da pipeline ao EKS. O workflow `.github/workflows/validate.yml` atual da POC continua exclusivo para validação de documentação e labs.
+**Separação de responsabilidades:**
+- **Argo CD central:** sincroniza `TerraformStack` do Git para Kubernetes, **não executa Terraform nem cria workflows por conta própria**.
+- **TerraformStack Controller:** observa CRs, valida módulo/destino/permissões, dispara ou agenda verificações, controla concorrência/retries, invoca o motor de políticas e atualiza status.
+- **Argo Workflows:** orquestra plan, avaliação das políticas, gates/aprovação, apply e verificações.
+- **Terraform:** calcula mudanças e executa a infraestrutura na AWS.
 
-## Observabilidade e Spokes
+**Argo CD `Synced` significa Git == CR Kubernetes, não AWS sem drift.** Drift de infraestrutura é informado em `TerraformStack.status.conditions` (por exemplo `DriftDetected`, `Ready`, `ApprovalRequired`, `ReconcileBlocked`) e pode ser exposto por health check customizado, CLI ou observabilidade. A POC **não depende** de interface/health customizados do Argo CD.
 
-O Management EKS de cada UAT/PROD inclui **Argo CD local**, espaço para **Operators ainda a estudar** e **OpenTelemetry Collector/gateway** para encaminhar telemetria. O Observability Plane central usa **OpenTelemetry, Grafana, Loki (logs) e Tempo (traces)**; métricas/Prometheus, isolamento PCI, autenticação e retenção serão validados nos labs. Visibilidade central não concede acesso administrativo irrestrito às contas.
+## Decisão 3 — três etapas incrementais da POC
 
-## Fora do escopo imediato
+### Etapa A — Declarative Execution
 
-O **Domain Bootstrap** do ADR-0005 permanece documentado para rastreabilidade, mas está **em reavaliação e adiado**. Não é pré-requisito para Foundation, Capabilities ou Domain Applications.
+- Aplicar `TerraformStack` pelo GitOps central (ou diretamente na API para teste local), e ver o controller iniciar Workflow/plan.
+- Uma **criação permitida por política** (por exemplo VPC de laboratório em UAT) poderá resultar em apply sem aprovação humana adicional após gates previamente autorizados; mudança crítica exigirá aprovação.
+- Validar schema, autorização, idempotência por generation/revisão, erros/retry, status e evidências. Começar com **executor simulado**, antes de qualquer AWS real.
 
-Nenhum CRD/controller TerraformRun, pipeline de aplicação ou recurso AWS foi implantado por esta decisão.
+### Etapa B — Drift Detection
+
+- Com intervalo configurado, controller agenda `terraform plan` (ou acionamento manual controlado) para verificar divergência entre configuração/state e AWS.
+- Diferenciar **mudança desejada via Git** de **drift externo** e registrar a informação no status/observabilidade; checar os resultados estruturados do plan, incluindo ações e diferenças observadas no refresh.
+- Nesta etapa **não executar apply automático de drift**. Concluir com evidências de que um recurso modificado externamente é detectado.
+
+### Etapa C — Policy-Based Reconciliation
+
+- Um **Policy Engine versionado/testável** classifica o plan segundo identidade, Environment, origem (PR vs drift), recurso, atributos, custo/impacto e operações (`create/update/delete/replace`). A tecnologia específica (por exemplo OPA) ainda está **a decidir**.
+- Três resultados possíveis: **Auto Apply** se expressamente permitido; **Require Approval** se sensível; **Deny/Block** se não autorizado.
+- Exemplos *ilustrativos*, não permissões default: remediação de tags permitidas; adição de recurso de baixo risco em UAT; aprovação para modificação de rota/rede crítica; bloqueio de exposição insegura ou destino não autorizado.
+- O **controller coordena o ciclo de vida**, e o **Workflow executa a decisão**. Não espalhar a política como regras ad hoc difíceis de auditar dentro dos Workflows.
+
+## Garantias obrigatórias
+
+1. **Sem apply em todo reconcile:** reconcile Kubernetes é idempotente; novas execuções só ocorrem por solicitação nova/alterada, verificação agendada ou ação explícita. Evitar runs duplicadas e execução simultânea sobre o mesmo state.
+2. **Plan e aprovação vinculados:** gerar plano versionado/imutável em armazenamento restrito, associar aprovação a hash, revisão, destino e execução; aplicar **exatamente o plano aprovado**. Se ele expirar, mudar estado/inputs ou perder validade, replanejar e reavaliar políticas antes de aplicar.
+3. **Isolamento:** módulos/versões permitidos, targets por Entity/Environment resolvidos em mapping confiável, IAM mínimo; usuários não selecionam account/role/backend arbitrários. Validar UAT/PROD e ambientes críticos.
+4. **Drift com contexto:** não autorizar só porque a ação é `create` ou `update`; analisar a semântica de atributos e recursos. Não tratar qualquer `refresh-only` como correção automática da infraestrutura.
+5. **Estado e remoção:** state fora do Git e segregado; política de deletion/retain explícita; remover CR do Git **não implica automaticamente `destroy`**. Operações destrutivas exigem avaliação e gate apropriado.
+6. **Evidências:** manter referência de plan, policy decision, aprovação, workflow, checks e correlação observável. Sem credenciais, conteúdo sensível de state ou plan em CR/status.
+
+## Relação com os demais componentes
+
+Crossplane central continua responsável apenas pelas Capabilities AWS que lhe forem atribuídas (Domain Infrastructure ou compartilhadas com owner explícito). O `TerraformStack` controla exclusivamente os recursos dos módulos Terraform sob Foundation/Entity Core. **Não haverá dois motores reconciliando o mesmo recurso.**
+
+**Domain Applications** permanecem independentes: GitHub Actions de uma aplicação de teste rodará em **outro repositório**; após build/test/scan/publicação, uma atualização de manifesto GitOps será revisada/aprovada e aplicada pelo **Argo CD local**. Nenhuma pipeline de aplicação é criada neste monorepo agora.
+
+**Observabilidade** continua com OpenTelemetry, Grafana, Loki e Tempo; coletor/gateway local em cada Management EKS, Operators a definir. **Domain Bootstrap** permanece documentado no ADR-0005, **adiado e em reavaliação**, sem dependência com TerraformStack.
+
+## Faseamento e pendências
+
+- **Lab 08:** Argo Workflows + Terraform Executor, plan/gates/apply seguros.
+- **Lab 08B-A:** CRD `TerraformStack` + controller, Declarative Execution com executor simulado; depois caminho AWS autorizado.
+- **Lab 08B-B:** detecção de drift com plan recorrente, status/condições, sem remediação.
+- **Lab 08B-C:** decisão por Policy Engine, auto apply controlado, aprovação, bloqueio e revalidação de plano.
+- **A validar:** formato final da API, status/conditions, requeue/scheduling, política de alterações de spec durante workflows, engine de políticas, versionamento de módulo, catálogo, lock de state e aprovação segura.
+
+**Nenhum controller/CRD, remediação, workflow de infraestrutura real ou recurso AWS é implantado por este ADR.** A documentação não autoriza `apply` ou `destroy`.
 
 [Arquitetura](../architecture.md) · [ADRs](README.md) · [Roadmap](../learning-roadmap.md)
