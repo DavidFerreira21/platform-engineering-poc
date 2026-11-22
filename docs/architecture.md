@@ -285,7 +285,7 @@ O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicaçã
 
 ## 8. Segurança, exclusão, drift e falhas
 
-- **AWS real:** primeiro conta preexistente; STS comprova conta/região, credenciais temporárias, IAM mínimo, orçamento/custos e aprovação explícita **a cada execução**. Segunda etapa: UAT/PROD em contas distintas; terceira etapa opcional: automação de criação de contas.
+- **AWS real:** primeiro conta preexistente; validar a identidade e a conta via STS, a região de destino, credenciais temporárias, IAM mínimo, orçamento/custos e aprovação explícita **a cada execução**. Segunda etapa: UAT/PROD em contas distintas; terceira etapa opcional: automação de criação de contas.
 - **Isolamento:** validar negativa para tentativas de Domain A acessar Domain B ou UAT selecionar role/conta PROD. Paths Git e namespaces não equivalem a isolamento de contas AWS.
 - **Exclusão:** conta AWS **nunca** é apagada por excluir YAML; EKS só com gate e análise de dependências. Capabilities devem ter políticas de retenção/deletion testadas. Finalizer **não é aprovação humana**.
 - **Drift:** Crossplane reconcilia Capabilities continuamente enquanto o Hub estiver disponível; Terraform não reconcilia sem execução; Argo CD local continua operando aplicações se seu acesso ao Git e clusters permanecer válido.
@@ -295,7 +295,7 @@ O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicaçã
 
 **Fluxo operacional alvo, sem Domain Bootstrap obrigatório:** Foundation cria/adota contas e rede → Entity Core prepara EKS e Argo CD local → manifests de Capabilities aprovados são reconciliados por Crossplane central → workloads de Domain Applications são entregues por Argo CD local. **O fluxo Domain Bootstrap descrito na seção 6 está adiado e em reavaliação.**
 
-**POC pedagógica:** baseline → Hub `kind` → Argo CD central/Argo Workflows → Crossplane local sem AWS → configuração UAT e autenticação AWS (a definir) → `ObjectStorage` e `Database` Aurora PostgreSQL → registro Domain/Environment + GitOps central → Terraform/Argo Workflows → contrato declarativo Terraform (proposto) → Core/EKS incremental → Argo CD local → **smoke test de app mínima (Lab 10B)** → UAT/PROD segregados → Observability Plane → segurança/governança → extensões opcionais → **Developer Experience (Lab 15)** → **Golden Path integrado (Lab 16, último passo)**. **Sem Bootstrap obrigatório.** **Não criar seis EKS simultaneamente**, nem implementar um controller de lifecycle apenas para manter uma ideia anterior.
+**POC pedagógica:** baseline → Hub `kind` → Argo CD central/Argo Workflows → Crossplane local sem AWS → registro UAT e acesso do operador via IAM Identity Center → validação da federação do Hub → `ObjectStorage` e `Database` Aurora PostgreSQL → registro Domain/Environment + GitOps central → Terraform/Argo Workflows → contrato declarativo Terraform (proposto) → Core/EKS incremental → Argo CD local → **smoke test de app mínima (Lab 10B)** → UAT/PROD segregados → Observability Plane → segurança/governança → extensões opcionais → **Developer Experience (Lab 15)** → **Golden Path integrado (Lab 16, último passo)**. **Sem Bootstrap obrigatório.** **Não criar seis EKS simultaneamente**, nem implementar um controller de lifecycle apenas para manter uma ideia anterior.
 
 ## 10. Decisões vigentes e pontos abertos
 
@@ -303,6 +303,6 @@ O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicaçã
 
 **Fechado:** Domain como unidade lógica de consumo/ownership, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas (incluindo **Domain Applications**), monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência. **Criação padronizada via Domain Bootstrap não está fechada: em reavaliação.**
 
-**A validar nos labs:** autenticação de UAT sem credenciais permanentes no Git, arquitetura de rede e custo do Aurora PostgreSQL, decisão futura sobre manter ou descartar Domain Bootstrap (sem implementá-lo agora), schema dos YAMLs, transformação segura de registros lógicos em escopo/credenciais, autenticação Crossplane a partir do `kind`, distribuição de namespaces/quotas ao GitOps local, gates, observabilidade, PCI e necessidade eventual de uma API/controller de ciclo de vida de contas.
+**A validar nos labs:** federação do Provider AWS na UAT com renovação de sessão, arquitetura de rede e custo do Aurora PostgreSQL, decisão futura sobre manter ou descartar Domain Bootstrap (sem implementá-lo agora), schema dos YAMLs, transformação segura de registros lógicos em escopo/credenciais, distribuição de namespaces/quotas ao GitOps local, gates, observabilidade, PCI e necessidade eventual de uma API/controller de ciclo de vida de contas.
 
 [Decisões](adr/README.md) · [Monorepo](repository-structure.md) · [Roteiro](learning-roadmap.md)
