@@ -54,7 +54,7 @@ flowchart TB
 
 A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership do **DevOps Federado**. Já **código, GitHub Actions e manifests Kubernetes da aplicação** pertencem ao **repositório separado da squad**. O Argo CD local entrega os manifests do repo da aplicação nos EKS autorizados.
 
-**Aplicação mínima de demonstração (preferência: Python + Flask):** o objetivo é validar **a plataforma**, não desenvolver um produto ou um Starter Kit completo. Um serviço HTTP simples com testes básicos, Dockerfile, GitHub Actions, manifests Kubernetes e OpenTelemetry é suficiente para demonstrar CI/CD → GitOps → Argo CD local → runtime/telemetria. Java foi só um exemplo; Golden Paths/Starter Kits permanecem como **conceito e evolução futura**. Infraestrutura de Domain continua sob DevOps Federado. [ADR-0007](docs/adr/0007-personas-and-developer-experience.md).
+**Aplicação mínima de demonstração (preferência: Python + Flask):** o objetivo é validar **a plataforma**, não desenvolver um produto. **Primeiro**, após EKS e Argo CD local, a aplicação serve como **smoke test técnico do Data Plane (Lab 10B)**. **Depois**, com observabilidade e governança consolidadas, estudamos **Developer Experience (Lab 15)** e, **por último**, reaproveitamos a aplicação para provar o Golden Path/integração completa (Lab 16). Não desenvolver Starter Kit completo nem antecipar portal/CI/CD sofisticado para o primeiro teste. Infraestrutura de Domain continua sob DevOps Federado. [ADR-0007](docs/adr/0007-personas-and-developer-experience.md).
 
 ## 🧩 Quatro conceitos fundamentais
 
