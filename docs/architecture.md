@@ -109,10 +109,26 @@ Esses YAMLs **não são manifests Kubernetes** e não devem ser sincronizados di
 ### Complemento da arquitetura-alvo (21/11/2026)
 
 - **Contrato Terraform (proposto):** `TerraformRun` é um CRD Kubernetes próprio no Hub, com controller dedicado. O Argo CD central sincroniza o recurso; o controller aciona Argo Workflows e Terraform Executor, com `plan → gate → apply`, state isolado, status e idempotência. **Não fazer apply a cada reconcile**, nem converter Terraform em provider Crossplane. Ver [ADR-0006](adr/0006-terraformrun-and-application-ci.md).
-- **Domain Applications:** as squads terão **GitHub Actions em um repositório de aplicação de teste separado**, a ser fornecido. O pipeline faz build/testes/scans e publicação, propõe atualização declarativa GitOps; **Argo CD local** em cada Management EKS faz o deploy nos EKS PCI/Non-PCI autorizados. O workflow CI existente neste monorepo só valida a POC.
+- **Domain Applications:** as squads terão **código, GitHub Actions e manifests Kubernetes da aplicação no mesmo repositório separado**, a ser fornecido. O pipeline faz build/testes/scans e publicação, propõe atualização declarativa GitOps; **Argo CD local** em cada Management EKS faz o deploy nos EKS PCI/Non-PCI autorizados. O workflow CI existente neste monorepo só valida a POC.
 - **Management EKS:** **Operators ainda a estudar**; usar **OpenTelemetry Collector/gateway** para encaminhar telemetria à camada central, não assumir Loki instalado dentro de todos os Management EKS.
 - **Observabilidade central:** **OpenTelemetry, Grafana, Loki e Tempo**; estratégia de métricas/Prometheus, retenção e fronteiras PCI a validar no laboratório.
 - **Domain Bootstrap:** conceito mantido no ADR-0005 para rastreabilidade, mas **em reavaliação e fora das próximas implementações**. Não é pré-requisito para Foundation, Capabilities ou Domain Applications.
+
+### Personas, limites de abstração e modelo de consumo
+
+Existem **três personas**, não quatro equipes para as quatro camadas de ownership:
+
+| Persona | Papel | Conhecimento e responsabilidades |
+| :--- | :--- | :--- |
+| **Platform Team** | Construir/operar a plataforma como produto | Control/Workflow/Observability Planes, contratos, módulos/Compositions, policies, Golden Paths, Foundation e Entity Core compartilhados |
+| **Federated DevOps Team** | Ponte técnica entre plataforma e squads | Conhece catálogo/contratos e mantém **Domain Infrastructure**, usando Capabilities para Database, ObjectStorage, Messaging, alterações e upgrades; solicita evolução da plataforma quando necessário |
+| **Application Team / Developers** | Construir o produto de negócio | Código, testes, CI/CD, imagens e **manifests Kubernetes da aplicação** no repositório da squad, consumindo Starter Kits e padrões da plataforma sem conhecer motores internos |
+
+**O desenvolvimento não precisa aprender a implementação interna de Crossplane, Terraform ou Argo para criar um serviço.** O DevOps Federado tem conhecimento mais aprofundado de consumo e lifecycle das Capabilities, mas não administra o Control Plane nem os módulos centrais. EKS compartilhado e seu upgrade/provisioning são governados pelo Platform Team (DevOps Federado pode propor).
+
+**Dois tipos de Capabilities:** **Infrastructure Capabilities** (Crossplane especializado, consumido pelo DevOps Federado) e **Application Capabilities** (padrões de runtime/build/deploy/telemetria, consumidos pelos desenvolvedores; **não implicam XRD Crossplane**). Um **Golden Path / Starter Kit** combina padrões e automações para uma jornada específica. Backstage, CLI e Git são canais alternativos; Backstage não é gateway obrigatório.
+
+**Primeiro Golden Path planejado:** **Java Service** (Spring Boot como opção de referência, ainda a validar), gerando repositório da aplicação com estrutura de código e testes, Dockerfile, GitHub Actions para CI/CD, manifests Kubernetes (base/overlays UAT/PROD), probes, requests/limits, configurações de segurança e instrumentação OpenTelemetry. A squad concentra-se no código e no ciclo da aplicação; demandas de Database/S3/Messaging passam pelo DevOps Federado. Detalhes e matriz de ownership em [ADR-0007](adr/0007-personas-and-developer-experience.md).
 
 ## 4. Quatro camadas de ownership
 
@@ -120,8 +136,8 @@ Esses YAMLs **não são manifests Kubernetes** e não devem ser sincronizados di
 | :--- | :--- | :--- | :--- |
 | **Foundation** | Plataforma central; federado pode propor PR | Plataforma central | Conta, landing zone, rede, IAM; **Terraform** e configurações por Entity/Environment |
 | **Entity Core Infrastructure** | DevOps federado nos limites autorizados | Plataforma governa componentes críticos | Três EKS e recursos comuns por Environment; **Terraform para EKS** |
-| **Domain Infrastructure** | DevOps federado / Domain | Crossplane central sob políticas | Capabilities de Domain/Environment via **XRDs** |
-| **Domain Applications** | Squads de produto | CI/CD externo em GitHub Actions + Argo CD local | Build/test/scan/publicação, manifests GitOps, namespaces, policies e workloads Kubernetes |
+| **Domain Infrastructure** | DevOps Federado (solicita/gerencia intenção no Git) | DevOps Federado sob guardrails da plataforma; Crossplane central reconcilia | Capabilities Database, ObjectStorage, Messaging via **XRDs** e contratos aprovados |
+| **Domain Applications** | Application Team | Squad mantém código e manifests no repo da aplicação; GitHub Actions CI/CD + Argo CD local | Código, testes, build/scan/publicação, manifests de aplicação, Deployments/Services/HPA e runtime autorizado |
 
 Um recurso externo tem **um único owner de reconciliação**. Terraform administra Foundation/EKS; Crossplane as Capabilities que lhe forem atribuídas. Core futuro pode conter Capability compartilhada, desde que tenha owner explícito e não seja excluída pela remoção de um Domain consumidor.
 
@@ -154,15 +170,16 @@ platform-engineering-poc/
 │           │   ├── domain.yaml          # identidade única
 │           │   ├── uat/
 │           │   │   ├── infrastructure/  # XRs de Capability
-│           │   │   └── applications/    # Argo CD local
+│           │   └── infrastructure/  # UAT: DevOps Federado
 │           │   └── prod/
-│           │       ├── infrastructure/
-│           │       └── applications/
+│           │       └── infrastructure/  # PROD: DevOps Federado
 │           └── orders/
 ├── docs/
 ├── labs/
 └── tests/
 ```
+
+**Separado deste monorepo:** o repositório da aplicação de teste (a ser fornecido) pertence ao **Application Team** e inclui `src/`, `tests/`, `Dockerfile`, `.github/workflows/` e `k8s/{base,overlays/uat,overlays/prod}`. O **Argo CD local** sincroniza esses manifests diretamente do repositório da aplicação. A pasta `applications/` que aparecia na árvore anterior do monorepo deixa de ser o destino-alvo para código/manifests de aplicação.
 
 **Esta é a árvore-alvo; o primeiro lab cria somente a configuração executável do Hub `kind` e um template declarativo de conta UAT.** Diretórios de Domain/Foundation serão adicionados somente com conteúdo real dos labs. Os README de infraestrutura preexistentes podem permanecer como documentação temporária até a implementação; não são fontes de configuração runtime. A [estrutura](repository-structure.md) especifica essa transição.
 
@@ -243,13 +260,13 @@ Argo CD central **sincroniza somente manifests Kubernetes de Capability**. Os re
 ### Domain Applications: GitHub Actions + GitOps local
 
 ```text
-data-plane/entity-a/domains/<domain>/<env>/applications/
+repositorio-da-aplicacao/k8s/overlays/<env>/ (Git da squad)
   → Argo CD no Management EKS daquele Environment
   → EKS PCI ou Non-PCI permitido
   → Namespaces / quotas / policies / Deployments / Services
 ```
 
-O código e as pipelines GitHub Actions da aplicação de teste ficarão **em repositório separado** (não neste monorepo); a pipeline publica imagem e propõe mudanças GitOps. O Domain continua lógico, enquanto **Argo CD local aplica objetos Kubernetes**. Uma Composition Crossplane central não deve possuir esses mesmos namespaces. O controle PCI requer avaliação das permissões de acesso e eventual segregação do GitOps local.
+O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicação** ficarão **juntos no repositório separado da squad** (não neste monorepo). A pipeline publica imagem e propõe mudanças GitOps; o Argo CD local aplica os manifests aprovados. **Manifests de Infrastructure Capabilities** continuam no monorepo sob gestão do DevOps Federado. Uma Composition Crossplane central não deve possuir esses mesmos namespaces. O controle PCI requer avaliação das permissões de acesso e eventual segregação do GitOps local.
 
 ## 8. Segurança, exclusão, drift e falhas
 
