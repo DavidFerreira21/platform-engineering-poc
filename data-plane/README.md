@@ -20,7 +20,7 @@ O **AWS Runtime** engloba Core Infrastructure (recursos compartilhados) e Domain
 - **Federated DevOps Team:** ponte entre plataforma e squad; responsável por propor e gerenciar Capabilities de **Domain Infrastructure** (Database, ObjectStorage, Messaging e upgrades) via manifests no monorepo.
 - **Application Team:** código e ciclo de **Domain Applications** num repositório próprio; consome Golden Paths/Starter Kits sem precisar conhecer os motores internos.
 
-**App mínima de demonstração (preferência Python + Flask):** serviço HTTP básico usado apenas para validar GitHub Actions, imagem, manifests K8s, Argo CD local e telemetria da plataforma. **Não há necessidade de desenvolver aplicação complexa ou gerador completo de Starter Kits**. O conceito de Golden Path continua válido para evolução futura. A criação de Database/S3 permanece demanda do DevOps Federado. [ADR-0007](../docs/adr/0007-personas-and-developer-experience.md).
+**App mínima de demonstração (preferência Python + Flask):** primeiro executar **smoke test no EKS após Argo CD local (Lab 10B)**; após observabilidade, segurança e construção da **Developer Experience (Lab 15)**, reutilizá-la no **Golden Path / integração final (Lab 16)** com GitHub Actions e telemetria. **Não há necessidade de desenvolver aplicação complexa ou gerador completo de Starter Kits**. O conceito de Golden Path continua válido para evolução futura. A criação de Database/S3 permanece demanda do DevOps Federado. [ADR-0007](../docs/adr/0007-personas-and-developer-experience.md).
 
 ## Organização proposta
 
