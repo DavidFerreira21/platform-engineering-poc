@@ -43,7 +43,9 @@ Os YAMLs `domain.yaml` e `environment.yaml` **não são CRs**; validar e resolve
 ## Labs de personas e Golden Paths
 
 - **Lab 10C:** simular os três owners; testar autorização de PRs por path/repo, IAM/RBAC, AppProjects e restrições de Environment.
-- **Lab 13A:** demonstrar **app mínima Python + Flask (preferencial)** e fluxo GitHub Actions → manifests GitOps no repo da aplicação → Argo CD local → workload/telemetria. **Não transformar este lab em projeto de desenvolvimento de aplicação nem exigir um Starter Kit completo**; não criar repo da app até ser fornecido/solicitado explicitamente.
+- **Lab 10B:** **smoke test técnico**, após EKS e Argo CD local, com app Python + Flask mínima (preferencial), manifestos e health check; sem exigência de portal, CI/CD sofisticado ou Golden Path. Repositório separado será fornecido/criado apenas quando solicitado.
+- **Lab 15:** **Developer Experience** depois de Data Plane, observabilidade, segurança/governança e workflows estarem validados; experimentar contratos, catálogo e canais Backstage/CLI/Git.
+- **Lab 16:** **último passo**, reutilizar a mesma app para demonstrar Golden Path e integração da plataforma de ponta a ponta, GitHub Actions, Argo CD local, Capabilities e telemetria. Não transformar em desenvolvimento de aplicação nem construir gerador completo.
 - Não confundir o **conceito de Golden Path** nem a aplicação mínima demonstrativa com **Domain Bootstrap** (adiado/para reavaliação).
 
 ## Sequência inicial e autenticação
