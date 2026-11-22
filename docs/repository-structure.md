@@ -21,7 +21,7 @@ A POC utiliza **um único repositório** para demonstrar responsabilidades que p
 
 ### Atualizações de arquitetura-alvo (a implementar)
 
-- **TerraformRun (CRD + controller):** contrato técnico de `control-plane/` para acionar Argo Workflows + Terraform Executor em `workflow-plane/`. Não confundir com XRDs do Crossplane.
+- **TerraformStack (CRD + controller):** contrato de infraestrutura desejada e drift em `control-plane/`, sincronizado via Argo CD central, com policies, status e execução plan/gate/apply por Argo Workflows + Terraform Executor em `workflow-plane/`. `TerraformRun` é nome opcional de execução individual, sem segundo CRD obrigatório. Não confundir com XRDs do Crossplane.
 - **GitHub Actions das aplicações:** será mantido **em repositório de aplicação de teste separado**, ainda não informado. Este monorepo não incluirá código/CI da aplicação.
 - **Management EKS:** Argo CD local, Operators a escolher e OpenTelemetry Collector/gateway para observabilidade central (Grafana/Loki/Tempo).
 - **Domain Bootstrap:** documentação existente preservada, mas implementação adiada e em reavaliação.

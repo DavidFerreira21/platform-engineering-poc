@@ -23,7 +23,7 @@ flowchart TB
   E["Experience Layer<br/>Backstage · CLI · GitOps · AI/MCP"]
   subgraph HUB["Platform Management Cluster · kind inicial"]
     direction TB
-    CP["Control Plane<br/>Kubernetes API · Crossplane central · XRDs<br/>Admission/Policies · TerraformRun CRD/controller (propostos)"]
+    CP["Control Plane<br/>Kubernetes API · Crossplane central · XRDs<br/>Admission/Policies · TerraformStack CRD/controller (propostos)"]
     WF["Workflow Plane<br/>Argo CD central · Argo Workflows · Terraform Executor"]
     OB["Observability Plane<br/>OpenTelemetry · Grafana · Loki · Tempo · auditoria"]
     CP --> WF
@@ -232,14 +232,24 @@ flowchart TB
 
 ```text
 foundation/config/ ou core-infrastructure/ (Git)
-  → validação + PR/aprovação
-  → Argo CD central → TerraformRun CRD (proposta)
-  → Controller TerraformRun (proposta) → Argo Workflows
-  → Terraform Executor: plan → gate → apply → verificação/status
-  → AWS Foundation / EKS
+  → validação de intenção + PR/aprovação
+  → Argo CD central → Kubernetes API / TerraformStack CR
+  → TerraformStack Controller → Argo Workflows
+  → Terraform Executor: plan → Policy Engine
+  → auto apply / aprovação / bloqueio
+  → verificação e status → AWS Foundation / EKS
+  → nova verificação periódica de drift (sem apply incondicional)
 ```
 
 O Bootstrap Terraform central é reutilizado por configuração de Entity/Environment, com **state segregado**. Inicialmente pode rodar em um lab manual e auditável. **Argo CD não executa Terraform**. Criar conta AWS automaticamente é possibilidade futura, **não exige `AWSEnvironment` CRD/controller próprio agora**.
+
+### Evolução planejada do TerraformStack
+
+1. **Declarative Execution:** intenção Git → Argo CD central → `TerraformStack` → controller → Workflow/plan → aplicação condicionada à política. Começar com executor simulado.
+2. **Drift Detection:** controller agenda plans periódicos e atualiza condições/status, **sem remediação automática nesta fase**. Distinguir drift externo de alteração declarada.
+3. **Policy-Based Reconciliation:** decisão versionada e auditável (**auto apply / require approval / deny**) por recurso, atributos, Environment, criticidade e origem; apply somente de plan autorizado, com isolamento e state seguro.
+
+A escolha da implementação do Policy Engine e o schema final do CRD ficam para os labs. **A criação do CR Kubernetes é responsabilidade do Argo CD central**, não do Argo Workflows. O Argo Workflows é o executor do plan/apply.
 
 ### Domain Infrastructure: Argo CD central + Crossplane
 
@@ -283,7 +293,7 @@ O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicaçã
 
 ## 10. Decisões vigentes e pontos abertos
 
-**Atualização:** TerraformRun é um contrato alvo ainda não implementado; GitHub Actions das aplicações será externo a este monorepo; OpenTelemetry/Grafana/Loki/Tempo são a stack-alvo; Operators locais ainda serão selecionados; Domain Bootstrap está em reavaliação e adiado.
+**Atualização:** TerraformStack com controller e reconciliação orientada por políticas é um contrato alvo ainda não implementado; GitHub Actions das aplicações será externo a este monorepo; OpenTelemetry/Grafana/Loki/Tempo são a stack-alvo; Operators locais ainda serão selecionados; Domain Bootstrap está em reavaliação e adiado.
 
 **Fechado:** Domain como unidade lógica de consumo/ownership, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas (incluindo **Domain Applications**), monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência. **Criação padronizada via Domain Bootstrap não está fechada: em reavaliação.**
 

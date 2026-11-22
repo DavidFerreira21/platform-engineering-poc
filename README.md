@@ -2,7 +2,7 @@
 
 > Plataforma **Kubernetes-native** construída em labs incrementais, com governança central e autonomia federada por **Domain**.
 
-**`Kubernetes API` · `Crossplane v2` · `Argo CD` · `Argo Workflows` · `TerraformRun (proposto)` · `GitHub Actions (app separada)` · `OpenTelemetry` · `AWS`**
+**`Kubernetes API` · `Crossplane v2` · `Argo CD` · `Argo Workflows` · `TerraformStack (proposto)` · `GitHub Actions (app separada)` · `OpenTelemetry` · `AWS`**
 
 > [!NOTE]
 > **Estado atual:** arquitetura documentada, sem deploy AWS/Kubernetes realizado por esta revisão. As pastas são organizacionais ou exemplos de implementação futura.
@@ -28,7 +28,7 @@
 flowchart TB
   E["Experience Layer<br/>Backstage · CLI · GitOps · AI/MCP"]
   subgraph HUB["Platform Management Cluster · kind inicial"]
-    C["Control Plane<br/>Kubernetes API · Crossplane central<br/>XRDs · TerraformRun CRD/controller (propostos)"]
+    C["Control Plane<br/>Kubernetes API · Crossplane central<br/>XRDs · TerraformStack CRD/controller (propostos)"]
     W["Workflow Plane<br/>Argo CD central · Workflows · Terraform Executor"]
     O["Observability Plane<br/>OpenTelemetry · Grafana · Loki · Tempo"]
   end
@@ -80,7 +80,7 @@ A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership 
 
 ## 🔧 Novas decisões arquiteturais
 
-- **TerraformRun CRD + Controller (propostos):** interface declarativa do Hub para execuções Terraform/OpenTofu via Argo Workflows e Terraform Executor, com `plan`, gates, `apply` e status; sem `apply` contínuo a cada reconciliação. [ADR-0006](docs/adr/0006-terraformrun-and-application-ci.md).
+- **TerraformStack CRD + Controller (propostos):** contrato declarativo de **infraestrutura desejada** no Hub, aplicado via Argo CD central. O controller aciona Argo Workflows/Terraform Executor para `plan` inicial e periódico, **detecta drift** e avalia políticas (auto apply, aprovação ou bloqueio). `Synced` no Argo CD não equivale a ausência de drift AWS. `TerraformRun` fica como conceito opcional de execução individual. [ADR-0006](docs/adr/0006-terraformrun-and-application-ci.md).
 - **Domain Applications:** código e workflows CI/CD **GitHub Actions em outro repositório de aplicação de teste**, ainda não fornecido; deploy GitOps nos EKS via Argo CD local.
 - **Management EKS:** Argo CD local, Operators **a escolher** e OpenTelemetry Collector/gateway para logs e traces; backend central com **Grafana + Loki + Tempo**. Estratégia de métricas/Prometheus em validação.
 - **Ownership:** Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications.
