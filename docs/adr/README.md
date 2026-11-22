@@ -14,4 +14,6 @@ Estes documentos contêm **somente a arquitetura atual** e suas justificativas. 
 | [**0006**](0006-terraformrun-and-application-ci.md) | TerraformStack CRD/controller, drift e reconciliação por políticas; CI/CD de aplicações em repo separado |
 | [**0007**](0007-personas-and-developer-experience.md) | Três personas, ownership federado, repositórios e app mínima Python/Flask para validar DX no fim da POC |
 
+Diagrama visual: [Arquitetura de referência com as três personas](../architecture-reference.svg).
+
 Documento principal: [Arquitetura](../architecture.md) · [Estrutura](../repository-structure.md) · [Roadmap](../learning-roadmap.md)

@@ -57,6 +57,8 @@ Os YAMLs `domain.yaml` e `environment.yaml` **não são CRs**; validar e resolve
 
 ## Monorepo e labs
 
+O arquivo [`docs/architecture-reference.svg`](docs/architecture-reference.svg) é o **diagrama visual de referência** exibido no README e na arquitetura detalhada. Se um ADR alterar personas, ownership, TerraformStack, topologia ou GitOps, atualizar **o SVG e os documentos conjuntamente**, sem declarar componentes propostos como implantados. Não reintroduzir `TerraformRun` como contrato declarativo principal.
+
 Um único monorepo simula limites. Criar pastas Domain/Foundation somente com conteúdo real dos labs. Manter navegação e links válidos; preservar as 24 aulas em [fundamentos](docs/fundamentos/README.md). O aprendizado exige laboratório observável: pré-requisitos, comandos, falha controlada, diagnóstico, recuperação e cleanup. Preferir Markdown/Mermaid nativo legível. CODEOWNERS sem rulesets não é barreira de acesso.
 
 ## Segurança

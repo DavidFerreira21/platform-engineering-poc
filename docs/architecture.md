@@ -18,6 +18,12 @@ A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) �
 
 ## 2. Visão geral
 
+![Diagrama de arquitetura de referência com Hub, contas AWS UAT/PROD, quatro camadas e três personas](architecture-reference.svg)
+
+[**Abrir diagrama em tamanho completo**](architecture-reference.svg) · O diagrama é **arquitetura-alvo**; não confirma recursos implantados. `TerraformStack` e os mecanismos de política/drift estão propostos, e GitHub Actions de aplicações opera fora do Hub.
+
+### Topologia lógica (Mermaid)
+
 ```mermaid
 flowchart TB
   E["Experience Layer<br/>Backstage · CLI · GitOps · AI/MCP"]
@@ -121,8 +127,8 @@ Existem **três personas**, não quatro equipes para as quatro camadas de owners
 | Persona | Papel | Conhecimento e responsabilidades |
 | :--- | :--- | :--- |
 | **Platform Team** | Construir/operar a plataforma como produto | Control/Workflow/Observability Planes, contratos, módulos/Compositions, policies, Golden Paths, Foundation e Entity Core compartilhados |
-| **Federated DevOps Team** | Ponte técnica entre plataforma e squads | Conhece catálogo/contratos e mantém **Domain Infrastructure**, usando Capabilities para Database, ObjectStorage, Messaging, alterações e upgrades; solicita evolução da plataforma quando necessário |
-| **Application Team / Developers** | Construir o produto de negócio | Código, testes, CI/CD, imagens e **manifests Kubernetes da aplicação** no repositório da squad, consumindo Starter Kits e padrões da plataforma sem conhecer motores internos |
+| **DevOps Federado (Federated DevOps Team)** | Ponte técnica entre plataforma e squads | Conhece catálogo/contratos e mantém **Domain Infrastructure**, usando Capabilities para Database, ObjectStorage, Messaging, alterações e upgrades; solicita evolução da plataforma quando necessário |
+| **Squads de Produto (Application Team / Developers)** | Construir o produto de negócio | Código, testes, CI/CD, imagens e **manifests Kubernetes da aplicação** no repositório da squad, consumindo Starter Kits e padrões da plataforma sem conhecer motores internos |
 
 **O desenvolvimento não precisa aprender a implementação interna de Crossplane, Terraform ou Argo para criar um serviço.** O DevOps Federado tem conhecimento mais aprofundado de consumo e lifecycle das Capabilities, mas não administra o Control Plane nem os módulos centrais. EKS compartilhado e seu upgrade/provisioning são governados pelo Platform Team (DevOps Federado pode propor).
 
@@ -297,6 +303,6 @@ O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicaçã
 
 **Fechado:** Domain como unidade lógica de consumo/ownership, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas (incluindo **Domain Applications**), monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência. **Criação padronizada via Domain Bootstrap não está fechada: em reavaliação.**
 
-**A validar nos labs:** autenticação de UAT sem credenciais permanentes no Git, arquitetura de rede e custo do Aurora PostgreSQL, implementação e gatilho do gerador de Bootstrap, versionamento dos perfis, verificação agregada de prontidão, schema dos YAMLs, transformação segura de registros lógicos em escopo/credenciais, autenticação Crossplane a partir do `kind`, distribuição de namespaces/quotas ao GitOps local, gates, observabilidade, PCI e necessidade eventual de uma API/controller de ciclo de vida de contas.
+**A validar nos labs:** autenticação de UAT sem credenciais permanentes no Git, arquitetura de rede e custo do Aurora PostgreSQL, decisão futura sobre manter ou descartar Domain Bootstrap (sem implementá-lo agora), schema dos YAMLs, transformação segura de registros lógicos em escopo/credenciais, autenticação Crossplane a partir do `kind`, distribuição de namespaces/quotas ao GitOps local, gates, observabilidade, PCI e necessidade eventual de uma API/controller de ciclo de vida de contas.
 
 [Decisões](adr/README.md) · [Monorepo](repository-structure.md) · [Roteiro](learning-roadmap.md)

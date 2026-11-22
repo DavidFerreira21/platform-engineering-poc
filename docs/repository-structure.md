@@ -2,7 +2,7 @@
 
 [← Início](../README.md) · [Arquitetura](architecture.md) · [Roadmap](learning-roadmap.md)
 
-A POC utiliza **um único repositório** para demonstrar responsabilidades que poderiam ser separadas por equipes/repositórios reais. A estrutura-alvo está detalhada na [arquitetura](architecture.md#5-organização-do-monorepo).
+A POC utiliza **um único repositório** para demonstrar responsabilidades que poderiam ser separadas por equipes/repositórios reais. [Diagrama visual da arquitetura e das três personas](architecture-reference.svg). A estrutura-alvo está detalhada na [arquitetura](architecture.md#5-organização-do-monorepo).
 
 ## Divisão por ownership
 
