@@ -2,7 +2,7 @@
 
 [← Início](../../README.md) · [Arquitetura](../architecture.md)
 
-Estes documentos contêm **somente a arquitetura atual** e suas justificativas. As propostas anteriores permanecem recuperáveis no **histórico Git**, mas não poluem a documentação da POC com decisões contraditórias. Nenhum ADR implica recurso já implantado.
+Os ADRs registram as **decisões arquiteturais vigentes** e, quando necessário, propostas históricas identificadas como adiadas ou em reavaliação. Decisões substituídas também podem ser consultadas no histórico Git. Nenhum ADR comprova implantação de recursos.
 
 | Decisão | Tema |
 | :--- | :--- |

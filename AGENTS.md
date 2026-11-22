@@ -4,6 +4,10 @@
 
 Consultar [arquitetura](docs/architecture.md), [decisões](docs/adr/README.md), [estrutura](docs/repository-structure.md) e [roadmap](docs/learning-roadmap.md) antes de implementar. Documentar em **português brasileiro**, preservando nomes técnicos. Não reintroduzir modelos superados do histórico Git.
 
+## Estilo da documentação
+
+Escrever os documentos **na voz do próprio projeto**, em português brasileiro e tom técnico direto. Preferir construções como "nesta POC", "a arquitetura adota", "o repositório mantém" e "vamos validar" quando a primeira pessoa fizer sentido. **Não narrar a criação do projeto como um observador externo:** evitar "o autor decidiu", "o usuário pediu", "a IA gerou", "na conversa anterior", "como solicitado" ou comentários sobre o processo de redação. Manter justificativas arquiteturais, referências técnicas e avisos de risco sem atribuí-los a um interlocutor.
+
 ## Personas e níveis de abstração (ADR-0007)
 
 - **Platform Team:** mantém os motores, contratos, Golden Paths, Foundation e Entity Core compartilhado; provê governança.
@@ -43,7 +47,7 @@ Os YAMLs `domain.yaml` e `environment.yaml` **não são CRs**; validar e resolve
 ## Labs de personas e Golden Paths
 
 - **Lab 10C:** simular os três owners; testar autorização de PRs por path/repo, IAM/RBAC, AppProjects e restrições de Environment.
-- **Lab 10B:** **smoke test técnico**, após EKS e Argo CD local, com app Python + Flask mínima (preferencial), manifestos e health check; sem exigência de portal, CI/CD sofisticado ou Golden Path. Repositório separado será fornecido/criado apenas quando solicitado.
+- **Lab 10B:** **smoke test técnico**, após EKS e Argo CD local, com app Python + Flask mínima (preferencial), manifestos e health check; sem exigência de portal, CI/CD sofisticado ou Golden Path. Integrar o repositório separado na etapa correspondente dos labs, mediante decisão explícita de implementação.
 - **Lab 15:** **Developer Experience** depois de Data Plane, observabilidade, segurança/governança e workflows estarem validados; experimentar contratos, catálogo e canais Backstage/CLI/Git.
 - **Lab 16:** **último passo**, reutilizar a mesma app para demonstrar Golden Path e integração da plataforma de ponta a ponta, GitHub Actions, Argo CD local, Capabilities e telemetria. Não transformar em desenvolvimento de aplicação nem construir gerador completo.
 - Não confundir o **conceito de Golden Path** nem a aplicação mínima demonstrativa com **Domain Bootstrap** (adiado/para reavaliação).
@@ -57,7 +61,7 @@ Os YAMLs `domain.yaml` e `environment.yaml` **não são CRs**; validar e resolve
 
 ## Monorepo e labs
 
-O arquivo [`docs/arquitetura Plataform.png`](docs/arquitetura%20Plataform.png), já existente na `main`, é o **diagrama visual de referência do autor** exibido no README e na arquitetura detalhada. **Reutilizar essa imagem, sem criar diagramas substitutos.** Se um ADR alterar personas, ownership, TerraformStack, topologia ou GitOps, **revisar a consistência da imagem fornecida pelo autor e dos documentos conjuntamente**, sem declarar componentes propostos como implantados. Não reintroduzir `TerraformRun` como contrato declarativo principal.
+O arquivo [`docs/arquitetura Plataform.png`](docs/arquitetura%20Plataform.png) é o **diagrama de referência do projeto**, exibido no README e na arquitetura detalhada. **Manter essa imagem como referência; não criar desenhos alternativos sem uma decisão de atualização.** Se um ADR alterar personas, ownership, TerraformStack, topologia ou GitOps, verificar a consistência do diagrama e dos documentos, sem declarar componentes propostos como implantados. Não reintroduzir `TerraformRun` como contrato declarativo principal.
 
 Um único monorepo simula limites. Criar pastas Domain/Foundation somente com conteúdo real dos labs. Manter navegação e links válidos; preservar as 24 aulas em [fundamentos](docs/fundamentos/README.md). O aprendizado exige laboratório observável: pré-requisitos, comandos, falha controlada, diagnóstico, recuperação e cleanup. Preferir Markdown/Mermaid nativo legível. CODEOWNERS sem rulesets não é barreira de acesso.
 

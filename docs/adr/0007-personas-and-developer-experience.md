@@ -101,7 +101,7 @@ O **Golden Path / Starter Kit permanece como conceito de plataforma**: padrões 
 
 A infraestrutura de Database, S3 e Messaging continua sob o **Federated DevOps**, não deve ser provisionada automaticamente pelo app. O **Lab 13A anterior é substituído pelo Lab 16**; não há entrega de Developer Experience antes do Lab 15.
 
-O repositório separado da aplicação de teste será fornecido ou criado somente quando explicitamente solicitado. Nenhum código de aplicação é adicionado ao monorepo da POC por esta decisão.
+O repositório separado da aplicação de teste será criado ou integrado na etapa correspondente do roadmap. Esta decisão não adiciona código de aplicação ao monorepo da POC.
 
 ## Consequências e decisões pendentes para os labs
 
