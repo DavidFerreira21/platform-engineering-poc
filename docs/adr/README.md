@@ -12,5 +12,6 @@ Estes documentos contêm **somente a arquitetura atual** e suas justificativas. 
 | [**0004**](0004-aws-security-and-roadmap.md) | AWS real, EKS Auto Mode, isolamento, lifecycle e labs |
 | [**0005**](0005-domain-bootstrap.md) | Domain Bootstrap — proposta preservada, em reavaliação / adiada |
 | [**0006**](0006-terraformrun-and-application-ci.md) | TerraformRun CRD/controller e CI/CD de Domain Applications em repo separado |
+| [**0007**](0007-personas-and-developer-experience.md) | Três personas, ownership federado, repositórios e Java Golden Path |
 
 Documento principal: [Arquitetura](../architecture.md) · [Estrutura](../repository-structure.md) · [Roadmap](../learning-roadmap.md)
