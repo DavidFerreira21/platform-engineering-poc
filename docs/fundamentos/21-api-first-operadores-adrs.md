@@ -15,7 +15,7 @@ Entity, Environment e Domain são registros lógicos do Git. Somente Capabilitie
 ## Leitura complementar
 
 - [Kubernetes — Custom Resources](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) — documentação e material público complementar.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 3 — API-first, operator pattern e ADRs; aplicação adaptada à POC.. Referência temática; texto autoral adaptado à POC.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 3 — API-first, operator pattern e ADRs.
 
 ---
 

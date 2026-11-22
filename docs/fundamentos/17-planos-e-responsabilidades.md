@@ -15,7 +15,7 @@ Crossplane fica no Control Plane da POC porque observa XRDs e reconcilia recurso
 ## Leitura complementar
 
 - [CNCF — Platforms White Paper](https://tag-app-delivery.cncf.io/whitepapers/platforms/) — documentação e material público complementar.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 3 — arquitetura em planos; classificação da POC é autoral.. Referência temática; texto autoral adaptado à POC.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 3 — arquitetura em planos.
 
 ---
 

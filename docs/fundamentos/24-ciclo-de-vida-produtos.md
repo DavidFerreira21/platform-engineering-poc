@@ -10,7 +10,7 @@ Versionar o contrato possibilita evoluir interfaces com previsibilidade. Uma atu
 
 Adoção e satisfação são sinais importantes, mas métricas de operação também importam: tempo até Ready, falhas de reconciliação, número de solicitações manuais, incidentes e frequência de exceções mostram se o produto permanece sustentável.
 
-## Na nossa POC
+## Aplicação na POC
 
 A Capability ObjectStorage começa com um perfil simples e uma conta AWS. À medida que surgirem UAT e PROD, políticas adicionais e novas opções, registraremos decisões em ADRs, atualizaremos schemas com cuidado e manteremos um percurso de migração. Não devemos apagar recursos AWS reais apenas porque um exemplo Git foi removido — o comportamento de exclusão precisa ser deliberado.
 
