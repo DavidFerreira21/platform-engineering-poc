@@ -83,26 +83,26 @@ Os manifests de **infraestrutura/Capability**, criados e mantidos pelo DevOps Fe
 
 O Developer pode consumir os padrões por **Backstage, CLI ou Git/Template**. **Backstage não é um gateway obrigatório** e não deve inventar API paralela aos contratos estabelecidos.
 
-## Decisão 5 — Primeiro Golden Path: Java Service
+## Decisão 5 — Aplicação mínima de referência, sem foco em desenvolvimento
 
-A primeira experiência completa de aplicação será um **Java Service Starter Kit**, usando **Spring Boot como opção inicial a validar no lab**. O kit deve gerar um repositório de aplicação com:
+A POC tem como **produto principal a plataforma**, não a aplicação. Para validar Developer Experience, GitHub Actions, GitOps, segurança, telemetria e consumo de Capabilities, usaremos uma **aplicação mínima de demonstração**, preferencialmente **Python + Flask**. Java foi apenas um exemplo de linguagem, **não uma decisão de implementação nem um requisito de Starter Kit**.
 
-1. Código e estrutura de projeto Java; convenções de build e testes.
-2. Dockerfile/build de imagem e GitHub Actions para lint/testes/scan/publicação.
-3. Manifests Kubernetes (por exemplo Kustomize base/overlays UAT e PROD), com requests/limits, health probes, configuração de runtime e identidade.
-4. Observabilidade padronizada com OpenTelemetry, logs e traces e integração com os backends disponíveis.
-5. Security/quality gates e políticas padrão; adaptações e escape hatches **governados**, sem exigir conhecimento dos mecanismos internos.
+A aplicação de teste deve permanecer simples: um serviço HTTP pequeno com endpoint de saúde e resposta de exemplo, testes básicos, Dockerfile, pipeline GitHub Actions e manifests Kubernetes (base/overlays para os ambientes usados). Incluir apenas a instrumentação OpenTelemetry e as configurações mínimas necessárias para observar o fluxo de ponta a ponta.
 
-**Jornada:** escolher Java Service → fornecer metadados mínimos → gerar repo → desenvolver código → commit/PR → CI/CD → GitOps Argo CD local → aplicação no cluster autorizado.
+**Não implementar arquitetura de software complexa**, funcionalidades de produto, persistência de dados própria da aplicação, múltiplos serviços, framework de negócio, cobertura sofisticada ou um catálogo multi-linguagem nesta etapa. Python/Flask é uma **preferência pragmática**; uma aplicação igualmente simples em outra linguagem pode ser usada se facilitar o laboratório.
 
-O Starter Kit **não deve criar RDS, S3 ou outros recursos de Domain Infrastructure sem a participação/autorização do DevOps Federado**. O desenvolvimento registra uma necessidade; o DevOps Federado consome a Capability apropriada.
+O **Golden Path / Starter Kit permanece como conceito de plataforma**: padrões e automações que tornam trivial iniciar uma aplicação nova, sem exigir conhecimento de mecanismos internos. Na POC, basta demonstrar com o **app mínimo** e padrões reaproveitáveis; criar um produto completo de geração de templates, um catálogo de Starter Kits ou uma experiência de portal rica **não é objetivo imediato**.
+
+**Fluxo demonstrado:** app mínimo → commit/PR → GitHub Actions (build/test/scan/publicação mínimos) → atualização declarativa GitOps → Argo CD local → workload no destino Kubernetes autorizado → logs/traces/status observáveis. A infraestrutura de Database, S3 e Messaging continua sob **Federated DevOps**, não deve ser provisionada automaticamente pelo app.
+
+O repositório separado da aplicação de teste será fornecido ou criado somente quando explicitamente solicitado. Nenhum código de aplicação é adicionado ao monorepo da POC por esta decisão.
 
 ## Consequências e decisões pendentes para os labs
 
 - **Modelo de permissões:** CODEOWNERS/path rules nos exemplos; RBAC/admission/AppProjects/IAM efetivos para impedir mudanças fora do ownership.
 - **Integração CI → GitOps:** definir como a pipeline da aplicação atualiza os manifests versionados, aprovações e promoção entre UAT/PROD.
-- **Golden Path:** validar ferramentas de geração (Backstage Software Templates, CLI/template Git) e alternativas Helm/Kustomize; **não escolher tecnologia sem lab**.
-- **Produto e métricas DX:** medir esforço para criar serviço, necessidade de intervenção da plataforma, caminhos de exceção, tempo de entrega e feedback de persona.
+- **Golden Paths:** validar o conceito usando a aplicação mínima de demonstração; eventual geração via Backstage/CLI/templates e escolha entre Helm/Kustomize são extensões futuras, **sem exigir um gerador completo**.
+- **Produto e métricas DX:** demonstrar o fluxo da plataforma e a redução da carga cognitiva com a aplicação mínima; métricas de geração de novos serviços são opcionais.
 - **Não implementar Domain Bootstrap agora:** ADR-0005 continua adiado; a proposta de Starter Kit de aplicação é **distinta** do Bootstrap de Domain e não exige esse gerador.
 - **Status:** estes contratos e exemplos descrevem o desenho pretendido, não repositório da aplicação já fornecido ou componentes AWS/EKS implantados.
 
