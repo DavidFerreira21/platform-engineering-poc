@@ -21,10 +21,12 @@ Construção incremental e observável: cada lab terá pré-requisitos, comandos
 | **08B** | `TerraformRun` CRD + Controller (**propostos**) | Validação, status, idempotência, disparo único do Argo Workflow e gates (primeiro com executor simulado) |
 | **09** | Entity Core e EKS Auto Mode incremental | Um EKS por vez, verificando custo, identidade e PCI |
 | **10** | Argo CD local + Operators / gateway de telemetria | Management EKS faz GitOps para EKS PCI/Non-PCI autorizados; Operators a escolher e OTel Collector/gateway |
-| **10B** | CI/CD de Domain Applications (repo separado) | GitHub Actions faz build/test/scan/publica no futuro repo da aplicação de teste; Argo CD local faz o deploy GitOps |
+| **10B** | CI/CD de Domain Applications (repo da squad) | GitHub Actions faz build/test/scan/publica; **manifests Kubernetes ficam no mesmo repo da aplicação** e Argo CD local realiza deploy GitOps |
+| **10C** | Ownership por persona e permissões | Simular Platform Team, Federated DevOps e Application Team; PRs positivos/negativos por caminho, proteção e destinos GitOps |
+| **13A** | Java Service Golden Path / Starter Kit | Gerar repositório de aplicação Java com build, testes, Dockerfile, GitHub Actions, manifests K8s, telemetria e policies; desenvolver sem conhecer internals da plataforma |
 | **11** | Duas contas AWS UAT/PROD | Credenciais e recursos segregados |
 | **12** | Observabilidade OpenTelemetry / Grafana / Loki / Tempo | Gateway nos spokes, logs/traces centralizados, métricas, alertas e segregação de acesso |
-| **13** | Backstage / CLI / AI-MCP | Consumo dos contratos sem API paralela |
+| **13** | Backstage / CLI / AI-MCP | Consumir Capabilities e Golden Paths por canais independentes, sem API paralela |
 | **14** | Extensão opcional: criação de contas | Justificar contrato/controlador de lifecycle se necessário |
 | **14B** | Reavaliar Domain Bootstrap (opcional) | ADR preservado; decidir posteriormente se este gerador terá utilidade, **sem implementá-lo agora** |
 | **15** | Segurança, custo e recuperação | Testes de isolamento e cleanup |
@@ -32,6 +34,8 @@ Construção incremental e observável: cada lab terá pré-requisitos, comandos
 **Ordem dos componentes no Hub:** `kind` e Traefik → Argo CD central → **Argo Workflows via Argo CD** → Crossplane Core via Argo CD. O Lab 02B instala e observa o motor com um fluxo de teste local; integração com Terraform, gates humanos e permissões AWS fica para o Lab 08. Não confundir instalar o workflow controller com habilitar execução de infraestrutura real.
 
 **Não implementar `AWSEnvironment` CRD ou Environment Controller próprio como pré-requisito inicial.** Environment e Domain são registros lógicos; somente Capabilities precisam de XRD no primeiro ciclo. **Domain Bootstrap está em reavaliação e adiado**, não é pré-requisito dos labs. **O Argo CD local** aplica namespaces/policies e workloads Kubernetes. `Database` seguirá `ObjectStorage`, com Aurora PostgreSQL, custos e teardown aprovados. `TerraformRun` e CI/CD externo são propostas, **não componentes implantados**.
+
+**Três personas e Golden Paths:** o **Platform Team** mantém a plataforma e sua infraestrutura compartilhada; o **Federated DevOps Team** propõe e mantém os manifests de **Domain Infrastructure** no monorepo; o **Application Team** desenvolve e opera código/CI/manifests Kubernetes em **repositório separado**. O primeiro Starter Kit planejado é um **Java Service**. Ver [ADR-0007](adr/0007-personas-and-developer-experience.md). O Lab 10C valida fronteiras de ownership, e o 13A valida a experiência de desenvolvimento. Não criar repositório de aplicação sem ele ser informado.
 
 **Conta UAT:** registrar o destino em `foundation/config/entity-a/uat/environment.example.yaml` (template sem dados reais). Conta, região, credenciais e método de autenticação ainda precisam ser definidos e validados no início dos labs AWS. Nenhuma chave ou segredo deve ser versionado.
 
