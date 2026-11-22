@@ -10,17 +10,21 @@
 > [!NOTE]
 > Projeto **pessoal de laboratório**, independente de qualquer iniciativa corporativa. A arquitetura abaixo é **alvo**, não comprovação de recursos implantados.
 
-## 🧭 Navegação
+## Por onde começar
 
-| Página | Conteúdo |
-| :--- | :--- |
-| [🏗️ Arquitetura](docs/architecture.md) | Modelo, topologia, ownership, contratos e fluxo completo |
-| [🗂️ Monorepo](docs/repository-structure.md) | Responsabilidades e localização das configurações |
-| [📝 Decisões vigentes](docs/adr/README.md) | ADRs atuais, sem versões contraditórias |
-| [🧪 Roteiro prático](docs/learning-roadmap.md) | Sete fases com etapas, dependências e evidências de aceite |
-| [▶️ Guias das etapas](labs/README.md) | Executar a preparação do Hub e o registro dos ambientes AWS |
-| [📖 Fundamentos](docs/fundamentos/README.md) | 24 aulas conceituais pt-BR |
-| [🤖 Orientações para agentes](AGENTS.md) | Padrões de implementação e segurança |
+1. Leia os [Fundamentos](docs/fundamentos/README.md). As 24 aulas apresentam Engenharia de Plataforma, produto interno, self-service, Golden Paths, governança e os conceitos usados na POC.
+2. Leia a [Arquitetura](docs/architecture.md). Use o diagrama de referência para entender a topologia, as três personas, a responsabilidade de cada plano e como Entity, Environment, Domain e Capability se relacionam.
+3. Consulte o [Roteiro prático](docs/learning-roadmap.md) e execute os [guias das etapas](labs/README.md) na sequência. Cada guia começa pelo objetivo, pelo que será feito e pelos pré-requisitos.
+
+Para consultar detalhes, veja a [estrutura do monorepo](docs/repository-structure.md), as [decisões arquiteturais](docs/adr/README.md) e as [orientações para agentes](AGENTS.md).
+
+## Cenário de demonstração
+
+Um grupo fictício tem duas empresas de manutenção, uma no Brasil e outra no Chile. As duas usam **Solicitações de Materiais**, um produto interno para registrar pedidos de itens usados no trabalho diário. Cada empresa executa sua própria instância, com dados separados e regras locais, como o catálogo de materiais disponíveis.
+
+Cada empresa é uma **Entity** e tem seus próprios **Environments** UAT e PROD. **Solicitações de Materiais** é o **Domain** que reúne a infraestrutura e a aplicação em cada Entity. O primeiro exercício usa a empresa do Brasil como `entity-a`. A empresa do Chile ilustra como a plataforma poderia atender outra Entity com o mesmo produto.
+
+A aplicação prevista tem um campo **Material**, um botão **Adicionar solicitação** e uma lista para conferir o registro gravado. A preferência é usar Python + Flask. Na **Etapa 17**, uma versão HTTP mínima valida deploy, health check e rollback. No **Golden Path da Etapa 24**, a mesma aplicação grava e lista solicitações no Aurora PostgreSQL. O DevOps Federado solicita o banco como Capability. [ADR-0007](docs/adr/0007-personas-and-developer-experience.md)
 
 ## 🧱 Visão arquitetural
 
@@ -41,8 +45,6 @@
 | **Squads de Produto (Application Team)** | Mantêm código, testes, CI/CD e manifests Kubernetes em repositório próprio | Consomem **Golden Paths / Starter Kits**, sem conhecer os motores internos |
 
 A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership do **DevOps Federado**. Já **código, GitHub Actions e manifests Kubernetes da aplicação** pertencem ao **repositório separado da squad**. O Argo CD local entrega os manifests do repo da aplicação nos EKS autorizados.
-
-**Aplicação mínima de demonstração (preferência: Python + Flask):** o objetivo é validar **a plataforma**, não desenvolver um produto. **Primeiro**, após EKS e Argo CD local, a aplicação serve como **smoke test técnico do Data Plane (Etapa 17)**. **Depois**, com observabilidade e governança consolidadas, estudamos **Developer Experience (Etapa 22)** e, **por último**, reaproveitamos a aplicação para provar o Golden Path/integração completa (Etapa 24). Não desenvolver Starter Kit completo nem antecipar portal/CI/CD sofisticado para o primeiro teste. Infraestrutura de Domain continua sob DevOps Federado. [ADR-0007](docs/adr/0007-personas-and-developer-experience.md).
 
 ## 🧩 Quatro conceitos fundamentais
 
