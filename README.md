@@ -54,7 +54,7 @@ flowchart TB
 
 A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership do **DevOps Federado**. Já **código, GitHub Actions e manifests Kubernetes da aplicação** pertencem ao **repositório separado da squad**. O Argo CD local entrega os manifests do repo da aplicação nos EKS autorizados.
 
-**Java Service Golden Path (planejado):** starter kit com estrutura Java/Spring Boot, Dockerfile, testes, GitHub Actions, manifests Kubernetes, OpenTelemetry e padrões de segurança. Escolher template → gerar repo → codificar → commit/PR → CI/CD → Argo CD local. A aplicação consome a infraestrutura do Domain gerida pelo DevOps Federado; Starter Kit não cria banco/bucket sem autorização. **Backstage, CLI e Git** são canais alternativos. [ADR-0007](docs/adr/0007-personas-and-developer-experience.md).
+**Aplicação mínima de demonstração (preferência: Python + Flask):** o objetivo é validar **a plataforma**, não desenvolver um produto ou um Starter Kit completo. Um serviço HTTP simples com testes básicos, Dockerfile, GitHub Actions, manifests Kubernetes e OpenTelemetry é suficiente para demonstrar CI/CD → GitOps → Argo CD local → runtime/telemetria. Java foi só um exemplo; Golden Paths/Starter Kits permanecem como **conceito e evolução futura**. Infraestrutura de Domain continua sob DevOps Federado. [ADR-0007](docs/adr/0007-personas-and-developer-experience.md).
 
 ## 🧩 Quatro conceitos fundamentais
 
