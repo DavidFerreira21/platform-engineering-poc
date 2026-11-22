@@ -138,7 +138,7 @@ Existem **três personas**, não quatro equipes para as quatro camadas de owners
 
 **Dois tipos de Capabilities:** **Infrastructure Capabilities** (Crossplane especializado, consumido pelo DevOps Federado) e **Application Capabilities** (padrões de runtime/build/deploy/telemetria, consumidos pelos desenvolvedores; **não implicam XRD Crossplane**). Um **Golden Path / Starter Kit** combina padrões e automações para uma jornada específica. Backstage, CLI e Git são canais alternativos; Backstage não é gateway obrigatório.
 
-**Aplicação mínima da POC (preferencialmente Python + Flask):** apenas uma carga de teste. **Após criar EKS e habilitar Argo CD local (Lab 10B)**, fazer smoke test de deploy, conectividade e health check, sem depender de Developer Experience ou Starter Kit. **Após observabilidade e governança**, montar a **Developer Experience (Lab 15)** e **por último** reutilizar o mesmo app na demonstração de Golden Path/integração end-to-end (Lab 16), com CI/CD e telemetria. A POC não pretende desenvolver aplicação complexa ou gerador completo de templates. Infraestrutura Database/S3/Messaging permanece com DevOps Federado. Detalhes em [ADR-0007](adr/0007-personas-and-developer-experience.md).
+**Aplicação mínima da POC (preferencialmente Python + Flask):** apenas uma carga de teste. **Após criar EKS e habilitar Argo CD local (Etapa 17)**, fazer smoke test de deploy, conectividade e health check, sem depender de Developer Experience ou Starter Kit. **Após observabilidade e governança**, montar a **Developer Experience (Etapa 22)** e **por último** reutilizar o mesmo app na demonstração de Golden Path/integração end-to-end (Etapa 24), com CI/CD e telemetria. A POC não pretende desenvolver aplicação complexa ou gerador completo de templates. Infraestrutura Database/S3/Messaging permanece com DevOps Federado. Detalhes em [ADR-0007](adr/0007-personas-and-developer-experience.md).
 
 ## 4. Quatro camadas de ownership
 
@@ -184,13 +184,13 @@ platform-engineering-poc/
 │           │       └── infrastructure/  # XRs · DevOps Federado
 │           └── orders/
 ├── docs/
-├── labs/
+├── labs/                               # guias das etapas
 └── tests/
 ```
 
-**Separado deste monorepo:** o repositório da aplicação de teste, previsto para um lab posterior, pertence às **Squads de Produto (Application Team)** e inclui `src/`, `tests/`, `Dockerfile`, `.github/workflows/` e `k8s/{base,overlays/uat,overlays/prod}`. O **Argo CD local** sincroniza esses manifests diretamente do repositório da aplicação. A pasta `applications/` que aparecia na árvore anterior do monorepo deixa de ser o destino-alvo para código/manifests de aplicação.
+**Separado deste monorepo:** o repositório da aplicação de teste, previsto para a Etapa 17, pertence às **Squads de Produto (Application Team)** e inclui `src/`, `tests/`, `Dockerfile`, `.github/workflows/` e `k8s/{base,overlays/uat,overlays/prod}`. O **Argo CD local** sincroniza esses manifests diretamente do repositório da aplicação. A pasta `applications/` que aparecia na árvore anterior do monorepo deixa de ser o destino-alvo para código/manifests de aplicação.
 
-**Esta é a árvore-alvo; o primeiro lab cria somente a configuração executável do Hub `kind` e um template declarativo de conta UAT.** Diretórios de Domain/Foundation serão adicionados somente com conteúdo real dos labs. Os README de infraestrutura preexistentes podem permanecer como documentação temporária até a implementação; não são fontes de configuração runtime. A [estrutura](repository-structure.md) especifica essa transição.
+**Esta é a árvore-alvo.** A Etapa 01 cria o Hub `kind` local e a Etapa 05 registra as contas UAT e PROD na Foundation. Novos diretórios de Domain e Foundation acompanham as respectivas entregas do roteiro. Os README de infraestrutura preexistentes podem permanecer como documentação temporária até a implementação; não são fontes de configuração runtime. A [estrutura](repository-structure.md) especifica essa transição.
 
 O monorepo demonstra autonomia via PR, revisão de paths e eventualmente CODEOWNERS. **CODEOWNERS sem regras de proteção não basta;** também são necessários RBAC Kubernetes, admission, IAM por conta e AppProjects Argo CD. Terraform state fica fora do Git.
 
@@ -259,7 +259,7 @@ O Bootstrap Terraform central é reutilizado por configuração de Entity/Enviro
 2. **Drift Detection:** controller agenda plans periódicos e atualiza condições/status, **sem remediação automática nesta fase**. Distinguir drift externo de alteração declarada.
 3. **Policy-Based Reconciliation:** decisão versionada e auditável (**auto apply / require approval / deny**) por recurso, atributos, Environment, criticidade e origem; apply somente de plan autorizado, com isolamento e state seguro.
 
-A escolha da implementação do Policy Engine e o schema final do CRD ficam para os labs. **A criação do CR Kubernetes é responsabilidade do Argo CD central**, não do Argo Workflows. O Argo Workflows é o executor do plan/apply.
+A escolha da implementação do Policy Engine e o schema final do CRD serão validados nas Etapas 07 e 11. **A criação do CR Kubernetes é responsabilidade do Argo CD central**, não do Argo Workflows. O Argo Workflows é o executor do plan/apply.
 
 ### Domain Infrastructure: Argo CD central + Crossplane
 
@@ -299,7 +299,7 @@ O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicaçã
 
 **Fluxo operacional alvo, sem Domain Bootstrap obrigatório:** Foundation cria/adota contas e rede → Entity Core prepara EKS e Argo CD local → manifests de Capabilities aprovados são reconciliados por Crossplane central → workloads de Domain Applications são entregues por Argo CD local. **O fluxo Domain Bootstrap descrito na seção 6 está adiado e em reavaliação.**
 
-**POC pedagógica:** baseline → Hub `kind` → Argo CD central/Argo Workflows → Crossplane local sem AWS → registros UAT e PROD e acesso do operador via IAM Identity Center → validação da federação do Hub → `ObjectStorage` e `Database` Aurora PostgreSQL → registro Domain/Environment + GitOps central → Terraform/Argo Workflows → contrato declarativo Terraform (proposto) → Core/EKS incremental → Argo CD local → **smoke test de app mínima (Lab 10B)** → UAT/PROD segregados → Observability Plane → segurança/governança → extensões opcionais → **Developer Experience (Lab 15)** → **Golden Path integrado (Lab 16, último passo)**. **Sem Bootstrap obrigatório.** **Não criar seis EKS simultaneamente**, nem implementar um controller de lifecycle apenas para manter uma ideia anterior.
+**POC pedagógica:** preparação do Hub e dos ambientes AWS → Control Plane e contratos → Workflow Plane e execução autorizada → provisionamento e smoke test → observabilidade e operação → Experience Layer → Golden Path. O [roteiro prático](learning-roadmap.md) organiza essas fases nas Etapas 00 a 24. A UAT recebe os primeiros recursos reais, com expansão incremental de clusters após verificar identidade, rede, custo e isolamento.
 
 ## 10. Decisões vigentes e pontos abertos
 
@@ -307,6 +307,6 @@ O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicaçã
 
 **Fechado:** Domain como unidade lógica de consumo/ownership, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas (incluindo **Domain Applications**), monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência. **Criação padronizada via Domain Bootstrap não está fechada: em reavaliação.**
 
-**A validar nos labs:** federação do Provider AWS na UAT com renovação de sessão, arquitetura de rede e custo do Aurora PostgreSQL, decisão futura sobre manter ou descartar Domain Bootstrap (sem implementá-lo agora), schema dos YAMLs, transformação segura de registros lógicos em escopo/credenciais, distribuição de namespaces/quotas ao GitOps local, gates, observabilidade, PCI e necessidade eventual de uma API/controller de ciclo de vida de contas.
+**A validar no roteiro:** federação do Provider AWS na UAT com renovação de sessão, arquitetura de rede e custo do Aurora PostgreSQL, decisão futura sobre manter ou descartar Domain Bootstrap (sem implementá-lo agora), schema dos YAMLs, transformação segura de registros lógicos em escopo/credenciais, distribuição de namespaces/quotas ao GitOps local, gates, observabilidade, PCI e necessidade eventual de uma API/controller de ciclo de vida de contas.
 
 [Decisões](adr/README.md) · [Monorepo](repository-structure.md) · [Roteiro](learning-roadmap.md)

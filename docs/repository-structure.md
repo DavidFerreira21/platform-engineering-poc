@@ -33,12 +33,12 @@ A POC utiliza **um único repositório** para demonstrar responsabilidades que p
 ### Primeira implementação
 
 - `platform/hub/kind-config.yaml` e `platform/hub/scripts/`: criação, inspeção e remoção **apenas do cluster local kind**.
-- `labs/01-platform-management-cluster.md`: laboratório com pré-requisitos, começo, testes, diagnóstico e teardown.
-- `foundation/config/entity-a/{uat,prod}/environment.yaml`: registros versionados das contas UAT e PROD com IDs distintos, região, baseline de rede e clusters EKS previstos. O [Lab 03B](../labs/03b-uat-e-autenticacao-aws.md) valida os destinos via IAM Identity Center.
+- [Guias das etapas](../labs/README.md) em `labs/`, começando pelo Hub local na Etapa 01.
+- `foundation/config/entity-a/{uat,prod}/environment.yaml`: registros versionados das contas UAT e PROD com IDs distintos, região, baseline de rede e clusters EKS previstos. A [Etapa 05](../labs/05-registro-ambientes-aws.md) valida os destinos via IAM Identity Center.
 
 ### Situação de migração
 
-Os marcadores originais `data-plane/uat/` e `data-plane/prod/` são **READMEs legados, sem infraestrutura implantada**. A estrutura final será `data-plane/entity-a/core-infrastructure/{uat,prod}/`, além de `data-plane/entity-a/domains/`. Criar diretórios/manifests de infraestrutura apenas durante os labs, sem duplicar recursos ou mover infraestrutura ativa. Não criar repositórios Git separados para Entity ou Domain.
+Os marcadores originais `data-plane/uat/` e `data-plane/prod/` são **READMEs legados, sem infraestrutura implantada**. A estrutura final será `data-plane/entity-a/core-infrastructure/{uat,prod}/`, além de `data-plane/entity-a/domains/`. Criar diretórios/manifests de infraestrutura apenas nas etapas correspondentes, sem duplicar recursos ou mover infraestrutura ativa. Não criar repositórios Git separados para Entity ou Domain.
 
 O desenho técnico da plataforma é mantido em `control-plane/` e `workflow-plane/`; o fato de um manifesto de Capability morar no Data Plane **não** move o Crossplane para lá.
 

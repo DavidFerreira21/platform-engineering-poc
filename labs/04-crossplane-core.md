@@ -1,6 +1,6 @@
-# Lab 03 — Crossplane Core via GitOps
+# Etapa 04 — Crossplane Core via GitOps
 
-[← Lab 02](02-argocd-central.md) · [Índice dos labs](README.md)
+[← Etapa 03](03-argo-workflows.md) · [Guias das etapas](README.md)
 
 ## Objetivo
 
@@ -17,7 +17,7 @@ O exercício roda no Hub local e tem custo AWS zero.
 
 ## Pré-requisitos
 
-- Hub do Lab 01 com Argo CD central acessível conforme o Lab 02. No roteiro, o Lab 02B vem antes deste lab.
+- Hub da Etapa 01 com Argo CD central acessível conforme a Etapa 02 e Argo Workflows verificado na Etapa 03.
 - `kubectl` com o contexto `kind-platform-management` e conectividade do Hub ao repositório Helm e aos registries das imagens e da função.
 - Execute os comandos da raiz do monorepo. Nos exemplos, `hub` seleciona explicitamente o contexto local.
 
@@ -46,7 +46,7 @@ hub wait --for=condition=Established --timeout=120s \
 hub get providers.pkg.crossplane.io
 ```
 
-Confirme `Synced`, `Healthy` e a versão `2.4.3`. Num Hub dedicado a estes labs, a lista de Providers deve estar vazia. Se o chart não sincronizar, consulte `hub -n argocd describe application crossplane-core` e confira a origem Helm a partir dos logs de `hub -n argocd logs deployment/argocd-repo-server`.
+Confirme `Synced`, `Healthy` e a versão `2.4.3`. Num Hub dedicado a estas etapas, a lista de Providers deve estar vazia. Se o chart não sincronizar, consulte `hub -n argocd describe application crossplane-core` e confira a origem Helm a partir dos logs de `hub -n argocd logs deployment/argocd-repo-server`.
 
 ## 2. Registrar e consumir uma API local
 
@@ -103,4 +103,4 @@ hub delete -f "$demo/composition.yaml" -f "$demo/xrd.yaml" -f "$demo/function.ya
   --ignore-not-found --timeout=120s
 ```
 
-Mantenha a Application `crossplane-core` sincronizada para os próximos labs. [Documentação do Crossplane](https://docs.crossplane.io/latest/guides/function-patch-and-transform/)
+Mantenha a Application `crossplane-core` sincronizada para as próximas etapas. [Documentação do Crossplane](https://docs.crossplane.io/latest/guides/function-patch-and-transform/)

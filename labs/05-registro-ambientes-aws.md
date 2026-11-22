@@ -1,6 +1,6 @@
-# Lab 03B — Registro das contas UAT e PROD no Git
+# Etapa 05 — Registro das contas UAT e PROD no Git
 
-[← Lab 03](03-crossplane-core.md) · [Índice dos labs](README.md)
+[← Etapa 04](04-crossplane-core.md) · [Guias das etapas](README.md)
 
 ## Objetivo
 
@@ -19,7 +19,7 @@ Registrar UAT e PROD como destinos AWS distintos da `entity-a` e verificar que c
 
 ## 1. Criar os registros de conta
 
-Use uma branch de trabalho a partir da raiz do monorepo. Os registros abaixo descrevem as contas desta POC. Para reproduzir o lab em outra organização, copie o [modelo de Environment](../foundation/config/entity-a/uat/environment.example.yaml) em uma branch própria e preencha os IDs e as regiões das suas contas.
+Use uma branch de trabalho a partir da raiz do monorepo. Os registros abaixo descrevem as contas desta POC. Para reproduzir a etapa em outra organização, copie o [modelo de Environment](../foundation/environment.example.yaml) em uma branch própria e preencha os IDs e as regiões das suas contas.
 
 | Environment | Registro | Conta nesta POC |
 | --- | --- | --- |
@@ -75,8 +75,8 @@ git diff --cached --check
 git diff --cached -- foundation/config/entity-a/{uat,prod}/environment.yaml
 ```
 
-Confira IDs diferentes, a região, a correspondência dos Environments com o caminho de cada arquivo e as flags esperadas. Mantenha as credenciais no fluxo do IAM Identity Center. Publique os registros por PR. O aceite do lab exige os dois YAMLs versionados e a identidade validada para cada conta. Ao finalizar, limpe as variáveis do terminal com `unset uat_account uat_region prod_account prod_region`.
+Confira IDs diferentes, a região, a correspondência dos Environments com o caminho de cada arquivo e as flags esperadas. Mantenha as credenciais no fluxo do IAM Identity Center. Publique os registros por PR. O aceite da etapa exige os dois YAMLs versionados e a identidade validada para cada conta. Ao finalizar, limpe as variáveis do terminal com `unset uat_account uat_region prod_account prod_region`.
 
-## Antes do Lab 04
+## Próximas etapas
 
-O primeiro ObjectStorage será validado na UAT. Antes de provisioná-lo, o Provider AWS no Hub precisa de uma identidade de workload dedicada. A opção proposta é `WebIdentity` com issuer HTTPS verificável pela AWS, audiência `sts.amazonaws.com` e confiança limitada à ServiceAccount prevista. O aceite inclui STS no Hub, renovação da sessão e rejeição de outra identidade. [OIDC no IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html) · [Autenticação do Provider AWS](https://github.com/crossplane-contrib/provider-upjet-aws/blob/main/AUTHENTICATION.md)
+Com a Fase 1 concluída, siga para os contratos do Control Plane conforme o [roteiro](../docs/learning-roadmap.md). A Etapa 09 valida uma identidade de workload dedicada para o Provider AWS no Hub antes de provisionar o primeiro ObjectStorage na Etapa 13. A opção proposta é `WebIdentity` com issuer HTTPS verificável pela AWS, audiência `sts.amazonaws.com` e confiança limitada à ServiceAccount prevista. O aceite inclui STS no Hub, renovação da sessão e rejeição de outra identidade. [OIDC no IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html) · [Autenticação do Provider AWS](https://github.com/crossplane-contrib/provider-upjet-aws/blob/main/AUTHENTICATION.md)

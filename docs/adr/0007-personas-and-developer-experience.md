@@ -1,6 +1,6 @@
 # ADR-0007 — Personas, ownership federado e Developer Experience por Golden Paths
 
-**Estado:** decisão arquitetural vigente; implementação de labs pendente · **Data:** 21/11/2026
+**Estado:** decisão arquitetural vigente; implementação das etapas pendente · **Data:** 21/11/2026
 
 ## Contexto e objetivo
 
@@ -87,7 +87,7 @@ O Developer pode consumir os padrões por **Backstage, CLI ou Git/Template**. **
 
 A POC tem como **produto principal a plataforma**, não a aplicação. Para validar primeiro o **Data Plane** e depois integrar a **Developer Experience**, reutilizaremos uma **aplicação mínima de demonstração**, preferencialmente **Python + Flask**. Java foi apenas um exemplo de linguagem, **não uma decisão de implementação nem um requisito de Starter Kit**.
 
-A aplicação de teste deve permanecer simples: um serviço HTTP pequeno com endpoint de saúde e resposta de exemplo, testes básicos, Dockerfile e manifests Kubernetes (base/overlays para os ambientes usados). GitHub Actions e OpenTelemetry serão acrescentados **conforme os labs**, sem exigir que toda a jornada esteja pronta no primeiro deploy.
+A aplicação de teste deve permanecer simples: um serviço HTTP pequeno com endpoint de saúde e resposta de exemplo, testes básicos, Dockerfile e manifests Kubernetes (base/overlays para os ambientes usados). GitHub Actions e OpenTelemetry serão acrescentados **ao longo das etapas**, sem exigir que toda a jornada esteja pronta no primeiro deploy.
 
 **Não implementar arquitetura de software complexa**, funcionalidades de produto, persistência de dados própria da aplicação, múltiplos serviços, framework de negócio, cobertura sofisticada ou um catálogo multi-linguagem nesta etapa. Python/Flask é uma **preferência pragmática**; uma aplicação igualmente simples em outra linguagem pode ser usada se facilitar o laboratório.
 
@@ -95,19 +95,19 @@ O **Golden Path / Starter Kit permanece como conceito de plataforma**: padrões 
 
 **Duas utilizações, em momentos diferentes do roadmap:**
 
-1. **Lab 10B — smoke test técnico do Data Plane:** **depois de provisionar ao menos um EKS e configurar o Argo CD local**, usar o app mínimo em repositório separado para testar conectividade, deploy GitOps, health check, logs básicos e rollback. **Não exigir Developer Experience, Backstage, geração de Starter Kit ou pipeline sofisticada.**
-2. **Lab 15 — Developer Experience:** **somente após** infraestrutura, workloads, observabilidade e governança terem sido validados, definir/experimentar os canais de consumo (Backstage/CLI/Git), padrões, catálogo e abstrações por persona.
-3. **Lab 16 — Golden Path / integração final:** **última etapa**, reaproveitar o app mínimo para demonstrar onboarding via padrões leves, GitHub Actions, promoção GitOps, Argo CD local, telemetria, guardrails e consumo de Capabilities. Não transformar o lab em desenvolvimento de aplicação ou gerador complexo.
+1. **Etapa 17 — smoke test técnico do Data Plane:** **depois de provisionar ao menos um EKS e configurar o Argo CD local**, usar o app mínimo em repositório separado para testar conectividade, deploy GitOps, health check, logs básicos e rollback. **Não exigir Developer Experience, Backstage, geração de Starter Kit ou pipeline sofisticada.**
+2. **Etapa 22 — Developer Experience:** **somente após** infraestrutura, workloads, observabilidade e governança terem sido validados, definir/experimentar os canais de consumo (Backstage/CLI/Git), padrões, catálogo e abstrações por persona.
+3. **Etapa 24 — Golden Path / integração final:** **última etapa**, reaproveitar o app mínimo para demonstrar onboarding via padrões leves, GitHub Actions, promoção GitOps, Argo CD local, telemetria, guardrails e consumo de Capabilities. Não transformar o lab em desenvolvimento de aplicação ou gerador complexo.
 
-A infraestrutura de Database, S3 e Messaging continua sob o **Federated DevOps**, não deve ser provisionada automaticamente pelo app. O **Lab 13A anterior é substituído pelo Lab 16**; não há entrega de Developer Experience antes do Lab 15.
+A infraestrutura de Database, S3 e Messaging continua sob o **Federated DevOps**. A Etapa 23 exercita a solicitação das Capabilities previstas para o Domain no Golden Path antes da entrega da aplicação na Etapa 24.
 
 O repositório separado da aplicação de teste será criado ou integrado na etapa correspondente do roadmap. Esta decisão não adiciona código de aplicação ao monorepo da POC.
 
-## Consequências e decisões pendentes para os labs
+## Consequências e decisões pendentes para as etapas
 
 - **Modelo de permissões:** CODEOWNERS/path rules nos exemplos; RBAC/admission/AppProjects/IAM efetivos para impedir mudanças fora do ownership.
 - **Integração CI → GitOps:** definir como a pipeline da aplicação atualiza os manifests versionados, aprovações e promoção entre UAT/PROD.
-- **Golden Paths:** validar o conceito **no Lab 16, após Developer Experience no Lab 15**, reutilizando a aplicação mínima implantada tecnicamente no Lab 10B. Backstage/CLI/templates e Helm/Kustomize são escolhas futuras; **não exigir um gerador completo**.
+- **Golden Paths:** validar o conceito **na Etapa 24, após Developer Experience na Etapa 22**, reutilizando a aplicação mínima implantada na Etapa 17. Backstage/CLI/templates e Helm/Kustomize são escolhas futuras; **não exigir um gerador completo**.
 - **Produto e métricas DX:** demonstrar o fluxo da plataforma e a redução da carga cognitiva com a aplicação mínima; métricas de geração de novos serviços são opcionais.
 - **Não implementar Domain Bootstrap agora:** ADR-0005 continua adiado; a proposta de Starter Kit de aplicação é **distinta** do Bootstrap de Domain e não exige esse gerador.
 - **Status:** estes contratos e exemplos descrevem o desenho pretendido, não repositório da aplicação já fornecido ou componentes AWS/EKS implantados.

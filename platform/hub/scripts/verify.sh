@@ -22,4 +22,4 @@ if [[ "$response" != "platform-management-ok" ]]; then
   exit 1
 fi
 echo "OK: kind, namespaces, CoreDNS, Traefik, echo e http://demo.localhost:8080/"
-echo "TLS em 8443 fica reservado para serviços futuros; certificados locais não são configurados no Lab 01."
+echo "TLS em 8443 fica reservado para serviços futuros; certificados locais não são configurados na Etapa 01."
