@@ -15,7 +15,7 @@ O Workflow Plane mantém processos, GitOps central, aprovação e execução, **
 ## Aplicações e execuções declarativas (planejadas)
 
 - **TerraformStack (proposto):** o controller fica no Control Plane; **Argo Workflows** executa `plan`, avaliação de policies, gate e `apply` quando autorizado. Há **replan/drift periódico** sem remediação automática até a terceira etapa. `TerraformRun` poderá identificar execução individual futuramente, sem obrigatoriedade de CRD separado. Etapas 08B-A (Declarative Execution), 08B-B (Drift Detection) e 08B-C (Policy-Based Reconciliation) complementam o Executor do Lab 08.
-- **Domain Applications:** GitHub Actions fará o **CI/CD em um repositório de aplicação de teste separado**, ainda a fornecer. Build/test/scan/publicação → atualização GitOps revisada → Argo CD **local** no Management EKS faz deploy nos clusters autorizados. Não adicionar código ou workflow CI da aplicação neste monorepo.
+- **Domain Applications:** GitHub Actions fará o **CI/CD em um repositório de aplicação de teste separado**, a integrar durante o lab correspondente. Build/test/scan/publicação → atualização GitOps revisada → Argo CD **local** no Management EKS faz deploy nos clusters autorizados. Não adicionar código ou workflow CI da aplicação neste monorepo.
 - **Domain Bootstrap:** conceito preservado no ADR-0005, mas **adiado e em reavaliação**. Não torná-lo pré-requisito dos labs.
 
 [ADR-0006](../docs/adr/0006-terraformrun-and-application-ci.md)

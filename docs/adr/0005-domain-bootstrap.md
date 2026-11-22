@@ -23,7 +23,7 @@ O Domain é uma **unidade lógica de negócio e ownership**, não um XRD. **Na p
 
 O **Bootstrap não é um Claim Crossplane**: a Composition descreve um produto técnico (Capability), enquanto o Bootstrap coordena a entrega de produtos AWS e configurações Kubernetes por mecanismos distintos. Futuramente pode ser avaliado um XR de Domain, mas não é pré-requisito.
 
-Os primeiros labs implementam `ObjectStorage` e, em seguida, `Database` como **Aurora PostgreSQL**, sempre de forma autorizada e progressiva. Um **perfil reduzido de laboratório** demonstra a geração de manifests; o **perfil standard completo só estará `Ready` após o laboratório implementar Database e GitOps local**. O mecanismo de disparo PR/CI, renderização e agregação de estado são **a implementar**, não recursos já ativos.
+A implementação de `ObjectStorage` e, posteriormente, `Database` como **Aurora PostgreSQL** continua no roadmap, de forma autorizada e progressiva, **independentemente do Domain Bootstrap**. Se a proposta voltar a ser adotada, um perfil reduzido poderá demonstrar a geração de manifests; o perfil `standard` só poderá indicar `Ready` após validar Database e GitOps local. O mecanismo de disparo PR/CI, renderização e agregação de estado ainda precisaria ser projetado.
 
 ## Consequências (caso reativado)
 

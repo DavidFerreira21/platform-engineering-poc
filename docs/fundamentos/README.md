@@ -63,8 +63,8 @@ Planes, reconciliação, isolamento, API-first, portal, catálogo e lifecycle.
 
 ## 📚 Sobre o conteúdo
 
-Os temas iniciais dialogam com os capítulos 1–3 de *Platform Engineering in Practice*, de Zebb Wright (GitforGits, 2026). Os textos, exemplos e organização são **autorais**, adaptados às decisões da nossa POC; não constituem tradução do livro.
+Os temas iniciais utilizam como referência os capítulos 1–3 de *Platform Engineering in Practice*, de Zebb Wright (GitforGits, 2026). Os conceitos são apresentados e contextualizados para esta POC; os artigos não são traduções do livro.
 
-O formato prioriza explicações bem desenvolvidas, comparações quando úteis, exemplos concretos e referências externas. Não usamos exercícios, objetivos formais ou resumos repetitivos em cada artigo.
+O formato prioriza explicações bem desenvolvidas, comparações quando úteis, exemplos concretos e referências externas. Os artigos não incluem exercícios, objetivos formais ou resumos repetitivos.
 
 **Continue:** [Arquitetura da POC](../architecture.md) · [Roteiro de implementação](../learning-roadmap.md) · [Página inicial](../../README.md)
