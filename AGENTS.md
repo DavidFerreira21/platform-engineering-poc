@@ -4,6 +4,15 @@
 
 Consultar [arquitetura](docs/architecture.md), [decisões](docs/adr/README.md), [estrutura](docs/repository-structure.md) e [roadmap](docs/learning-roadmap.md) antes de implementar. Documentar em **português brasileiro**, preservando nomes técnicos. Não reintroduzir modelos superados do histórico Git.
 
+## Personas e níveis de abstração (ADR-0007)
+
+- **Platform Team:** mantém os motores, contratos, Golden Paths, Foundation e Entity Core compartilhado; provê governança.
+- **Federated DevOps Team:** ponte técnica entre a plataforma e as squads; consome contratos especializados para **Domain Infrastructure** (Database, ObjectStorage, Messaging), faz upgrades/alterações do Domain e pode solicitar evolução de Capability. Não administra EKS compartilhado nem implementa Controllers da plataforma por padrão.
+- **Application Team / Developers:** mantém **código, testes, GitHub Actions, imagens e manifests Kubernetes no repositório da aplicação separado**; usa Application Capabilities e Golden Paths/Starter Kits para não precisar aprender Crossplane/Terraform/Argo internamente.
+- **Infrastructure Capability** é produto técnico (XRD Crossplane). **Application Capability** é padrão reutilizável de app/runtime/CI/deploy/observabilidade, **não obrigatoriamente CRD/XRD**. Golden Path combina padrões, templates e automações.
+- **Primeiro Golden Path planejado:** Java Service (Spring Boot opção a validar) gerando esqueleto do código, Dockerfile, pipeline GitHub Actions, manifests K8s base/overlays, probes, limites, OpenTelemetry e gates. Backstage, CLI e Git são canais alternativos. **Não provisionar Database/S3 de Domain Infrastructure automaticamente pelo Starter Kit sem DevOps Federado**.
+- **Monorepo de lab:** manter manifests de `Domain Infrastructure` por Domain/Environment sob DevOps Federado; **não adicionar** pastas `applications/` do Domain como destino obrigatório, pois esses manifests pertencem à aplicação separada. Revisão por path, IAM, RBAC, Admission e AppProject devem comprovar os limites de acesso.
+
 ## Modelo vigente
 
 - **Experience Layer:** Backstage, CLI, GitOps e AI/MCP são canais paralelos. Alterações persistentes preferencialmente via PR.
@@ -26,10 +35,16 @@ Os YAMLs `domain.yaml` e `environment.yaml` **não são CRs**; validar e resolve
 
 - **Ownership padrão:** Foundation → Entity Core Infrastructure → Domain Infrastructure → **Domain Applications**.
 - **TerraformRun CRD + Controller:** **propostos**, expõem solicitação declarativa de módulos Terraform via Kubernetes API; o controller aciona Argo Workflows + Terraform Executor com `plan`, gates, `apply`, status, idempotência e state segregado. Não é XRD de Capability e não executa `apply` a cada reconcile.
-- **CI/CD de aplicação:** GitHub Actions deverá operar em **repositório de aplicação de teste separado, ainda não fornecido**; este monorepo mantém apenas documentação/contratos e validações dos labs. Argo CD **local** entrega workloads via GitOps.
+- **CI/CD de aplicação:** GitHub Actions **e os manifests Kubernetes da aplicação** deverão ficar junto ao código **no repositório de aplicação separado, ainda não fornecido**. Este monorepo mantém apenas manifests da **Domain Infrastructure**, configurações de plataforma e validações dos labs. Argo CD **local** entrega workloads via GitOps.
 - **Management EKS:** Argo CD local, espaço para **Operators ainda não escolhidos**, e **OpenTelemetry Collector/gateway** de telemetria para backend central **Grafana, Loki e Tempo**. Prometheus/métricas e segregação PCI serão validados.
 - **Domain Bootstrap:** somente documentado e **adiado/em reavaliação**; não implementá-lo agora.
 - Este projeto é uma POC pessoal e **não deve usar nomes/recursos corporativos**. Documentação de arquitetura não significa execução implantada.
+
+## Labs de personas e Golden Paths
+
+- **Lab 10C:** simular os três owners; testar autorização de PRs por path/repo, IAM/RBAC, AppProjects e restrições de Environment.
+- **Lab 13A:** validar Java Service Starter Kit end-to-end: geração de repo, build/CI, manifests K8s no repo da app, OpenTelemetry e deploy por Argo CD local; não criar novo repo de app até ele ser fornecido/solicitado explicitamente.
+- Não confundir **Java Golden Path** com **Domain Bootstrap** (adiado/para reavaliação).
 
 ## Sequência inicial e autenticação
 
