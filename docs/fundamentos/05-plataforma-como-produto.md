@@ -15,7 +15,7 @@ A adoção compulsória pode inflar métricas e esconder frustração. Avalie te
 ## Leitura complementar
 
 - [DORA — Platform Engineering](https://dora.dev/capabilities/platform-engineering/) — referência pública para aprofundar o conceito.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 1 — platform as internal product e product thinking.. Referência temática; esta explicação é autoral, não uma tradução do livro.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 1 — platform as internal product e product thinking.
 
 ---
 

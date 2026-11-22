@@ -2,7 +2,7 @@
 
 [← Lab 02](02-argocd-central.md) · [Índice dos labs](README.md)
 
-O Argo CD instala o controller e os CRDs no Hub kind. Você vai submeter um Workflow, acompanhar o Pod, provocar uma falha no contêiner e executar novamente com o parâmetro corrigido. O exercício usa apenas Kubernetes local e tem custo AWS zero.
+O Argo CD instala o controller e os CRDs no Hub kind. O exercício consiste em submeter um Workflow, acompanhar o Pod, provocar uma falha controlada no contêiner e executar novamente com o parâmetro corrigido. O exercício usa apenas Kubernetes local e tem custo AWS zero.
 
 ## Pré-requisitos
 

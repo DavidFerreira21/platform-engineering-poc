@@ -15,7 +15,7 @@ Não basta diminuir a quantidade de campos em um formulário. Uma boa abstraçã
 ## Leitura complementar
 
 - [DORA — Platform Engineering](https://dora.dev/capabilities/platform-engineering/) — referência pública para aprofundar o conceito.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 1 — carga cognitiva e context switching.. Referência temática; esta explicação é autoral, não uma tradução do livro.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 1 — carga cognitiva e context switching.
 
 ---
 

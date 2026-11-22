@@ -18,6 +18,12 @@ A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) �
 
 ## 2. Visão geral
 
+![Diagrama de arquitetura de referência com Hub, contas AWS UAT/PROD, quatro camadas e três personas](arquitetura%20Plataform.png)
+
+[**Abrir diagrama em tamanho completo**](arquitetura%20Plataform.png) · O diagrama é **arquitetura-alvo**; não confirma recursos implantados. `TerraformStack` e os mecanismos de política/drift estão propostos, e GitHub Actions de aplicações opera fora do Hub.
+
+### Topologia lógica (Mermaid)
+
 ```mermaid
 flowchart TB
   E["Experience Layer<br/>Backstage · CLI · GitOps · AI/MCP"]
@@ -106,10 +112,10 @@ Esses YAMLs **não são manifests Kubernetes** e não devem ser sincronizados di
 
 **`ObjectStorage` e `Database` são as duas primeiras Capabilities da POC**, nessa ordem. A primeira implementação de `Database` usará **Amazon Aurora PostgreSQL** (cluster Aurora), sem assumir que uma definição lógica de `Database` tenha de se limitar a Aurora em versões futuras; `Messaging` e `ComputeInstance` ficam no roadmap. **Não criar `CapabilityClaim` genérico.** **Domain Bootstrap é proposta anterior adiada:** previa a criação de Capabilities e configurações iniciais do Domain, mas não será implementado agora. Capabilities e Deployments continuam solicitações independentes. Ver [Domain Bootstrap](#6-domain-bootstrap-proposta-anterior-em-reavaliação).
 
-### Complemento da arquitetura-alvo (21/11/2026)
+### Decisões complementares da arquitetura-alvo
 
 - **Contrato Terraform (proposto):** `TerraformStack` é o CRD Kubernetes próprio do Hub que representa **infraestrutura desejada** de Foundation/Entity Core. O Argo CD central sincroniza o manifesto; o controller coordena Argo Workflows/Terraform Executor para `plan` inicial e periódico, detecção de drift, classificação por Policy Engine (**auto apply / aprovação / bloqueio**) e atualização de status. **Não executar `apply` a cada reconcile**. `TerraformRun` permanece nome opcional de uma execução isolada, não um segundo CRD obrigatório. Ver [ADR-0006](adr/0006-terraformrun-and-application-ci.md).
-- **Domain Applications:** as squads terão **código, GitHub Actions e manifests Kubernetes da aplicação no mesmo repositório separado**, a ser fornecido. O pipeline faz build/testes/scans e publicação, propõe atualização declarativa GitOps; **Argo CD local** em cada Management EKS faz o deploy nos EKS PCI/Non-PCI autorizados. O workflow CI existente neste monorepo só valida a POC.
+- **Domain Applications:** as squads manterão **código, GitHub Actions e manifests Kubernetes da aplicação em repositório próprio**, separado deste monorepo e previsto para uma etapa posterior. O pipeline faz build/testes/scans e publicação, propõe atualização declarativa GitOps; **Argo CD local** em cada Management EKS faz o deploy nos EKS PCI/Non-PCI autorizados. O workflow CI existente neste monorepo só valida a POC.
 - **Management EKS:** **Operators ainda a estudar**; usar **OpenTelemetry Collector/gateway** para encaminhar telemetria à camada central, não assumir Loki instalado dentro de todos os Management EKS.
 - **Observabilidade central:** **OpenTelemetry, Grafana, Loki e Tempo**; estratégia de métricas/Prometheus, retenção e fronteiras PCI a validar no laboratório.
 - **Domain Bootstrap:** conceito mantido no ADR-0005 para rastreabilidade, mas **em reavaliação e fora das próximas implementações**. Não é pré-requisito para Foundation, Capabilities ou Domain Applications.
@@ -121,8 +127,8 @@ Existem **três personas**, não quatro equipes para as quatro camadas de owners
 | Persona | Papel | Conhecimento e responsabilidades |
 | :--- | :--- | :--- |
 | **Platform Team** | Construir/operar a plataforma como produto | Control/Workflow/Observability Planes, contratos, módulos/Compositions, policies, Golden Paths, Foundation e Entity Core compartilhados |
-| **Federated DevOps Team** | Ponte técnica entre plataforma e squads | Conhece catálogo/contratos e mantém **Domain Infrastructure**, usando Capabilities para Database, ObjectStorage, Messaging, alterações e upgrades; solicita evolução da plataforma quando necessário |
-| **Application Team / Developers** | Construir o produto de negócio | Código, testes, CI/CD, imagens e **manifests Kubernetes da aplicação** no repositório da squad, consumindo Starter Kits e padrões da plataforma sem conhecer motores internos |
+| **DevOps Federado (Federated DevOps Team)** | Ponte técnica entre plataforma e squads | Conhece catálogo/contratos e mantém **Domain Infrastructure**, usando Capabilities para Database, ObjectStorage, Messaging, alterações e upgrades; solicita evolução da plataforma quando necessário |
+| **Squads de Produto (Application Team / Developers)** | Construir o produto de negócio | Código, testes, CI/CD, imagens e **manifests Kubernetes da aplicação** no repositório da squad, consumindo Starter Kits e padrões da plataforma sem conhecer motores internos |
 
 **O desenvolvimento não precisa aprender a implementação interna de Crossplane, Terraform ou Argo para criar um serviço.** O DevOps Federado tem conhecimento mais aprofundado de consumo e lifecycle das Capabilities, mas não administra o Control Plane nem os módulos centrais. EKS compartilhado e seu upgrade/provisioning são governados pelo Platform Team (DevOps Federado pode propor).
 
@@ -178,7 +184,7 @@ platform-engineering-poc/
 └── tests/
 ```
 
-**Separado deste monorepo:** o repositório da aplicação de teste (a ser fornecido) pertence ao **Application Team** e inclui `src/`, `tests/`, `Dockerfile`, `.github/workflows/` e `k8s/{base,overlays/uat,overlays/prod}`. O **Argo CD local** sincroniza esses manifests diretamente do repositório da aplicação. A pasta `applications/` que aparecia na árvore anterior do monorepo deixa de ser o destino-alvo para código/manifests de aplicação.
+**Separado deste monorepo:** o repositório da aplicação de teste, previsto para um lab posterior, pertence às **Squads de Produto (Application Team)** e inclui `src/`, `tests/`, `Dockerfile`, `.github/workflows/` e `k8s/{base,overlays/uat,overlays/prod}`. O **Argo CD local** sincroniza esses manifests diretamente do repositório da aplicação. A pasta `applications/` que aparecia na árvore anterior do monorepo deixa de ser o destino-alvo para código/manifests de aplicação.
 
 **Esta é a árvore-alvo; o primeiro lab cria somente a configuração executável do Hub `kind` e um template declarativo de conta UAT.** Diretórios de Domain/Foundation serão adicionados somente com conteúdo real dos labs. Os README de infraestrutura preexistentes podem permanecer como documentação temporária até a implementação; não são fontes de configuração runtime. A [estrutura](repository-structure.md) especifica essa transição.
 
@@ -297,6 +303,6 @@ O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicaçã
 
 **Fechado:** Domain como unidade lógica de consumo/ownership, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas (incluindo **Domain Applications**), monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência. **Criação padronizada via Domain Bootstrap não está fechada: em reavaliação.**
 
-**A validar nos labs:** autenticação de UAT sem credenciais permanentes no Git, arquitetura de rede e custo do Aurora PostgreSQL, implementação e gatilho do gerador de Bootstrap, versionamento dos perfis, verificação agregada de prontidão, schema dos YAMLs, transformação segura de registros lógicos em escopo/credenciais, autenticação Crossplane a partir do `kind`, distribuição de namespaces/quotas ao GitOps local, gates, observabilidade, PCI e necessidade eventual de uma API/controller de ciclo de vida de contas.
+**A validar nos labs:** autenticação de UAT sem credenciais permanentes no Git, arquitetura de rede e custo do Aurora PostgreSQL, decisão futura sobre manter ou descartar Domain Bootstrap (sem implementá-lo agora), schema dos YAMLs, transformação segura de registros lógicos em escopo/credenciais, autenticação Crossplane a partir do `kind`, distribuição de namespaces/quotas ao GitOps local, gates, observabilidade, PCI e necessidade eventual de uma API/controller de ciclo de vida de contas.
 
 [Decisões](adr/README.md) · [Monorepo](repository-structure.md) · [Roteiro](learning-roadmap.md)

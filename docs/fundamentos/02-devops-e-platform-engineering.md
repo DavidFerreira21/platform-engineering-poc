@@ -15,7 +15,7 @@ Se cada time precisar ajustar manifests, redes e credenciais em dezenas de passo
 ## Leitura complementar
 
 - [CNCF — Platforms White Paper](https://tag-app-delivery.cncf.io/whitepapers/platforms/) — referência pública para aprofundar o conceito.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 1 — evolução DevOps e equipes de plataforma.. Referência temática; esta explicação é autoral, não uma tradução do livro.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 1 — evolução DevOps e equipes de plataforma.
 
 ---
 

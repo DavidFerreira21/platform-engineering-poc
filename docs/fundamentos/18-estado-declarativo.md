@@ -15,7 +15,7 @@ Em ObjectStorage, o Kubernetes API Server persiste o recurso, e Crossplane Compo
 ## Leitura complementar
 
 - [Kubernetes — Controllers](https://kubernetes.io/docs/concepts/architecture/controller/) — documentação e material público complementar.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 3 — declared/actual state e loops de reconciliação.. Referência temática; texto autoral adaptado à POC.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 3 — declared/actual state e loops de reconciliação.
 
 ---
 

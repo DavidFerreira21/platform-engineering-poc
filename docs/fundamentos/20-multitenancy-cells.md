@@ -15,7 +15,7 @@ Na POC, UAT e PROD são contas distintas, e cada uma poderá ter EKS PCI e EKS N
 ## Leitura complementar
 
 - [CNCF — Platform Engineering Maturity Model](https://tag-app-delivery.cncf.io/whitepapers/platform-eng-maturity-model/) — documentação e material público complementar.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 3 — multi-tenancy e cell models.. Referência temática; texto autoral adaptado à POC.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 3 — multi-tenancy e cell models.
 
 ---
 

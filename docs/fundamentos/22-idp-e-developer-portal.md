@@ -10,7 +10,7 @@ O desenho da POC separa a **Experience Layer** (Backstage, CLI, GitOps, AI/MCP) 
 
 Essa distinção também reduz acoplamento: um catálogo que aponta para um `Database` pode mudar sua apresentação enquanto o recurso declarado continua versionado e estável. O portal deve melhorar descoberta e feedback; não se tornar a única forma de consumo.
 
-## Na nossa POC
+## Aplicação na POC
 
 A primeira Capability de ObjectStorage pode ser entregue com manifest Git, XRD Crossplane, reconciliação e status, sem esperar Backstage. Quando o portal for incluído, ele consumirá os contratos existentes e oferecerá um percurso mais simples, e não um novo motor de provisionamento.
 

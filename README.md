@@ -5,7 +5,7 @@
 **`Kubernetes API` · `Crossplane v2` · `Argo CD` · `Argo Workflows` · `TerraformStack (proposto)` · `GitHub Actions (app separada)` · `OpenTelemetry` · `AWS`**
 
 > [!NOTE]
-> **Estado atual:** arquitetura documentada, sem deploy AWS/Kubernetes realizado por esta revisão. As pastas são organizacionais ou exemplos de implementação futura.
+> **Estado atual:** arquitetura-alvo documentada; os componentes AWS/Kubernetes descritos não estão necessariamente implantados. As pastas representam a organização do projeto e etapas futuras dos labs.
 
 > [!NOTE]
 > Projeto **pessoal de laboratório**, independente de qualquer iniciativa corporativa. A arquitetura abaixo é **alvo**, não comprovação de recursos implantados.
@@ -24,23 +24,11 @@
 
 ## 🧱 Visão arquitetural
 
-```mermaid
-flowchart TB
-  E["Experience Layer<br/>Backstage · CLI · GitOps · AI/MCP"]
-  subgraph HUB["Platform Management Cluster · kind inicial"]
-    C["Control Plane<br/>Kubernetes API · Crossplane central<br/>XRDs · TerraformStack CRD/controller (propostos)"]
-    W["Workflow Plane<br/>Argo CD central · Workflows · Terraform Executor"]
-    O["Observability Plane<br/>OpenTelemetry · Grafana · Loki · Tempo"]
-  end
-  subgraph D["Data Plane · Entity A"]
-    CORE["Entity Core Infrastructure<br/>UAT/PROD · 3 EKS por conta<br/>Management EKS: Argo CD local · Operators · OTel gateway"]
-    DOM["Domains<br/>identidade única · infra e apps por ambiente"]
-  end
-  E --> C
-  C --> W
-  C -. "Capabilities AWS" .-> DOM
-  W -. "Foundation / EKS" .-> CORE
-```
+![Arquitetura de referência da Platform Engineering POC — Hub, Spokes, personas e camadas de recursos](docs/arquitetura%20Plataform.png)
+
+[**Ver diagrama em tamanho completo**](docs/arquitetura%20Plataform.png) · [Topologia lógica e fluxos detalhados](docs/architecture.md#2-visão-geral)
+
+> **Nota de arquitetura:** o diagrama oficial está em `docs/arquitetura Plataform.png` e representa a **topologia-alvo**. Para contratos e decisões atualizadas, consultar os [ADRs](docs/adr/README.md). O nome vigente do contrato declarativo proposto é `TerraformStack` (CRD + controller); `TerraformRun` fica reservado para uma execução individual, se necessário.
 
 **Environment é o contexto UAT/PROD associado à conta AWS inteira, não apenas ao Core.** O Data Plane contém **Core Infrastructure compartilhada** e **Domains** de negócio/aplicação. Um Domain pode possuir Capabilities, namespaces e apps em ambos os ambientes. **Domain Bootstrap é uma proposta anterior em reavaliação, não um pré-requisito da POC**. O perfil `standard` e seu gerador permanecem descritos para referência, mas não serão implementados agora. Capabilities continuam entregues por Crossplane central e aplicações por Argo CD local.
 
@@ -49,8 +37,8 @@ flowchart TB
 | Persona | Responsabilidade | Nível de abstração |
 | :--- | :--- | :--- |
 | **Platform Team** | Constrói/opera a plataforma, módulos, contratos, guardrails e Golden Paths | Conhece os motores internos |
-| **Federated DevOps Team** | Gerencia o lifecycle da **Domain Infrastructure** (Database, ObjectStorage, Messaging) a partir das Capabilities aprovadas | Conhece catálogo, contratos e processos de infraestrutura |
-| **Application Team** | Desenvolve código e mantém repositório da aplicação, CI/CD e manifests Kubernetes | Consome **Golden Paths / Starter Kits**, sem precisar entender Crossplane/TerraformStack/Argo internamente |
+| **DevOps Federado (Federated DevOps Team)** | Gerencia o lifecycle de **Domain Infrastructure** com Capabilities aprovadas; propõe mudanças de EKS, mas não administra o Core compartilhado | Conhece contratos, catálogo e processos de infraestrutura |
+| **Squads de Produto (Application Team)** | Mantêm código, testes, CI/CD e manifests Kubernetes em repositório próprio | Consomem **Golden Paths / Starter Kits**, sem conhecer os motores internos |
 
 A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership do **DevOps Federado**. Já **código, GitHub Actions e manifests Kubernetes da aplicação** pertencem ao **repositório separado da squad**. O Argo CD local entrega os manifests do repo da aplicação nos EKS autorizados.
 
@@ -78,10 +66,10 @@ A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership 
 
 **Um único monorepo** simula a organização por Entity/Domain. O Crossplane é central, sem cascata, e Argo CD local administra aplicações. A definição das contas e o provisioning de Foundation não dependem de criar `AWSEnvironment` ou Environment Controller próprio nesta fase.
 
-## 🔧 Novas decisões arquiteturais
+## 🔧 Decisões arquiteturais
 
 - **TerraformStack CRD + Controller (propostos):** contrato declarativo de **infraestrutura desejada** no Hub, aplicado via Argo CD central. O controller aciona Argo Workflows/Terraform Executor para `plan` inicial e periódico, **detecta drift** e avalia políticas (auto apply, aprovação ou bloqueio). `Synced` no Argo CD não equivale a ausência de drift AWS. `TerraformRun` fica como conceito opcional de execução individual. [ADR-0006](docs/adr/0006-terraformrun-and-application-ci.md).
-- **Domain Applications:** código e workflows CI/CD **GitHub Actions em outro repositório de aplicação de teste**, ainda não fornecido; deploy GitOps nos EKS via Argo CD local.
+- **Domain Applications:** código e workflows CI/CD **GitHub Actions em um repositório de aplicação de teste separado**, a integrar em etapa posterior; deploy GitOps nos EKS via Argo CD local.
 - **Management EKS:** Argo CD local, Operators **a escolher** e OpenTelemetry Collector/gateway para logs e traces; backend central com **Grafana + Loki + Tempo**. Estratégia de métricas/Prometheus em validação.
 - **Ownership:** Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications.
 - **Domain Bootstrap:** documentação preservada, mas **adiado e em reavaliação**, sem implementação neste ciclo.
@@ -90,7 +78,7 @@ A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership 
 
 ## 🧰 Domain Bootstrap
 
-**Proposta anterior (atualmente em reavaliação, sem implementação imediata):** ao criar um Domain, a plataforma executaria o **Domain Bootstrap** como fluxo padrão: o perfil versionado define a estrutura e os recursos iniciais, considerando os Environments escolhidos. Não existe um Bootstrap independente obrigatório por Environment. O gerador produz os manifests de Capabilities (`infrastructure/`) e de namespaces/policies (`applications/`) para revisão em PR. O **Argo CD central** aplica os CRs de Capability, o **Crossplane** entrega AWS e o **Argo CD local** configura Kubernetes. A conclusão é verificada para o Domain, com detalhamento por Environment; criar em UAT não seleciona PROD automaticamente. [Detalhamento](docs/architecture.md#6-domain-bootstrap-proposta-anterior-em-reavaliação).
+**Proposta anterior, adiada e em reavaliação.** O desenho de um gerador por perfil versionado está preservado para rastreabilidade, **sem ser etapa obrigatória nem implementação planejada agora**. A POC adota manifests de **Domain Infrastructure** geridos pelo DevOps Federado neste monorepo e manifests de **Domain Applications** no repositório próprio da squad. Não recriar `applications/` no monorepo por causa do Bootstrap histórico. [Contexto e decisão](docs/adr/0005-domain-bootstrap.md).
 
 ## ☁️ Estratégia AWS
 

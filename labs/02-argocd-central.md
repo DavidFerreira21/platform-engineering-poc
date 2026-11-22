@@ -2,7 +2,7 @@
 
 [← Lab 01](01-platform-management-cluster.md) · [Índice dos labs](README.md)
 
-Neste lab, o Helm faz o bootstrap do Argo CD. Depois, o Argo CD lê uma revisão do Git e sincroniza um ConfigMap no Hub. Você vai observar a divergência entre o Git e o cluster e restaurar o valor declarado. O exercício usa apenas recursos locais e tem custo AWS zero.
+Neste lab, o Helm faz o bootstrap do Argo CD. Depois, o Argo CD lê uma revisão do Git e sincroniza um ConfigMap no Hub. O exercício permite observar a divergência entre o Git e o cluster e restaurar o valor declarado. O exercício usa apenas recursos locais e tem custo AWS zero.
 
 ## Pré-requisitos
 
@@ -20,7 +20,7 @@ bash platform/hub/scripts/install-argocd.sh
 kubectl --context kind-platform-management -n argocd get deployments,statefulsets,pods,svc
 ```
 
-O [chart fixado](../workflow-plane/argocd/chart-version.txt) instala os CRDs de Application e AppProject. O Service `argocd-server` deve aparecer como `ClusterIP`. Você pode executar o script novamente para reaplicar a configuração.
+O [chart fixado](../workflow-plane/argocd/chart-version.txt) instala os CRDs de Application e AppProject. O Service `argocd-server` deve aparecer como `ClusterIP`. O script pode ser executado novamente para reaplicar a configuração.
 
 Deixe o port-forward aberto em outro terminal.
 
@@ -29,7 +29,7 @@ kubectl --context kind-platform-management -n argocd port-forward \
   --address 127.0.0.1 svc/argocd-server 8081:443
 ```
 
-Abra `https://localhost:8081`. O servidor usa um certificado local autoassinado. Para o primeiro acesso, use o usuário `admin` e consulte a senha inicial no seu terminal.
+Abra `https://localhost:8081`. O servidor usa um certificado local autoassinado. Para o primeiro acesso, use o usuário `admin` e consulte a senha inicial no terminal local.
 
 ```bash
 kubectl --context kind-platform-management -n argocd \

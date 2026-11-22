@@ -33,7 +33,7 @@ Abra [`kind-config.yaml`](../platform/hub/kind-config.yaml): **host 127.0.0.1:80
 bash platform/hub/scripts/create.sh
 ```
 
-O script reutiliza o cluster existente, caso haja um; nesse caso **não consegue alterar os mapeamentos de portas**. Se você criou o cluster com uma configuração antiga, será necessário removê-lo e recriá-lo explicitamente (consulte a limpeza). Depois observe:
+O script reutiliza o cluster existente, caso haja um; nesse caso **não consegue alterar os mapeamentos de portas**. Se o cluster foi criado com uma configuração anterior, remova-o e recrie-o explicitamente (consulte a seção de limpeza). Em seguida, observe:
 
 ```bash
 kubectl --context kind-platform-management cluster-info

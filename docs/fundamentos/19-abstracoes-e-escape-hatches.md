@@ -15,7 +15,7 @@ Para Database, campos como classe de serviço, ambiente, retenção e disponibil
 ## Leitura complementar
 
 - [CNCF — Platforms White Paper](https://tag-app-delivery.cncf.io/whitepapers/platforms/) — documentação e material público complementar.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 3 — developer-facing abstractions e escape hatches.. Referência temática; texto autoral adaptado à POC.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 3 — developer-facing abstractions e escape hatches.
 
 ---
 

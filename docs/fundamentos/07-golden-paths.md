@@ -15,7 +15,7 @@ Na POC, um Golden Path para ObjectStorage começa na necessidade de armazenar ob
 ## Leitura complementar
 
 - [Platform Engineering — Fundamentos](https://university.platformengineering.org/course-1) — referência pública para aprofundar o conceito.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 1 — golden paths e paved roads.. Referência temática; esta explicação é autoral, não uma tradução do livro.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 1 — golden paths e paved roads.
 
 ---
 

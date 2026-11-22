@@ -13,7 +13,7 @@ No laboratório, o resultado desejado é permitir que um consumidor solicite sto
 ## Leitura complementar
 
 - [CNCF — O que é Platform Engineering](https://www.cncf.io/blog/2025/11/19/what-is-platform-engineering/) — referência pública para aprofundar o conceito.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 1 — evolução de DevOps para plataformas. Referência temática; esta explicação é autoral, não uma tradução do livro.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 1 — evolução de DevOps para plataformas.
 
 ---
 

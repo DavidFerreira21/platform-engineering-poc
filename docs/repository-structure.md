@@ -2,7 +2,7 @@
 
 [← Início](../README.md) · [Arquitetura](architecture.md) · [Roadmap](learning-roadmap.md)
 
-A POC utiliza **um único repositório** para demonstrar responsabilidades que poderiam ser separadas por equipes/repositórios reais. A estrutura-alvo está detalhada na [arquitetura](architecture.md#5-organização-do-monorepo).
+A POC utiliza **um único repositório** para demonstrar responsabilidades que poderiam ser separadas por equipes/repositórios reais. [Diagrama visual da arquitetura e das três personas](arquitetura%20Plataform.png). A estrutura-alvo está detalhada na [arquitetura](architecture.md#5-organização-do-monorepo).
 
 ## Divisão por ownership
 
@@ -12,7 +12,7 @@ A POC utiliza **um único repositório** para demonstrar responsabilidades que p
 | `data-plane/<entity>/core-infrastructure/<env>/` | **Entity Core** · compartilhado por ambiente, EKS por Terraform |
 | `data-plane/<entity>/domains/<domain>/domain.yaml` | **Domain** · registro lógico único, não CRD |
 | `data-plane/<entity>/domains/<domain>/<env>/infrastructure/` | **Domain Infrastructure** · manifests de Capabilities sob gestão do DevOps Federado; Crossplane central é reconciliador |
-| **Repositório separado da aplicação**: `src/`, `tests/`, `.github/workflows/`, `k8s/` | **Domain Applications** · Application Team (código, manifests K8s, CI/CD) + Argo CD local |
+| **Repositório próprio da aplicação (etapa futura)**: `src/`, `tests/`, `.github/workflows/`, `k8s/` | **Domain Applications** · Application Team (código, manifests K8s, CI/CD) + Argo CD local |
 | `control-plane/`, `workflow-plane/`, `observability-plane/`, `platform/hub/` | Código e configuração da plataforma central |
 
 **Domain Bootstrap está adiado e em reavaliação:** a ideia anterior previa um gerador de manifests em `infrastructure/` e `applications/`, porém **não é requisito do modelo atual**. Os manifests de infraestrutura pertencem ao DevOps Federado no monorepo; **manifests da aplicação pertencem ao repositório separado da squad**, gerado futuramente por Golden Path. Ver [ADR-0007](adr/0007-personas-and-developer-experience.md).
@@ -22,7 +22,7 @@ A POC utiliza **um único repositório** para demonstrar responsabilidades que p
 ### Atualizações de arquitetura-alvo (a implementar)
 
 - **TerraformStack (CRD + controller):** contrato de infraestrutura desejada e drift em `control-plane/`, sincronizado via Argo CD central, com policies, status e execução plan/gate/apply por Argo Workflows + Terraform Executor em `workflow-plane/`. `TerraformRun` é nome opcional de execução individual, sem segundo CRD obrigatório. Não confundir com XRDs do Crossplane.
-- **GitHub Actions das aplicações:** será mantido **em repositório de aplicação de teste separado**, ainda não informado. Este monorepo não incluirá código/CI da aplicação.
+- **GitHub Actions das aplicações:** será mantido **em repositório de aplicação de teste separado**, a integrar durante o lab correspondente. Este monorepo não incluirá código/CI da aplicação.
 - **Management EKS:** Argo CD local, Operators a escolher e OpenTelemetry Collector/gateway para observabilidade central (Grafana/Loki/Tempo).
 - **Domain Bootstrap:** documentação existente preservada, mas implementação adiada e em reavaliação.
 

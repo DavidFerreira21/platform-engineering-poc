@@ -8,14 +8,14 @@ Consumir uma capacidade como serviço significa pedir um resultado por contrato 
 
 ## Self-service com governança
 
-O usuário aplica um CR ObjectStorage via GitOps e consulta Ready/NotReady, sem operar diretamente o Provider AWS. Para ações permanentes, Backstage/CLI/AI-MCP podem abrir um PR.
+O DevOps Federado solicita a Capability `ObjectStorage` por meio de um CR versionado no Git e consulta `Ready`/`NotReady`, sem operar diretamente o Provider AWS. Para ações permanentes, Backstage/CLI/AI-MCP podem abrir um PR.
 
 A maior parte das solicitações conformes deveria ser atendida automaticamente por validação de schema, identidade e políticas. Para ações excepcionalmente caras ou sensíveis, um gate autorizado é apropriado. Self-service não significa ausência de regras; significa que regras previsíveis foram incorporadas ao caminho do consumidor.
 
 ## Leitura complementar
 
 - [CNCF — Platforms White Paper](https://tag-app-delivery.cncf.io/whitepapers/platforms/) — referência pública para aprofundar o conceito.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulos 1 e 3 — produto interno e contratos declarativos; ampliação autoral.. Referência temática; esta explicação é autoral, não uma tradução do livro.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulos 1 e 3 — produto interno e contratos declarativos.
 
 ---
 

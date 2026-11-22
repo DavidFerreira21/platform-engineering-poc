@@ -10,7 +10,7 @@ Na POC, **Capability é uma família arquitetural**, não um CRD genérico. Os p
 
 Um catálogo poderá apontar para essas opções e suas versões. O portal não define a semântica do recurso nem executa a reconciliação; o API Server e seus controllers permanecem responsáveis por isso. Um produto pode ter múltiplos perfis suportados sem exigir um XRD novo para cada tamanho de banco.
 
-## Na nossa POC
+## Aplicação na POC
 
 Antes de implementar Backstage, escrevemos a documentação de `ObjectStorage` com perfil aceito, permissões, comportamento de exclusão, resultado esperado e estados de erro. Posteriormente o catálogo pode mostrar essa informação e criar o manifesto por meio de um Golden Path.
 

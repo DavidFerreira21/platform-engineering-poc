@@ -10,7 +10,7 @@ Em cada conta UAT/PROD, a topologia prevê **Management EKS**, **EKS PCI** e **E
 
 O **AWS Runtime** engloba Core Infrastructure (recursos compartilhados) e Domain Infrastructure (recursos de cada domínio). **Terraform** cria Foundation e Entity Core como rede, dependências e EKS; **Crossplane** reconcilia Capabilities AWS de Domain, e pode operar Capabilities comuns quando o ownership for explícito. Um recurso não terá Terraform e Crossplane como owners simultâneos.
 
-**Domain Applications:** código, GitHub Actions **e manifests Kubernetes da aplicação** ficarão **juntos no repositório separado da squad, ainda não fornecido**; Argo CD local aplica esses manifests em EKS PCI/Não PCI autorizado. O **Application Team** é owner desse repositório.
+**Domain Applications:** código, GitHub Actions **e manifests Kubernetes da aplicação** ficarão **juntos no repositório próprio da squad, previsto para uma etapa posterior**; Argo CD local aplica esses manifests em EKS PCI/Não PCI autorizado. O **Application Team** é owner desse repositório.
 
 **Domain Bootstrap** continua registrado como hipótese, mas a implementação foi **adiada e está em reavaliação**.
 

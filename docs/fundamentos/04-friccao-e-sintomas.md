@@ -15,7 +15,7 @@ Ambientes snowflake dependem de ajustes não declarados e conhecimentos individu
 ## Leitura complementar
 
 - [CNCF — Maturity Model](https://tag-app-delivery.cncf.io/whitepapers/platform-eng-maturity-model/) — referência pública para aprofundar o conceito.
-- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 1 — filas, snowflakes e proliferação de ferramentas.. Referência temática; esta explicação é autoral, não uma tradução do livro.
+- *Platform Engineering in Practice*, Zebb Wright (2026), Capítulo 1 — filas, snowflakes e proliferação de ferramentas.
 
 ---
 
