@@ -1,6 +1,6 @@
 # ⚙️ Workflow Plane
 
-O Workflow Plane inclui o **Domain Bootstrap**, que valida o perfil versionado e gera a estrutura e os manifests iniciais de cada novo Domain, para os Environments selecionados, em PR; ele não provisiona recursos diretamente e não concorre com Argo CD/Crossplane. A verificação da prontidão deve agregar evidências de ambos. 
+A **proposta adiada** de Domain Bootstrap previa um gerador que valida o perfil versionado e gera a estrutura e os manifests iniciais de cada novo Domain, para os Environments selecionados, em PR; ele não provisiona recursos diretamente e não concorre com Argo CD/Crossplane. A verificação da prontidão deve agregar evidências de ambos. 
 
 O Workflow Plane mantém processos, GitOps central, aprovação e execução, **sem Crossplane**. **Argo Workflows é instalado logo após Argo CD ([Lab 02B](../labs/02b-argo-workflows.md))**, antes de Crossplane; o Lab 08 aprofunda integração com Terraform Executor e aprovações.
 
@@ -14,7 +14,7 @@ O Workflow Plane mantém processos, GitOps central, aprovação e execução, **
 
 ## Aplicações e execuções declarativas (planejadas)
 
-- **TerraformRun (proposto):** o controller fica no Control Plane; **Argo Workflows** executa o Workflow criado após validação do CRD, com `plan → gate → apply`, status e state seguro. Lab 08B complementa o Executor do Lab 08.
+- **TerraformStack (proposto):** o controller fica no Control Plane; **Argo Workflows** executa `plan`, avaliação de policies, gate e `apply` quando autorizado. Há **replan/drift periódico** sem remediação automática até a terceira etapa. `TerraformRun` poderá identificar execução individual futuramente, sem obrigatoriedade de CRD separado. Etapas 08B-A (Declarative Execution), 08B-B (Drift Detection) e 08B-C (Policy-Based Reconciliation) complementam o Executor do Lab 08.
 - **Domain Applications:** GitHub Actions fará o **CI/CD em um repositório de aplicação de teste separado**, ainda a fornecer. Build/test/scan/publicação → atualização GitOps revisada → Argo CD **local** no Management EKS faz deploy nos clusters autorizados. Não adicionar código ou workflow CI da aplicação neste monorepo.
 - **Domain Bootstrap:** conceito preservado no ADR-0005, mas **adiado e em reavaliação**. Não torná-lo pré-requisito dos labs.
 
