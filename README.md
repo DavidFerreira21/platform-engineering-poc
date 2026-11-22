@@ -69,7 +69,7 @@ A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership 
 ## 🔧 Decisões arquiteturais
 
 - **TerraformStack CRD + Controller (propostos):** contrato declarativo de **infraestrutura desejada** no Hub, aplicado via Argo CD central. O controller aciona Argo Workflows/Terraform Executor para `plan` inicial e periódico, **detecta drift** e avalia políticas (auto apply, aprovação ou bloqueio). `Synced` no Argo CD não equivale a ausência de drift AWS. `TerraformRun` fica como conceito opcional de execução individual. [ADR-0006](docs/adr/0006-terraformrun-and-application-ci.md).
-- **Domain Applications:** código e workflows CI/CD **GitHub Actions em outro repositório de aplicação de teste**, ainda não fornecido; deploy GitOps nos EKS via Argo CD local.
+- **Domain Applications:** código e workflows CI/CD **GitHub Actions em um repositório de aplicação de teste separado**, a integrar em etapa posterior; deploy GitOps nos EKS via Argo CD local.
 - **Management EKS:** Argo CD local, Operators **a escolher** e OpenTelemetry Collector/gateway para logs e traces; backend central com **Grafana + Loki + Tempo**. Estratégia de métricas/Prometheus em validação.
 - **Ownership:** Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications.
 - **Domain Bootstrap:** documentação preservada, mas **adiado e em reavaliação**, sem implementação neste ciclo.

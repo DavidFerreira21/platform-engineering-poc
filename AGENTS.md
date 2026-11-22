@@ -6,7 +6,7 @@ Consultar [arquitetura](docs/architecture.md), [decisões](docs/adr/README.md), 
 
 ## Estilo da documentação
 
-Escrever os documentos **na voz do próprio projeto**, em português brasileiro e tom técnico direto. Preferir construções como "nesta POC", "a arquitetura adota", "o repositório mantém" e "vamos validar" quando a primeira pessoa fizer sentido. **Não narrar a criação do projeto como um observador externo:** evitar "o autor decidiu", "o usuário pediu", "a IA gerou", "na conversa anterior", "como solicitado" ou comentários sobre o processo de redação. Manter justificativas arquiteturais, referências técnicas e avisos de risco sem atribuí-los a um interlocutor.
+Escrever os documentos **na voz do próprio projeto**, em português brasileiro e tom técnico direto. Preferir construções como "nesta POC", "a arquitetura adota", "o repositório mantém" e "vamos validar" quando a primeira pessoa fizer sentido. **Não narrar a criação do projeto como um observador externo** nem atribuir decisões a interlocutores, conversas ou ferramentas de redação. Evitar comentários de bastidores e manter justificativas arquiteturais, referências técnicas e avisos de risco.
 
 ## Personas e níveis de abstração (ADR-0007)
 
@@ -39,7 +39,7 @@ Os YAMLs `domain.yaml` e `environment.yaml` **não são CRs**; validar e resolve
 
 - **Ownership padrão:** Foundation → Entity Core Infrastructure → Domain Infrastructure → **Domain Applications**.
 - **TerraformStack CRD + Controller:** **propostos**, representam a infraestrutura desejada em Foundation/Entity Core. Argo CD central sincroniza o CR Kubernetes; controller coordena plans iniciais/periódicos via Argo Workflows/Terraform Executor, sinaliza drift em `status.conditions` e consulta Policy Engine (auto apply / aprovação / bloqueio). Não é XRD Crossplane, não executa `apply` em todo reconcile e deve manter idempotência, plan aprovado imutável e state/identidades segregados. `TerraformRun` é somente nome opcional para execução individual, sem segundo CRD obrigatório. Labs **08B-A/B/C**.
-- **CI/CD de aplicação:** GitHub Actions **e os manifests Kubernetes da aplicação** deverão ficar junto ao código **no repositório de aplicação separado, ainda não fornecido**. Este monorepo mantém apenas manifests da **Domain Infrastructure**, configurações de plataforma e validações dos labs. Argo CD **local** entrega workloads via GitOps.
+- **CI/CD de aplicação:** GitHub Actions **e os manifests Kubernetes da aplicação** deverão ficar junto ao código **no repositório de aplicação separado, previsto para etapa posterior**. Este monorepo mantém apenas manifests da **Domain Infrastructure**, configurações de plataforma e validações dos labs. Argo CD **local** entrega workloads via GitOps.
 - **Management EKS:** Argo CD local, espaço para **Operators ainda não escolhidos**, e **OpenTelemetry Collector/gateway** de telemetria para backend central **Grafana, Loki e Tempo**. Prometheus/métricas e segregação PCI serão validados.
 - **Domain Bootstrap:** somente documentado e **adiado/em reavaliação**; não implementá-lo agora.
 - Este projeto é uma POC pessoal e **não deve usar nomes/recursos corporativos**. Documentação de arquitetura não significa execução implantada.
