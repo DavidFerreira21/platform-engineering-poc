@@ -8,6 +8,8 @@
 
 **Por quê:** evita controllers concorrendo pelos mesmos recursos, isola operação AWS dos Deployments e preserva autonomia federada via Git.
 
+**Complemento (21/11/2026):** o `TerraformRun` CRD + controller é o contrato declarativo **proposto** para acionar Argo Workflows com plan/gate/apply e status, sem `apply` contínuo em toda reconciliação. O **GitHub Actions das Domain Applications ficará em repositório de aplicação separado**, enquanto o Argo CD local mantém a entrega por GitOps. A coleta nos Management EKS será por **OpenTelemetry Collector/gateway**, para visualização central no Grafana com Loki/Tempo. Ver [ADR-0006](0006-terraformrun-and-application-ci.md).
+
 **Consequências:** Crossplane não monitora Git, apenas a API. Credenciais IAM precisam de associação autorizada por Environment e validação de Domain. O Argo CD local pode precisar de segregação de acesso PCI. Terraform só converge quando é executado; indisponibilidade do Hub interrompe reconciliação das Capabilities centrais, não necessariamente os workloads.
 
 [Arquitetura](../architecture.md) · [Índice](README.md)
