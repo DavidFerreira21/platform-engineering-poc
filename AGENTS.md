@@ -56,7 +56,7 @@ Os YAMLs `domain.yaml` e `environment.yaml` **não são CRs**; validar e resolve
 
 1. Lab 01 cria **somente** Platform Management Cluster local com `kind`; não depender de AWS.
 2. Instalar Crossplane no Hub e estudar XRD/Composition sem provisionar recursos AWS.
-3. Registrar **apenas UAT** com template em `foundation/config/entity-a/uat/environment.example.yaml`. **O método de autenticação AWS ainda não foi decidido**: não presumir IRSA/Pod Identity em `kind`, não commitar secrets e não usar credenciais permanentes como padrão.
+3. Registrar **UAT e PROD** em arquivos `environment.yaml` separados na Foundation, usando o template em `foundation/config/entity-a/uat/environment.example.yaml`. O operador usa IAM Identity Center. A autenticação de workload do Crossplane em `kind` ainda precisa ser validada, sem presumir IRSA/Pod Identity ou usar credenciais permanentes.
 4. Implementar `ObjectStorage` real e depois `Database` como **cluster Aurora PostgreSQL**, com orçamento, IAM, rede e teardown aprovados.
 
 ## Monorepo e labs
@@ -67,4 +67,4 @@ Um único monorepo simula limites. Criar pastas Domain/Foundation somente com co
 
 ## Segurança
 
-Cada alteração AWS exige `sts get-caller-identity`, conta/região conferidas, credenciais temporárias, IAM mínimo, custo e autorização por operação. Terraform state fora do Git e segregado. Nunca commitar segredos, dados corporativos, certificados, kubeconfigs ou identificadores AWS reais. Destruição de conta nunca é efeito de remover YAML; aprovar docs não autoriza `apply`/`destroy`. Validar isolamento entre Domain, UAT/PROD e PCI. Trabalhar via branch e PR, **sem merge automático**.
+Cada alteração AWS exige `sts get-caller-identity`, conta/região conferidas, credenciais temporárias, IAM mínimo, custo e autorização por operação. Terraform state fora do Git e segregado. Nunca commitar segredos, dados corporativos, certificados ou kubeconfigs. Os IDs reais das contas UAT e PROD desta POC podem ser versionados exclusivamente no campo `aws.accountId` dos dois registros `environment.yaml` sob `foundation/config/entity-a/`. Outros identificadores AWS reais ficam fora do Git. Destruição de conta nunca é efeito de remover YAML; aprovar docs não autoriza `apply`/`destroy`. Validar isolamento entre Domain, UAT/PROD e PCI. Trabalhar via branch e PR, **sem merge automático**.

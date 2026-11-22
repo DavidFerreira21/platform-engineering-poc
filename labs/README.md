@@ -10,6 +10,7 @@ Os labs materializarão a arquitetura progressivamente: preparação, instalaç�
 | **Lab 01** | [Platform Management Cluster com kind](01-platform-management-cluster.md) |
 | **Lab 02** | [Argo CD central no Hub kind](02-argocd-central.md) |
 | **Lab 03** | [Crossplane Core via GitOps](03-crossplane-core.md) |
+| **Lab 03B** | [Registro das contas UAT e PROD no Git](03b-uat-e-autenticacao-aws.md) |
 
 Cada lab deve apresentar pré-requisitos, passos, evidências, diagnóstico, recuperação e limpeza. Recursos AWS reais exigem autorização por operação.
 

@@ -1,0 +1,11 @@
+entity: entity-a
+environment: uat
+aws:
+  accountId: "892639601999"
+  region: us-east-1
+foundation:
+  networkBaseline: true
+core:
+  eksManagement: true
+  eksNonPci: true
+  eksPci: true

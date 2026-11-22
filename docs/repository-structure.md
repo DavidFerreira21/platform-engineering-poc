@@ -34,7 +34,7 @@ A POC utiliza **um único repositório** para demonstrar responsabilidades que p
 
 - `platform/hub/kind-config.yaml` e `platform/hub/scripts/`: criação, inspeção e remoção **apenas do cluster local kind**.
 - `labs/01-platform-management-cluster.md`: laboratório com pré-requisitos, começo, testes, diagnóstico e teardown.
-- `foundation/config/entity-a/uat/environment.example.yaml`: **template sem conta, região operacional ou credenciais reais**. A autenticação da conta AWS será decidida antes do primeiro provisionamento, não no bootstrap do kind.
+- `foundation/config/entity-a/{uat,prod}/environment.yaml`: registros versionados das contas UAT e PROD com IDs distintos, região, baseline de rede e clusters EKS previstos. O [Lab 03B](../labs/03b-uat-e-autenticacao-aws.md) valida os destinos via IAM Identity Center.
 
 ### Situação de migração
 
