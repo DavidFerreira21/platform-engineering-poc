@@ -44,6 +44,8 @@ Ligar as solicitações declarativas a identidades e execuções rastreáveis. O
 
 **Autenticação e RBAC da 11A:** Argo Server em `client` mode, Viewer/Approver com permissões namespace-scoped e testes de suspensão/retomada pela UI em um [Workflow simulado](terraformstack-11a-argo-client-rbac.md). A interface permanece desabilitada na Etapa 03 e será habilitada via GitOps durante a 11A.
 
+**Nova generation durante Apply:** concluir o Terraform Apply do plano aprovado sem interrupção. Após sucesso verificado, criar automaticamente novo plan e nova aprovação para a última generation. Se houver falha ou resultado incerto, bloquear nova execução até diagnóstico. [Fluxo e testes](terraformstack-11a-spec-supersession.md). Alteração do `spec` é mudança declarativa, não drift externo.
+
 **Nova generation durante aprovação:** se o `spec` mudar enquanto há Workflow suspenso, o controller [encerra a execução antiga e cria outra automaticamente](terraformstack-11a-spec-supersession.md), com novo plan e nova aprovação, somente após confirmar que não existe execução concorrente. Esse caso é diferente de cancelamento manual com `spec` inalterado.
 
 **Retry da 11A:** após cancelamento/falha, novo Workflow somente por [annotation operacional com request ID único](terraformstack-11a-retry-annotation.md), consumida de forma idempotente pelo controller. Sem Argo CD Sync e sem retry automático **para a mesma generation**. RBAC de patch limitado a operadores confiáveis.
