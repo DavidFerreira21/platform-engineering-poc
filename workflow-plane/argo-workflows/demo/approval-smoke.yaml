@@ -1,0 +1,34 @@
+# Simulação local da Etapa 11A: NÃO executa Terraform nem acessa AWS.
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: terraform-approval-smoke-
+  namespace: argo-workflows
+  labels:
+    lab.platform.example/exercise: terraform-approval-smoke
+spec:
+  entrypoint: approval-flow
+  serviceAccountName: argo-workflow
+  templates:
+    - name: approval-flow
+      steps:
+        - - name: plan
+            template: echo-plan
+        - - name: approval
+            template: human-approval
+        - - name: apply
+            template: echo-apply
+    - name: echo-plan
+      container:
+        image: docker.io/library/busybox:1.37.0
+        command: [sh, -ec]
+        args:
+          - 'echo "SIMULATED PLAN: +1 resource; no AWS calls"'
+    - name: human-approval
+      suspend: {}
+    - name: echo-apply
+      container:
+        image: docker.io/library/busybox:1.37.0
+        command: [sh, -ec]
+        args:
+          - 'echo "SIMULATED APPLY: approval step resumed; no AWS calls"'
