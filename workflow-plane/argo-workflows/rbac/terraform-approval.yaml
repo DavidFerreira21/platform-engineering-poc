@@ -1,0 +1,75 @@
+# Etapa 11A — identidades de laboratório para Argo Server auth-mode=client.
+# Não aplicar em ambientes produtivos/PCI sem reavaliar os privilégios de update/patch.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: terraform-workflows-viewer
+  namespace: argo-workflows
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: terraform-workflows-approver
+  namespace: argo-workflows
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: terraform-workflows-viewer
+  namespace: argo-workflows
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflows"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+---
+# LIMITAÇÃO DELIBERADA: update/patch em Workflows permite mais do que resume.
+# Usar apenas com identidade confiável e namespace de POC.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: terraform-workflows-approver
+  namespace: argo-workflows
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflows"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: terraform-workflows-viewer
+  namespace: argo-workflows
+subjects:
+  - kind: ServiceAccount
+    name: terraform-workflows-viewer
+    namespace: argo-workflows
+roleRef:
+  kind: Role
+  name: terraform-workflows-viewer
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: terraform-workflows-approver
+  namespace: argo-workflows
+subjects:
+  - kind: ServiceAccount
+    name: terraform-workflows-approver
+    namespace: argo-workflows
+roleRef:
+  kind: Role
+  name: terraform-workflows-approver
+  apiGroup: rbac.authorization.k8s.io
