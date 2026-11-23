@@ -95,6 +95,12 @@ hub delete -f workflow-plane/argo-workflows/rbac/terraform-approval.yaml
 
 A desativação do Argo Server, se desejada após o lab, deve ocorrer pelo manifesto GitOps revisado, não por `kubectl patch` persistente.
 
+## Sem prazo automático e nova tentativa
+
+O passo `suspend: {}` não tem `duration`: não há timeout de aprovação na 11A. **O token de acesso à UI continua temporário**, independentemente de quanto tempo o Workflow fica suspenso. Se o token expirar, obter outro token para entrar na UI; isso não cancela o Workflow.
+
+Se o Workflow for encerrado/cancelado antes do apply, o controller registrará a execução como cancelada sem iniciar outra automaticamente. A Stack permanece declarada no Git e sincronizada pelo Argo CD. **Não é preciso clicar Sync novamente.** Uma nova tentativa deverá ser solicitada explicitamente ao controller por mecanismo a definir; ela cria novo Workflow, novo plan e nova suspensão. Repetir Sync sem mudança na intenção não deve criar Workflow novo. Encerrar uma operação que já esteja aplicando infraestrutura não equivale a rollback.
+
 ## Critérios de aceite
 
 | Teste | Resultado esperado |
@@ -102,7 +108,7 @@ A desativação do Argo Server, se desejada após o lab, deve ocorrer pelo manif
 | Argo Server | `client` exclusivamente, acessível por port-forward local; `server` desabilitado |
 | Viewer | Visualiza Workflow; `patch/update` negados; não consegue `resume` pela UI |
 | Approver | Consegue `resume` na UI; não consegue criar Workflow, ler Secrets ou criar Pods |
-| Suspensão | `apply` simulado não inicia até a retomada manual; sem `duration` no suspend |
+| Suspensão | `apply` simulado não inicia até a retomada manual; sem `duration` nem TTL de aprovação |
 | Continuidade | Ao retomar, Workflow termina `Succeeded` e registra logs de simulação |
 | Escopo | Bindings em `argo-workflows`, sem RBAC cluster-wide para os usuários de aprovação |
 | Segurança | Tokens temporários não são versionados; UI não é exposta publicamente |
