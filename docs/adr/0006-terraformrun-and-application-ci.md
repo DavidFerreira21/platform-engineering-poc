@@ -74,22 +74,32 @@ Backstage / CLI / pessoa → PR + validações + aprovação Git
 - **Toda execução de apply na 11A exige aprovação humana explícita do plano**, mesmo para criação em UAT. Auto apply só será avaliado na 11C, com política versionada.
 - Validar schema, autorização, idempotência por generation/revisão, erros/retry, status e evidências. Começar com **executor simulado na Etapa 10**; na 11A, validar o fluxo autorizado com state segregado, lock, plano imutável e aprovação vinculada a hash, revisão Git e destino.
 
-### Decisão 11A — aprovação humana na Argo Workflows UI
+### Decisão 11A — aprovação por RBAC na Argo Workflows UI
 
-**Canal de aprovação escolhido:** Argo Workflows UI, com um passo `suspend: {}` entre `terraform plan` e `terraform apply`. O operador autorizado visualiza a referência do plano e retoma o Workflow pela UI. Nesta fase **não existe auto apply**; a aprovação de PR/Git não substitui a aprovação do plano de execução.
+**Escolha para o laboratório:** autorização simples por **Argo Server + RBAC**, com `suspend: {}` entre plan e apply. Usuários autorizados retomam o Workflow pela UI; a retomada autorizada é o **gate de aprovação operacional da 11A**. Não haverá serviço próprio de aprovação, assinatura individual do plano, nem validação adicional da identidade do aprovador depois do `resume`. O `apply` permanece bloqueado até a retomada manual. A aprovação de PR não substitui a retomada na UI.
 
-**Implementação prevista (sem código ou infraestrutura criados por este ADR):**
+**Fronteira de confiança:** esta decisão é proporcional à POC em ambiente autorizado. O RBAC controla quem pode modificar/retomar o Workflow, mas não garante aprovação criptograficamente vinculada a uma pessoa e a um hash específico. Não afirmar compliance/auditoria individual de aprovação; reavaliar para ambientes produtivos ou PCI. Permissões de `update/patch` em Workflows podem conceder mais capacidades do que apenas `resume`, portanto o acesso precisa ficar limitado a um namespace de laboratório e a identidades confiáveis. **Quem puder modificar o template, plano ou artefatos de execução não deve ser tratado como mero aprovador.**
 
-1. O `TerraformStack Controller` dispara um Workflow com identificação imutável de Stack, `metadata.generation`, revisão Git, módulo/versão e destino resolvido de uma lista permitida; o Workflow adquire lock de state.
-2. O executor gera `terraform plan -out` e persiste o plano binário **em armazenamento privado e com prazo de validade**, associado a hash SHA-256, state/serial e identidade do destino. Expõe apenas metadados não sensíveis para consulta.
-3. O passo de aprovação da UI usa um template `suspend: {}`, **sem `duration` que retome automaticamente**. Acesso ao Argo Server deve usar autenticação individual e autorização restrita a aprovadores, com trilha auditável de quem retomou o Workflow. Um simples `resume` não é autorização suficiente sem essa identidade verificável.
-4. Após o `resume`, um passo independente valida: identidade/autorização do aprovador, vínculo da decisão ao Workflow e ao hash do plano, revisão e `generation` ainda vigentes, validade do artefato, lock/state e destino. Qualquer falha, expiração ou plano alterado **bloqueia o apply**, exige novo plan e nova aprovação.
-5. O executor aplica **o arquivo de plano aprovado**, não executa um novo `terraform plan` implícito, verifica o resultado e atualiza `status`. A confirmação de sucesso depende de verificação da execução; `Argo CD Synced` não comprova o resultado na AWS.
-6. Reprovação, cancelamento, timeout e erro terminam sem apply; retry é controlado e nunca reaproveita aprovação para plano diferente. Operações `destroy` ou deleção de Stack não são autorizadas implicitamente.
+**Implementação prevista (não implantada por este ADR):**
 
-**Critérios de aceite específicos da decisão:** (a) aprovação de pessoa autorizada libera exatamente o plano exibido; (b) usuário sem permissão de retomar Workflow não aprova; (c) `resume` sem evidência verificável de aprovação não executa apply; (d) hash/revisão/destino/generation alterados, expiração ou perda de lock impedem apply; (e) auditoria registra Workflow, plano, aprovador, instante e resultado; (f) todos os caminhos de falha permanecem sem apply indevido.
+1. O `TerraformStack Controller` cria o Workflow somente a partir de Stack/destino/módulo autorizados e associa Stack UID, `metadata.generation`, revisão Git e identificador único de execução. O executor usa IAM mínimo e state segregado com lock; o aprovador **não recebe permissões AWS nem acesso ao state**.
+2. O executor executa `terraform plan -out` e salva o arquivo binário em storage restrito, com identificador/digest e validade. A UI exibe um resumo de mudanças **sanitizado** e a referência do plano; ela não expõe state, segredo ou conteúdo sensível do plano.
+3. Um passo `suspend: {}` (sem `duration`) aguarda a retomada humana na **Argo Workflows UI**. O Argo Server deve exigir autenticação e RBAC por namespace, sem acesso administrativo irrestrito nem modo de autorização compartilhado. Um papel observador só lê; um papel aprovador confiável pode executar a operação necessária para retomar Workflows naquele namespace. O verbo efetivo (`update`/`patch` e eventual subresource) será confirmado em teste na versão instalada.
+4. Após o `resume`, o executor **não revalida a identidade individual de quem clicou**; confia no gate de RBAC da UI. Contudo, antes do apply verifica correspondência entre execução e Stack, `generation`, revisão, módulo/versão, destino, hash e validade do plano, e lock/state. Qualquer divergência bloqueia o apply e exige um novo plan + nova retomada.
+5. O executor aplica o **arquivo binário planejado** (não um plan regenerado), valida o resultado e informa o controller, que atualiza `status`. Retomadas duplicadas, retries, cancelamentos e falhas não podem disparar apply indevido; `destroy` não é implícito.
 
-**Pendente para próxima decisão:** como representar os estados de execução e aprovação em `TerraformStack.status` (phase e conditions, ou apenas conditions) e quais referências não sensíveis expor.
+**Evidência mínima na 11A:** referência ao Workflow, à Stack/generation, ao digest do plano, ao instante de retomada observado e ao resultado da execução. O identificador do aprovador, se disponível em logs de acesso, é diagnóstico opcional e **não é garantia de auditoria individual**. Um `resume` por usuário autorizado é suficiente para o gate operacional desta POC; RBAC não deve ser confundido com aprovação forte de produção.
+
+**Critérios de aceite da decisão:**
+
+- Um observador consegue consultar Workflow e resumo de plano mas não retomar; a tentativa retorna negação de autorização.
+- Um aprovador com RBAC permitido retoma o Workflow na UI, e o processo segue à verificação pré-apply e ao apply do arquivo planejado; ninguém precisa editar o CR manualmente.
+- Sem retomada manual, não há apply; não configurar retomada automática por prazo. Cancelar/encerrar a execução não deve liberar apply.
+- Alteração de hash, destino, módulo, `generation`, revisão, validade do plano ou state/lock depois do plan bloqueia o apply, mesmo se o Workflow for retomado.
+- O papel de aprovação não inclui acesso a IAM, secrets, state ou plano binário; testar tentativas de escalonamento/modificação e registrar limitações do RBAC efetivo.
+- `status.conditions`, `phase`, logs do Workflow e referência do plano permanecem consistentes, sem conter material sensível.
+
+**Evolução futura:** aprovação forte vinculada a identidade e digest por serviço/contrato dedicado fica como opção fora da 11A; não é pré-requisito de 11B/11C.
 
 ### Etapa 11B — Drift Detection
 
@@ -119,7 +129,7 @@ Backstage / CLI / pessoa → PR + validações + aprovação Git
 | `lastSuccessfulExecution` | Opcional | Resumo da última execução aplicada com sucesso (`id`, `generation`, `finishedAt`), mantido mesmo quando uma nova execução falha. |
 | `lastPlan` | Após plan | `id`, `generation`, `hasChanges`, `planDigest` e referência restrita ao artefato. Sem conteúdo do plano nem credenciais. |
 
-A aprovação em `currentExecution.approval` usa `Pending/Approved/Rejected/Expired`, com `decidedAt` e referência **não sensível** ao registro de auditoria; nunca contém token de autorização. `Approved` só é registrado após **verificação server-side** da identidade autorizada e do vínculo ao plano. A ação de retomar um Workflow isoladamente **não basta**.
+A aprovação em `currentExecution.approval` usa `Pending/Approved/Rejected/Expired`, com `decidedAt` (quando observável) e referência não sensível ao Workflow; nunca contém token ou credenciais. Na 11A, `Approved` significa **gate suspend retomado por sessão autorizada pelo RBAC do Argo**, não comprovação individual de quem aprovou nem assinatura do plano. O executor ainda valida hash, generation, destino, revisão e lock antes do apply.
 
 ### Conditions v1alpha1
 
@@ -193,18 +203,18 @@ status:
 5. Duas reconciliações concorrentes não iniciam dois Workflows nem dois applies sobre o mesmo state; retry é idempotente e o lock é observado.
 6. `status` não expõe plano binário, state, segredos, credenciais ou detalhes sensíveis. Artefatos completos ficam em storage privado e trilha de auditoria autorizada.
 7. Alterações em conditions não causam laço de reconciliação nem mudanças artificiais em `lastTransitionTime`; `phase` é calculada pelas condições/eventos e não pode contradizê-las.
-8. Falha na atribuição verificável da identidade de quem aprovou pelo Argo UI resulta em bloqueio de apply (fail closed), mesmo que o Workflow tenha sido retomado.
+8. Observador não consegue retomar o Workflow; usuário autorizado pelo RBAC consegue. A verificação da identidade individual depois de `resume` **não faz parte da 11A**. Testar exposição acidental de permissões amplas e impedir apply quando houver mudança no plano ou destino.
 
 **Implementação incremental:** Etapa 07 estabelece schema e condições básicas; Etapa 10 exercita transições simuladas; Etapa 11A comprova fluxo, aprovação e erro em destino autorizado. Etapas 11B/11C acrescentam detecção de drift e remediação sem redefinir o contrato básico.
 
 ## Garantias obrigatórias
 
 1. **Sem apply em todo reconcile:** reconcile Kubernetes é idempotente; novas execuções só ocorrem por solicitação nova/alterada, verificação agendada ou ação explícita. Evitar runs duplicadas e execução simultânea sobre o mesmo state.
-2. **Plan e aprovação vinculados:** gerar plano versionado/imutável em armazenamento restrito, associar aprovação a hash, revisão, destino e execução; aplicar **exatamente o plano aprovado**. Se ele expirar, mudar estado/inputs ou perder validade, replanejar e reavaliar políticas antes de aplicar.
+2. **Plan e gate de aprovação:** gerar plano imutável em armazenamento restrito, relacionando-o a hash, revisão, destino e Workflow. Na 11A o `resume` autorizado por RBAC libera o gate operacional, sem assinatura por pessoa/plano; antes do apply, validar o vínculo técnico e aplicar **exatamente o plano planejado**. Caso expire ou a intenção mude, replanejar e exigir nova retomada.
 3. **Isolamento:** módulos/versões permitidos, targets por Entity/Environment resolvidos em mapping confiável, IAM mínimo; usuários não selecionam account/role/backend arbitrários. Validar UAT/PROD e ambientes críticos.
 4. **Drift com contexto:** não autorizar só porque a ação é `create` ou `update`; analisar a semântica de atributos e recursos. Não tratar qualquer `refresh-only` como correção automática da infraestrutura.
 5. **Estado e remoção:** state fora do Git e segregado; política de deletion/retain explícita; remover CR do Git **não implica automaticamente `destroy`**. Operações destrutivas exigem avaliação e gate apropriado.
-6. **Evidências:** manter referência de plan, policy decision, aprovação, workflow, checks e correlação observável. Sem credenciais, conteúdo sensível de state ou plan em CR/status.
+6. **Evidências:** manter referências do plan, Workflow, retomada observada e verificações, com correlação observável. Na 11C acrescentar policy decision; na 11A não atribuir identidade de aprovador sem fonte confiável. Sem credenciais, state ou plan sensível em CR/status.
 
 ## Relação com os demais componentes
 
@@ -222,7 +232,7 @@ O código, a pipeline CI/CD **e os manifests Kubernetes da aplicação de exempl
 - **Etapa 11A:** Terraform Executor, state segregado, lock e deploy ponta a ponta com aprovação humana do plano imutável.
 - **Etapa 11B:** plan recorrente e detecção de drift com status/alerta, sem remediação.
 - **Etapa 11C:** reconciliação com Policy Engine versionado, decisões de auto apply, aprovação ou bloqueio.
-- **A validar em implementação:** requeue/scheduling, enforcement da identidade de aprovação na Argo UI, engine de políticas da 11C, versionamento de módulo, catálogo e semântica de cancelamento/lock. O contrato inicial de status está definido acima.
+- **A validar em implementação:** requeue/scheduling, verbos efetivos de RBAC para `resume` na versão do Argo instalada, limites de alteração de Workflow, engine de políticas da 11C, catálogo e semântica de cancelamento/lock. O contrato inicial de status está definido acima.
 
 **Nenhum controller/CRD, remediação, workflow de infraestrutura real ou recurso AWS é implantado por este ADR.** A documentação não autoriza `apply` ou `destroy`.
 
