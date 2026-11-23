@@ -39,10 +39,10 @@ Ligar as solicitações declarativas a identidades e execuções rastreáveis. O
 | **10** | Controller, Argo Workflows e Terraform Executor simulado | Um `TerraformStack` sincronizado do Git dispara um Workflow e atualiza status. Reexecução segura e falha observável |
 | **11** | TerraformStack incremental (11A → 11B → 11C) | Três entregas verificáveis, sem ativar reconciliação automática antes de validar deploy e drift |
 | **11A** | Deploy ponta a ponta com aprovação na Argo Workflows UI | `TerraformStack` → Workflow → plan → `suspend`/aprovação individual na UI → revalidação do plano → apply do mesmo plano; state segregado, lock, status e auditoria |
-
-**Contrato de status da 11A:** `status.phase` é um resumo derivado de `status.conditions` (fonte de verdade), com `observedGeneration`, `currentExecution`, `lastPlan` e `lastSuccessfulExecution`. Validar transições, autorização/expiração, falhas, idempotência e ausência de dados sensíveis. [ADR-0006](adr/0006-terraformrun-and-application-ci.md#decisão-4--contrato-de-status-phase--conditions).
 | **11B** | Detecção de drift | Plan periódico identifica alteração externa e publica condição/alerta sem remediação |
 | **11C** | Reconciliação por políticas | Políticas versionadas distinguem auto apply permitido, aprovação obrigatória e bloqueio, incluindo cenários destrutivos |
+
+**Contrato de status da 11A:** `status.phase` é um resumo derivado de `status.conditions` (fonte de verdade), com `observedGeneration`, `currentExecution`, `lastPlan` e `lastSuccessfulExecution`. Validar transições, autorização/expiração, falhas, idempotência e ausência de dados sensíveis. [ADR-0006](adr/0006-terraformrun-and-application-ci.md#decisão-4--contrato-de-status-phase--conditions).
 
 ## Fase 4 — Provisionamento e smoke test do Data Plane
 
