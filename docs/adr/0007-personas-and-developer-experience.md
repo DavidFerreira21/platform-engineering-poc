@@ -48,7 +48,7 @@ platform-engineering-poc/
     └── entity-a/
         ├── core-infrastructure/        # Platform Team
         └── domains/
-            └── payments/
+            └── rastreamento-encomendas/
                 ├── domain.yaml        # identidade lógica/owner
                 ├── uat/infrastructure/ # Federated DevOps
                 └── prod/infrastructure/# Federated DevOps
@@ -59,7 +59,7 @@ Em produção, a infraestrutura por Domain **pode residir em repositórios separ
 **Repositório separado da aplicação de teste — Domain Applications**
 
 ```text
-payments-app/                          # nome ilustrativo, ainda não criado
+rastreamento-encomendas-app/                          # nome ilustrativo, ainda não criado
 ├── src/
 ├── tests/
 ├── Dockerfile

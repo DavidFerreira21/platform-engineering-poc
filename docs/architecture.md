@@ -103,10 +103,10 @@ A Foundation confere `aws.accountId` e a região contra o destino aprovado. As f
 Exemplo **ilustrativo** de Domain (identidade única):
 
 ```yaml
-# data-plane/entity-a/domains/payments/domain.yaml
-domain: payments
+# data-plane/entity-a/domains/rastreamento-encomendas/domain.yaml
+domain: rastreamento-encomendas
 entity: entity-a
-owners: [team-payments]
+owners: [team-rastreamento]
 environments: [uat, prod]
 policies:
   profile: standard
@@ -175,13 +175,14 @@ platform-engineering-poc/
 │       │       ├── eks-pci/
 │       │       └── eks-non-pci/
 │       └── domains/
-│           ├── payments/
+│           ├── rastreamento-encomendas/
 │           │   ├── domain.yaml          # identidade única
 │           │   ├── uat/
 │           │   │   └── infrastructure/  # XRs · DevOps Federado
 │           │   └── prod/
 │           │       └── infrastructure/  # XRs · DevOps Federado
-│           └── orders/
+│           ├── estoque/
+│           └── planejamento-rotas/
 ├── docs/
 ├── labs/                               # guias das etapas
 └── tests/
@@ -222,11 +223,11 @@ O Bootstrap Terraform central é reutilizado por configuração de Entity/Enviro
 
 ### Evolução planejada do TerraformStack
 
-1. **Declarative Execution:** intenção Git → Argo CD central → `TerraformStack` → controller → Workflow/plan → aplicação condicionada à política. Começar com executor simulado.
-2. **Drift Detection:** controller agenda plans periódicos e atualiza condições/status, **sem remediação automática nesta fase**. Distinguir drift externo de alteração declarada.
-3. **Policy-Based Reconciliation:** decisão versionada e auditável (**auto apply / require approval / deny**) por recurso, atributos, Environment, criticidade e origem; apply somente de plan autorizado, com isolamento e state seguro.
+1. **11A — Deploy declarativo com aprovação:** Git → Argo CD central → `TerraformStack` → controller → Workflow → plan → aprovação humana vinculada ao plano → apply do mesmo plano → status. Na Etapa 10, começar com executor simulado.
+2. **11B — Drift Detection:** controller agenda plans periódicos e atualiza condições/status, **sem remediação nesta fase**. Distinguir drift externo de alteração declarada.
+3. **11C — Policy-Based Reconciliation:** decisão versionada e auditável (**auto apply / require approval / deny**) por recurso, atributos, Environment, criticidade e origem; apply somente de plano autorizado, com isolamento e state seguro.
 
-A escolha da implementação do Policy Engine e o schema final do CRD serão validados nas Etapas 07 e 11. **A criação do CR Kubernetes é responsabilidade do Argo CD central**, não do Argo Workflows. O Argo Workflows é o executor do plan/apply.
+A implementação do Policy Engine e o schema final do CRD serão validados na Etapa 07 e progressivamente nas subetapas 11A–11C. **A criação do CR Kubernetes é responsabilidade do Argo CD central**, não do Argo Workflows. O Argo Workflows é o executor do plan/apply.
 
 ### Domain Infrastructure: Argo CD central + Crossplane
 

@@ -2,7 +2,7 @@
 
 [← Início](../README.md) · [Arquitetura](architecture.md) · [Guias das etapas](../labs/README.md) · [Fundamentos](fundamentos/README.md)
 
-O roteiro tem **sete fases** e uma sequência única de **25 etapas, de 00 a 24**. Cada fase agrupa uma entrega verificável. Cada guia começa com **Objetivo** e **O que será feito**, seguidos de pré-requisitos, comandos, evidências, falha controlada, diagnóstico, recuperação, custo e limpeza.
+O roteiro tem **sete fases** e uma sequência principal de **25 etapas, de 00 a 24**. A Etapa 11 tem três entregas ordenadas (**11A, 11B e 11C**) sem alterar a numeração principal. Cada fase agrupa uma entrega verificável. Cada guia começa com **Objetivo** e **O que será feito**, seguidos de pré-requisitos, comandos, evidências, falha controlada, diagnóstico, recuperação, custo e limpeza.
 
 A **Fase 1** reúne os guias disponíveis. As Fases 2 a 7 descrevem as próximas entregas da POC.
 
@@ -37,7 +37,10 @@ Ligar as solicitações declarativas a identidades e execuções rastreáveis. O
 | :--- | :--- | :--- |
 | **09** | Identidades de workload do Terraform Executor e do Provider AWS | Cada workload assume a role prevista na UAT com credenciais temporárias. O teste confirma renovação de sessão e rejeição de identidade ou destino indevido |
 | **10** | Controller, Argo Workflows e Terraform Executor simulado | Um `TerraformStack` sincronizado do Git dispara um Workflow e atualiza status. Reexecução segura e falha observável |
-| **11** | Plano, aprovação, estado, drift e políticas | Backend de estado inicializado com autorização, lock e segregação. O fluxo executa o plano imutável aprovado, detecta drift em verificações recorrentes e demonstra as decisões de aprovação, bloqueio e auto apply autorizado |
+| **11** | TerraformStack incremental (11A → 11B → 11C) | Três entregas verificáveis, sem ativar reconciliação automática antes de validar deploy e drift |
+| **11A** | Deploy ponta a ponta com aprovação | `TerraformStack` → Workflow → plan → aprovação humana → apply do mesmo plano; state segregado, lock, status e auditoria |
+| **11B** | Detecção de drift | Plan periódico identifica alteração externa e publica condição/alerta sem remediação |
+| **11C** | Reconciliação por políticas | Políticas versionadas distinguem auto apply permitido, aprovação obrigatória e bloqueio, incluindo cenários destrutivos |
 
 ## Fase 4 — Provisionamento e smoke test do Data Plane
 
