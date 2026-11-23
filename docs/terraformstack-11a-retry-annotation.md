@@ -42,7 +42,7 @@ O namespace `platform-system` é **proposto**, não implantado. Validar grupo/pl
 
 **Sem prazo de aprovação:** o Workflow permanece em `suspend: {}` até retomada ou cancelamento. A ausência de TTL não elimina a validação de `spec`, generation, hash, destino e state antes do apply.
 
-**Alteração de spec concorrente:** se o Git atualizar `spec` durante a aprovação, bloquear a aplicação do plano anterior. A nova generation segue o fluxo normal de execução; a annotation não autoriza saltar o gate de aprovação.
+**Alteração de spec concorrente:** se o Git atualizar `spec` durante a aprovação, o controller invalida e encerra a tentativa antiga e [cria automaticamente um novo Workflow para a nova generation](terraformstack-11a-spec-supersession.md), depois de confirmar que a antiga terminou. Isso **não é um retry manual**: a annotation não é necessária nem autoriza saltar o novo gate de aprovação.
 
 ## Argo CD e a annotation
 
@@ -85,7 +85,7 @@ O grupo `platform.example.io`, plural `terraformstacks` e namespace devem ser co
 | Operador sem `patch` | Kubernetes responde `Forbidden`; Approver da UI não consegue solicitar retry |
 | Falha entre criação e atualização de status | Reconcile recupera o Workflow já existente sem duplicar execução |
 | Novo workflow aprovado | Aplica **apenas** seu próprio plano após validação; plano anterior nunca é reutilizado |
-| Mudança na spec enquanto aguarda | Bloqueia plano antigo, e a nova generation segue o ciclo normal |
+| Mudança na spec enquanto aguarda | Encerra Workflow antigo e gera outro automaticamente para a nova generation após término confirmado, com novo plan/aprovação |
 | Self-heal/Sync do Argo CD | Annotation não gera repetição; preservar o sinal ou consumi-lo duravelmente pelo controller |
 
 **Fora do escopo:** implementar o controller/CRD, API de retry própria, IAM AWS, política de auto-remediação ou rollback de um apply parcialmente executado. Este guia registra contrato, comandos previstos e testes para a implementação nas Etapas 07, 10 e 11A.
