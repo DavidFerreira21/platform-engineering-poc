@@ -1,14 +1,8 @@
 # Platform Engineering POC
 
-> Plataforma **Kubernetes-native** construída em fases incrementais, com governança central e autonomia federada por **Domain**.
+Esta POC é um exercício prático para aprender **Engenharia de Plataforma** construindo uma plataforma interna de ponta a ponta. O percurso começa pelos fundamentos, passa pelas decisões de arquitetura, automação e governança e chega à entrega e à operação de uma aplicação por um time de produto.
 
-**`Kubernetes API` · `Crossplane v2` · `Argo CD` · `Argo Workflows` · `TerraformStack (proposto)` · `GitHub Actions (app separada)` · `OpenTelemetry` · `AWS`**
-
-> [!NOTE]
-> **Estado atual:** arquitetura-alvo documentada; os componentes AWS/Kubernetes descritos não estão necessariamente implantados. As pastas representam a organização do projeto e as etapas previstas no roteiro.
-
-> [!NOTE]
-> Projeto **pessoal de laboratório**, independente de qualquer iniciativa corporativa. A arquitetura abaixo é **alvo**, não comprovação de recursos implantados.
+Kubernetes, Terraform, Crossplane e Argo são os meios para percorrer esse caminho. Cada ferramenta é explorada na medida necessária para entender como os componentes se conectam, como as responsabilidades são distribuídas e o que a plataforma oferece a quem entrega software.
 
 ## Por onde começar
 
