@@ -38,7 +38,7 @@ Ligar as solicitações declarativas a identidades e execuções rastreáveis. O
 | **09** | Identidades de workload do Terraform Executor e do Provider AWS | Cada workload assume a role prevista na UAT com credenciais temporárias. O teste confirma renovação de sessão e rejeição de identidade ou destino indevido |
 | **10** | Controller, Argo Workflows e Terraform Executor simulado | Um `TerraformStack` sincronizado do Git dispara um Workflow e atualiza status. Reexecução segura e falha observável |
 | **11** | TerraformStack incremental (11A → 11B → 11C) | Três entregas verificáveis, sem ativar reconciliação automática antes de validar deploy e drift |
-| **11A** | Deploy ponta a ponta com aprovação na Argo Workflows UI | `TerraformStack` → Workflow → plan → `suspend`/aprovação individual na UI → revalidação do plano → apply do mesmo plano; state segregado, lock, status e auditoria |
+| **11A** | Deploy ponta a ponta com aprovação na Argo Workflows UI | `TerraformStack` → Workflow → plan → `suspend`/retomada autorizada por RBAC na UI → revalidação técnica do plano → apply do mesmo plano; state segregado, lock, status e auditoria |
 | **11B** | Detecção de drift | Plan periódico identifica alteração externa e publica condição/alerta sem remediação |
 | **11C** | Reconciliação por políticas | Políticas versionadas distinguem auto apply permitido, aprovação obrigatória e bloqueio, incluindo cenários destrutivos |
 
