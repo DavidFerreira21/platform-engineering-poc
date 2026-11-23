@@ -99,7 +99,7 @@ A desativação do Argo Server, se desejada após o lab, deve ocorrer pelo manif
 
 O passo `suspend: {}` não tem `duration`: não há timeout de aprovação na 11A. **O token de acesso à UI continua temporário**, independentemente de quanto tempo o Workflow fica suspenso. Se o token expirar, obter outro token para entrar na UI; isso não cancela o Workflow.
 
-Se o Workflow for encerrado/cancelado antes do apply, o controller registrará a execução como cancelada sem iniciar outra automaticamente. A Stack permanece declarada no Git e sincronizada pelo Argo CD. **Não é preciso clicar Sync novamente.** Uma nova tentativa deverá ser solicitada explicitamente ao controller por mecanismo a definir; ela cria novo Workflow, novo plan e nova suspensão. Repetir Sync sem mudança na intenção não deve criar Workflow novo. Encerrar uma operação que já esteja aplicando infraestrutura não equivale a rollback.
+Se o Workflow for encerrado/cancelado antes do apply, o controller registrará a execução como cancelada sem iniciar outra automaticamente. A Stack permanece declarada no Git e sincronizada pelo Argo CD. **Não é preciso clicar Sync novamente.** Uma nova tentativa deverá ser solicitada explicitamente ao controller com `platform.example.io/retry-request-id` de UUID único no TerraformStack, conforme [guia de retry](terraformstack-11a-retry-annotation.md); ela cria novo Workflow, novo plan e nova suspensão. Repetir Sync sem mudança na intenção não deve criar Workflow novo. Encerrar uma operação que já esteja aplicando infraestrutura não equivale a rollback.
 
 ## Critérios de aceite
 
