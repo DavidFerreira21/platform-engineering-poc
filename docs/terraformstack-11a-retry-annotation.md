@@ -33,11 +33,11 @@ O namespace `platform-system` é **proposto**, não implantado. Validar grupo/pl
 ## Comportamento do controller
 
 1. Receber evento de alteração do objeto (annotation no `metadata`); `metadata.generation` **não precisa mudar**.
-2. Ler a annotation e comparar `retry-request-id` com o identificador persistido em `status.lastHandledRetryRequestId`. IDs iguais são ignorados mesmo após restart/relist do controller.
+2. Ler a annotation e comparar o ID com `status.lastHandledRetryRequestId` **e** com o histórico persistido de IDs consumidos (`status.handledRetryRequests` ou storage durável equivalente). IDs já vistos são ignorados mesmo após restart/relist do controller ou um retry posterior. Apenas guardar o último ID seria insuficiente para impedir replay de IDs antigos.
 3. Exigir que não exista Workflow ativo ou apply em execução para aquela Stack/state; aceitar apenas uma tentativa terminal e elegível a retry. Se o mesmo `request-id` chegar enquanto há execução ativa, registrar rejeição/condição apropriada **sem colocá-lo numa fila para aplicação futura**.
 4. Resolver novamente `spec`, revisão/destino e permissões; criar um novo ID de execução e Workflow. Um pedido aceito produz **novo plan** e passa novamente por `suspend` na Argo UI. O plano antigo não é reaproveitado.
 5. Persistir o consumo do request id de maneira idempotente e reconciliar usando identidade/nome determinístico do Workflow ou mecanismo de reserva durável, evitando duplicações entre concorrência, crash e atualização de `status`. Somente o controller escreve `status`.
-6. Guardar `status.lastHandledRetryRequestId`, `status.currentExecution.id` e referência ao Workflow; preservar `lastSuccessfulExecution`. Falha no novo plan/execução não apaga histórico anterior.
+6. Guardar `status.lastHandledRetryRequestId`, o histórico de IDs tratados, `status.currentExecution.id` e referência ao Workflow; preservar `lastSuccessfulExecution`. Na POC o histórico poderá ser pequeno e persistido, mas não remover IDs antigos sem outro mecanismo de antirreplay. Falha no novo plan/execução não apaga histórico anterior.
 7. Não limpar a annotation automaticamente: o próximo retry exige **outro UUID**. Um mesmo ID nunca cria duas tentativas, inclusive após GitOps resync, restart do controller ou processamento repetido de eventos.
 
 **Sem prazo de aprovação:** o Workflow permanece em `suspend: {}` até retomada ou cancelamento. A ausência de TTL não elimina a validação de `spec`, generation, hash, destino e state antes do apply.
