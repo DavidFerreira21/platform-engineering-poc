@@ -50,7 +50,7 @@ Ligar as solicitações declarativas a identidades e execuções rastreáveis. O
 
 **Retry da 11A:** após cancelamento/falha, novo Workflow somente por [annotation operacional com request ID único](terraformstack-11a-retry-annotation.md), consumida de forma idempotente pelo controller. Sem Argo CD Sync e sem retry automático **para a mesma generation**. RBAC de patch limitado a operadores confiáveis.
 
-**Contrato de status da 11A:** `status.phase` é um resumo derivado de `status.conditions` (fonte de verdade), com `observedGeneration`, `currentExecution`, `lastPlan` e `lastSuccessfulExecution`. Validar transições, autorização/expiração, falhas, idempotência e ausência de dados sensíveis. [ADR-0006](adr/0006-terraformrun-and-application-ci.md#decisão-4--contrato-de-status-phase--conditions).
+**Contrato de status da 11A:** `status.phase` é um resumo derivado de `status.conditions` (fonte de verdade), com `observedGeneration`, `currentExecution`, `lastPlan` e `lastSuccessfulExecution`. Validar transições, autorização sem TTL, falhas, idempotência e ausência de dados sensíveis. [ADR-0006](adr/0006-terraformrun-and-application-ci.md#decisão-4--contrato-de-status-phase--conditions).
 
 ## Fase 4 — Provisionamento e smoke test do Data Plane
 
