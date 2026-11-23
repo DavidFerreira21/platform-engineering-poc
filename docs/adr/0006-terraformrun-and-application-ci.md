@@ -74,6 +74,23 @@ Backstage / CLI / pessoa → PR + validações + aprovação Git
 - **Toda execução de apply na 11A exige aprovação humana explícita do plano**, mesmo para criação em UAT. Auto apply só será avaliado na 11C, com política versionada.
 - Validar schema, autorização, idempotência por generation/revisão, erros/retry, status e evidências. Começar com **executor simulado na Etapa 10**; na 11A, validar o fluxo autorizado com state segregado, lock, plano imutável e aprovação vinculada a hash, revisão Git e destino.
 
+### Decisão 11A — aprovação humana na Argo Workflows UI
+
+**Canal de aprovação escolhido:** Argo Workflows UI, com um passo `suspend: {}` entre `terraform plan` e `terraform apply`. O operador autorizado visualiza a referência do plano e retoma o Workflow pela UI. Nesta fase **não existe auto apply**; a aprovação de PR/Git não substitui a aprovação do plano de execução.
+
+**Implementação prevista (sem código ou infraestrutura criados por este ADR):**
+
+1. O `TerraformStack Controller` dispara um Workflow com identificação imutável de Stack, `metadata.generation`, revisão Git, módulo/versão e destino resolvido de uma lista permitida; o Workflow adquire lock de state.
+2. O executor gera `terraform plan -out` e persiste o plano binário **em armazenamento privado e com prazo de validade**, associado a hash SHA-256, state/serial e identidade do destino. Expõe apenas metadados não sensíveis para consulta.
+3. O passo de aprovação da UI usa um template `suspend: {}`, **sem `duration` que retome automaticamente**. Acesso ao Argo Server deve usar autenticação individual e autorização restrita a aprovadores, com trilha auditável de quem retomou o Workflow. Um simples `resume` não é autorização suficiente sem essa identidade verificável.
+4. Após o `resume`, um passo independente valida: identidade/autorização do aprovador, vínculo da decisão ao Workflow e ao hash do plano, revisão e `generation` ainda vigentes, validade do artefato, lock/state e destino. Qualquer falha, expiração ou plano alterado **bloqueia o apply**, exige novo plan e nova aprovação.
+5. O executor aplica **o arquivo de plano aprovado**, não executa um novo `terraform plan` implícito, verifica o resultado e atualiza `status`. A confirmação de sucesso depende de verificação da execução; `Argo CD Synced` não comprova o resultado na AWS.
+6. Reprovação, cancelamento, timeout e erro terminam sem apply; retry é controlado e nunca reaproveita aprovação para plano diferente. Operações `destroy` ou deleção de Stack não são autorizadas implicitamente.
+
+**Critérios de aceite específicos da decisão:** (a) aprovação de pessoa autorizada libera exatamente o plano exibido; (b) usuário sem permissão de retomar Workflow não aprova; (c) `resume` sem evidência verificável de aprovação não executa apply; (d) hash/revisão/destino/generation alterados, expiração ou perda de lock impedem apply; (e) auditoria registra Workflow, plano, aprovador, instante e resultado; (f) todos os caminhos de falha permanecem sem apply indevido.
+
+**Pendente para próxima decisão:** como representar os estados de execução e aprovação em `TerraformStack.status` (phase e conditions, ou apenas conditions) e quais referências não sensíveis expor.
+
 ### Etapa 11B — Drift Detection
 
 - Com intervalo configurado, controller agenda `terraform plan` (ou acionamento manual controlado) para verificar divergência entre configuração/state e AWS.
