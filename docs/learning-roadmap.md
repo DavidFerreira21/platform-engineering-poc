@@ -44,7 +44,9 @@ Ligar as solicitações declarativas a identidades e execuções rastreáveis. O
 
 **Autenticação e RBAC da 11A:** Argo Server em `client` mode, Viewer/Approver com permissões namespace-scoped e testes de suspensão/retomada pela UI em um [Workflow simulado](terraformstack-11a-argo-client-rbac.md). A interface permanece desabilitada na Etapa 03 e será habilitada via GitOps durante a 11A.
 
-**Retry da 11A:** após cancelamento/falha, novo Workflow somente por [annotation operacional com request ID único](terraformstack-11a-retry-annotation.md), consumida de forma idempotente pelo controller. Sem Argo CD Sync e sem retry automático. RBAC de patch limitado a operadores confiáveis.
+**Nova generation durante aprovação:** se o `spec` mudar enquanto há Workflow suspenso, o controller [encerra a execução antiga e cria outra automaticamente](terraformstack-11a-spec-supersession.md), com novo plan e nova aprovação, somente após confirmar que não existe execução concorrente. Esse caso é diferente de cancelamento manual com `spec` inalterado.
+
+**Retry da 11A:** após cancelamento/falha, novo Workflow somente por [annotation operacional com request ID único](terraformstack-11a-retry-annotation.md), consumida de forma idempotente pelo controller. Sem Argo CD Sync e sem retry automático **para a mesma generation**. RBAC de patch limitado a operadores confiáveis.
 
 **Contrato de status da 11A:** `status.phase` é um resumo derivado de `status.conditions` (fonte de verdade), com `observedGeneration`, `currentExecution`, `lastPlan` e `lastSuccessfulExecution`. Validar transições, autorização/expiração, falhas, idempotência e ausência de dados sensíveis. [ADR-0006](adr/0006-terraformrun-and-application-ci.md#decisão-4--contrato-de-status-phase--conditions).
 
