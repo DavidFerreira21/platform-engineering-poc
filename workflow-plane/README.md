@@ -12,7 +12,7 @@ O Workflow Plane mantém processos, GitOps central, aprovação e execução, **
 
 ## Aplicações e execuções declarativas (planejadas)
 
-- **TerraformStack (proposto):** o controller fica no Control Plane; **Argo Workflows** executa `plan`, avaliação de policies, gate e `apply` quando autorizado. O controller começa com execução simulada na Etapa 10. A Etapa 11 valida replan, detecção de drift e as decisões de aprovação, bloqueio e auto apply autorizado. `TerraformRun` permanece um nome opcional para a execução individual.
+- **TerraformStack (proposto):** o controller fica no Control Plane; **Argo Workflows** executa `plan`, avaliação de policies, gate e `apply` quando autorizado. O controller começa com execução simulada na Etapa 10. A Etapa 11 é dividida em **11A** (deploy com aprovação via Argo UI/Client Auth e RBAC), **11B** (drift sem remediação) e **11C** (reconciliação por políticas). O Argo Server da instalação inicial está desabilitado e será habilitado via GitOps na 11A, conforme [guia de autorização](../docs/terraformstack-11a-argo-client-rbac.md). `TerraformRun` permanece um nome opcional para a execução individual.
 - **Domain Applications:** GitHub Actions fará o **CI/CD em um repositório de aplicação de teste separado**, a integrar durante o lab correspondente. Build/test/scan/publicação → atualização GitOps revisada → Argo CD **local** no Management EKS faz deploy nos clusters autorizados. Não adicionar código ou workflow CI da aplicação neste monorepo.
 
 [ADR-0006](../docs/adr/0006-terraformrun-and-application-ci.md)
