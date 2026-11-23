@@ -52,8 +52,9 @@ Backstage / CLI / pessoa → PR + validações + aprovação Git
   → Argo CD CENTRAL → Kubernetes API / TerraformStack (objeto Kubernetes)
   → TerraformStack Controller (validação + agendamento)
   → Argo Workflows → Terraform Executor → terraform plan
-  → avaliação de políticas: auto apply / aprovação / bloqueio
-  → terraform apply do plano aprovado, quando autorizado
+  → 11A: aprovação humana do plano imutável → terraform apply do mesmo plano
+  → 11B: verificação periódica e relato de drift, sem apply
+  → 11C: decisão versionada auto apply / aprovação / bloqueio
   → AWS Foundation / Entity Core → verificação → status do TerraformStack
 ```
 
@@ -67,19 +68,19 @@ Backstage / CLI / pessoa → PR + validações + aprovação Git
 
 ## Decisão 3 — três etapas incrementais da POC
 
-### Etapa A — Declarative Execution
+### Etapa 11A — Deploy declarativo ponta a ponta com aprovação
 
 - Aplicar `TerraformStack` pelo GitOps central (ou diretamente na API para teste local), e ver o controller iniciar Workflow/plan.
-- Uma **criação permitida por política** (por exemplo VPC de laboratório em UAT) poderá resultar em apply sem aprovação humana adicional após gates previamente autorizados; mudança crítica exigirá aprovação.
-- Validar schema, autorização, idempotência por generation/revisão, erros/retry, status e evidências. Começar com **executor simulado**, antes de qualquer AWS real.
+- **Toda execução de apply na 11A exige aprovação humana explícita do plano**, mesmo para criação em UAT. Auto apply só será avaliado na 11C, com política versionada.
+- Validar schema, autorização, idempotência por generation/revisão, erros/retry, status e evidências. Começar com **executor simulado na Etapa 10**; na 11A, validar o fluxo autorizado com state segregado, lock, plano imutável e aprovação vinculada a hash, revisão Git e destino.
 
-### Etapa B — Drift Detection
+### Etapa 11B — Drift Detection
 
 - Com intervalo configurado, controller agenda `terraform plan` (ou acionamento manual controlado) para verificar divergência entre configuração/state e AWS.
 - Diferenciar **mudança desejada via Git** de **drift externo** e registrar a informação no status/observabilidade; checar os resultados estruturados do plan, incluindo ações e diferenças observadas no refresh.
-- Nesta etapa **não executar apply automático de drift**. Concluir com evidências de que um recurso modificado externamente é detectado.
+- Nesta etapa **não executar remediação de drift**: detectar, registrar e notificar, sem apply automático. Concluir com evidências de que um recurso modificado externamente é detectado.
 
-### Etapa C — Policy-Based Reconciliation
+### Etapa 11C — Policy-Based Reconciliation
 
 - Um **Policy Engine versionado/testável** classifica o plan segundo identidade, Environment, origem (PR vs drift), recurso, atributos, custo/impacto e operações (`create/update/delete/replace`). A tecnologia específica (por exemplo OPA) ainda está **a decidir**.
 - Três resultados possíveis: **Auto Apply** se expressamente permitido; **Require Approval** se sensível; **Deny/Block** se não autorizado.
@@ -108,7 +109,9 @@ O código, a pipeline CI/CD **e os manifests Kubernetes da aplicação de exempl
 - **Etapa 07:** CRD `TerraformStack` e validação do contrato na API Kubernetes.
 - **Etapa 09:** identidades de workload e destinos autorizados.
 - **Etapa 10:** controller, Argo Workflows e execução simulada.
-- **Etapa 11:** Terraform Executor, state segregado, avaliação de políticas e apply do plano aprovado. A etapa cobre plan recorrente, status de drift, bloqueio e auto apply autorizado por política.
+- **Etapa 11A:** Terraform Executor, state segregado, lock e deploy ponta a ponta com aprovação humana do plano imutável.
+- **Etapa 11B:** plan recorrente e detecção de drift com status/alerta, sem remediação.
+- **Etapa 11C:** reconciliação com Policy Engine versionado, decisões de auto apply, aprovação ou bloqueio.
 - **A validar:** formato final da API, status/conditions, requeue/scheduling, política de alterações de spec durante workflows, engine de políticas, versionamento de módulo, catálogo, lock de state e aprovação segura.
 
 **Nenhum controller/CRD, remediação, workflow de infraestrutura real ou recurso AWS é implantado por este ADR.** A documentação não autoriza `apply` ou `destroy`.
