@@ -42,6 +42,8 @@ Ligar as solicitações declarativas a identidades e execuções rastreáveis. O
 | **11B** | Detecção de drift | Plan periódico identifica alteração externa e publica condição/alerta sem remediação |
 | **11C** | Reconciliação por políticas | Políticas versionadas distinguem auto apply permitido, aprovação obrigatória e bloqueio, incluindo cenários destrutivos |
 
+**Autenticação e RBAC da 11A:** Argo Server em `client` mode, Viewer/Approver com permissões namespace-scoped e testes de suspensão/retomada pela UI em um [Workflow simulado](terraformstack-11a-argo-client-rbac.md). A interface permanece desabilitada na Etapa 03 e será habilitada via GitOps durante a 11A.
+
 **Contrato de status da 11A:** `status.phase` é um resumo derivado de `status.conditions` (fonte de verdade), com `observedGeneration`, `currentExecution`, `lastPlan` e `lastSuccessfulExecution`. Validar transições, autorização/expiração, falhas, idempotência e ausência de dados sensíveis. [ADR-0006](adr/0006-terraformrun-and-application-ci.md#decisão-4--contrato-de-status-phase--conditions).
 
 ## Fase 4 — Provisionamento e smoke test do Data Plane
