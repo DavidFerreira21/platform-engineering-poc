@@ -105,6 +105,8 @@ Backstage / CLI / pessoa → PR + validações + aprovação Git
 
 **Cancelamento e nova tentativa:** encerrar um Workflow aguardando aprovação não remove o `TerraformStack`, não cria outro Workflow automaticamente e não exige Sync do Argo CD. O controller observa a execução encerrada, registra `phase: Blocked`, `Stalled=True` com `reason: ExecutionCancelled`, `Ready=False`, e preserva `lastSuccessfulExecution`. Para reexecutar a **mesma intenção**, um operador confiável precisa definir uma **nova annotation `platform.example.io/retry-request-id` com UUID único** no `TerraformStack` (ver [contrato de retry](../terraformstack-11a-retry-annotation.md)); ele cria um **novo Workflow com novo plan e novo gate**. Mudança de `spec` via Git inicia outra generation como caminho normal de mudança de infraestrutura. Um Sync isolado da mesma definição não deve disparar execução adicional. Cancelamento enquanto `apply` já está em andamento exige tratamento próprio: não presumir rollback ou ausência de alterações parciais.
 
+**Mudança de spec durante aprovação (decisão vigente):** quando `metadata.generation` aumentar e o Workflow estiver suspenso aguardando aprovação, o controller invalida o plano antigo, encerra o Workflow e **só após confirmação do encerramento** cria automaticamente outro Workflow com novo plan e novo gate. A antiga aprovação não vale para a nova generation. Nenhuma annotation de retry nem novo Sync do Argo CD é necessária. Falha de encerramento impede execução concorrente e leva a `Blocked` (`SupersessionBlocked`). Mudança durante `Applying` exige serialização e análise específica, sem cancelamento cego. [Transições e testes](../terraformstack-11a-spec-supersession.md).
+
 **Retry explícito por annotation (decisão vigente):** `platform.example.io/retry-request-id` recebe UUID novo por solicitação de operador confiável com `patch` sobre `terraformstacks` no namespace do Hub. O controller só aceita a solicitação após execução terminal, gera outro Workflow/plan/gate e deduplica pelo ID persistido em `status.lastHandledRetryRequestId`. Não reinicia automaticamente após cancelamento, nem exige Argo CD Sync. O RBAC de `patch` é amplo no recurso e não limitado a uma annotation; aprovação na Argo UI não concede patch na Stack. [Contrato, exemplo e testes](../terraformstack-11a-retry-annotation.md).
 
 **Evolução futura:** aprovação forte vinculada a identidade e digest por serviço/contrato dedicado fica como opção fora da 11A; não é pré-requisito de 11B/11C.
@@ -208,7 +210,7 @@ status:
 1. `kubectl get/describe TerraformStack` revela fase, generation e condições coerentes, e o CRD define colunas de impressão úteis (`PHASE`, `READY`, `AGE`).
 2. Testes percorrem `Pending → Planning → AwaitingApproval → Applying → Ready` e verificam `observedGeneration`, razões e timestamps. Um plan sem mudanças vai a `Ready` sem apply.
 3. Testes de autorização negada, aprovação rejeitada, falha de plan/apply e cancelamento expõem `Blocked`/`Failed` corretamente, preservando o último sucesso sem dar `Ready=True` à intenção não concluída.
-4. Mudar `spec` durante aprovação invalida a aprovação anterior; geração divergente impede apply e força novo plan/aprovação.
+4. Mudar `spec` durante aprovação invalida o plano anterior, encerra o Workflow suspenso e **automaticamente** cria outro plan/Workflow/gate somente depois da confirmação de término, sem permitir apply antigo. Ver [testes de supersession](../terraformstack-11a-spec-supersession.md).
 5. Duas reconciliações concorrentes não iniciam dois Workflows nem dois applies sobre o mesmo state; retry é idempotente e o lock é observado.
 6. `status` não expõe plano binário, state, segredos, credenciais ou detalhes sensíveis. Artefatos completos ficam em storage privado e trilha de auditoria autorizada.
 7. Alterações em conditions não causam laço de reconciliação nem mudanças artificiais em `lastTransitionTime`; `phase` é calculada pelas condições/eventos e não pode contradizê-las.
@@ -241,7 +243,7 @@ O código, a pipeline CI/CD **e os manifests Kubernetes da aplicação de exempl
 - **Etapa 11A:** Terraform Executor, state segregado, lock e deploy ponta a ponta com aprovação humana do plano imutável.
 - **Etapa 11B:** plan recorrente e detecção de drift com status/alerta, sem remediação.
 - **Etapa 11C:** reconciliação com Policy Engine versionado, decisões de auto apply, aprovação ou bloqueio.
-- **A validar em implementação:** requeue/scheduling, persistência idempotente de retries e interação com self-heal do Argo CD, verbos efetivos de RBAC para `resume` na versão do Argo instalada, limites de alteração de Workflow, engine de políticas da 11C, catálogo e semântica de cancelamento/lock. O contrato inicial de status está definido acima.
+- **A validar em implementação:** requeue/scheduling, substituição segura de generations e persistência idempotente de retries e interação com self-heal do Argo CD, verbos efetivos de RBAC para `resume` na versão do Argo instalada, limites de alteração de Workflow, engine de políticas da 11C, catálogo e semântica de cancelamento/lock. O contrato inicial de status está definido acima.
 
 **Nenhum controller/CRD, remediação, workflow de infraestrutura real ou recurso AWS é implantado por este ADR.** A documentação não autoriza `apply` ou `destroy`.
 
