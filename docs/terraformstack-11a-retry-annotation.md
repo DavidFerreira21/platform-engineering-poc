@@ -46,7 +46,7 @@ O namespace `platform-system` é **proposto**, não implantado. Validar grupo/pl
 
 ## Argo CD e a annotation
 
-A annotation é acrescentada operacionalmente **no objeto live**, não em um commit Git. O Argo CD normalmente não exige novo Sync para alterações apenas de metadata. Como o comportamento exato depende das opções de apply, do campo gerenciado e de eventuais políticas de self-heal, **testar na Etapa 10/11A se um Sync ou self-heal remove a annotation**. Se houver conflito, configurar o Argo CD para preservar somente este path específico de metadata (por exemplo, `ignoreDifferences` junto com `RespectIgnoreDifferences`, após testar), evitando ignorar toda a seção de annotations. O controller já deve ter persistido o pedido aceito em `status`; não dependa da permanência da annotation para processar uma tentativa já registrada.
+A annotation é acrescentada operacionalmente **no objeto live**, não em um commit Git. O Argo CD normalmente não exige novo Sync para alterações apenas de metadata. Como o comportamento exato depende das opções de apply, do campo gerenciado e de eventuais políticas de self-heal, **testar na Etapa 10/11A se um Sync ou self-heal remove a annotation**. Se houver conflito, configurar o Argo CD para preservar somente este path específico de metadata (por exemplo, `ignoreDifferences` junto com `RespectIgnoreDifferences`, após testar), evitando ignorar toda a seção de annotations. O controller já deve ter registrado o pedido aceito de forma durável (por exemplo `status` mais chave de execução idempotente); não dependa da permanência da annotation para processar uma tentativa já registrada.
 
 ## Permissões
 
