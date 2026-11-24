@@ -1,6 +1,6 @@
 # 🏗️ Arquitetura da Platform Engineering POC
 
-[← Início](../README.md) · [Decisões atuais](adr/README.md) · [Monorepo](repository-structure.md) · [Roadmap](learning-roadmap.md)
+[← Início](../README.md) · [Decisões atuais](adr/README.md) · [GitOps Flow](flows/gitops.md) · [Monorepo](repository-structure.md) · [Roadmap](learning-roadmap.md)
 
 > [!NOTE]
 > **Arquitetura-alvo, não implementada.** Um monorepo de laboratório simula ownership e autonomia federada. Nenhuma operação AWS está autorizada por este documento. Nomes de entidades e Domains são fictícios.
@@ -17,6 +17,8 @@ A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) �
 **Environment não é sinônimo de Core Infrastructure**: o ambiente é a conta toda, incluindo Core e os recursos dos Domains.
 
 ## 2. Visão geral
+
+**Fluxo declarativo detalhado:** [GitOps Flow](flows/gitops.md) · [Diagrama SVG](flows/gitops-flow.svg). O fluxo diferencia Platform Addons, Capabilities Crossplane, TerraformStack e aplicações locais, incluindo a divisão de ownership e o estado atual do laboratório kind.
 
 ![Diagrama de arquitetura de referência com Hub, contas AWS UAT/PROD, quatro camadas e três personas](arquitetura%20Plataform.png)
 
