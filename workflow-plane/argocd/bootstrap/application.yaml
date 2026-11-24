@@ -7,7 +7,7 @@ spec:
   project: lab02
   source:
     repoURL: https://github.com/DavidFerreira21/platform-engineering-poc.git
-    targetRevision: __LAB02_GIT_SHA__
+    targetRevision: main
     path: workflow-plane/argocd/demo
   destination:
     server: https://kubernetes.default.svc

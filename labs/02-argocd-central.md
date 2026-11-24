@@ -4,26 +4,25 @@
 
 ## Objetivo
 
-Configurar o Argo CD para descobrir os add-ons do Hub no Git e acompanhar a entrega de um recurso a partir de uma revisão publicada.
+Configurar o Argo CD para descobrir os add-ons do Hub no Git e acompanhar a entrega de um recurso a partir da branch `main`.
 
 ## O que será feito
 
 - Instalar o Argo CD central via Helm e acessar sua interface por port-forward local.
 - Aplicar o bootstrap do `ApplicationSet` `hub-addons` e conferir as Applications de Argo Workflows e Crossplane Core geradas a partir do catálogo no Git.
-- Criar o AppProject `lab02` e a Application `lab02-gitops-demo`. Sincronizar manualmente um commit publicado para criar o ConfigMap de demonstração em `platform-system`.
+- Criar o AppProject `lab02` e a Application `lab02-gitops-demo`. Sincronizar manualmente a Application para entregar o ConfigMap de demonstração de `main` em `platform-system`.
 - Remover os recursos de demonstração e manter o bootstrap dos add-ons para as etapas seguintes.
 
 O exercício roda no Hub local e tem custo AWS zero.
 
 ## Por que fizemos assim
 
-O Argo CD é o ponto de entrada para entregar os componentes do Hub a partir do Git. O catálogo gera uma Application por componente para que cada um tenha sua revisão e seu diff. A demonstração usa uma Application separada com um SHA fixo para ligar o conteúdo do Git ao ConfigMap entregue no cluster.
+O Argo CD é o ponto de entrada para entregar os componentes do Hub a partir do Git. O catálogo gera uma Application por componente para que cada um tenha sua revisão e seu diff. A Application de demonstração acompanha `main` e permite observar como o Argo CD aplica o manifesto do ConfigMap no Hub.
 
 ## Pré-requisitos
 
 - Etapa 01 concluída, com `kind`, `kubectl` e `helm` disponíveis.
-- Catálogo dos add-ons publicado em `main`, a revisão que o `ApplicationSet` monitora.
-- Uma revisão publicada neste monorepo que contenha `workflow-plane/argocd/demo/configmap.yaml`.
+- Catálogo dos add-ons e manifesto do ConfigMap de demonstração publicados em `main`.
 - Conectividade do Hub ao GitHub e aos registries das imagens.
 
 Execute os comandos da raiz do monorepo.
@@ -78,16 +77,17 @@ Se o Hub já tiver essas Applications, use os mesmos comandos. O `ApplicationSet
 
 Se uma Application estiver ausente ou sem owner, consulte `hub -n argocd describe applicationset hub-addons` e os logs de `deployment/argocd-applicationset-controller` no namespace `argocd`. Confira se a revisão `main` contém o catálogo e se o Hub alcança o GitHub. Em seguida, repita a verificação.
 
-## 3. Sincronizar uma revisão publicada
+## 3. Sincronizar o ConfigMap a partir de main
 
-O monorepo deste lab é público. O Argo CD lê a URL HTTPS declarada na Application sem credenciais. Comece pelo comando abaixo.
+O monorepo é público. A Application aponta para `main` e para o diretório do manifesto de demonstração.
 
 ```bash
-read -r -p 'SHA completo do commit publicado: ' lab02_sha
-bash workflow-plane/argocd/bootstrap/apply-demo.sh "$lab02_sha"
+kubectl --context kind-platform-management -n argocd apply \
+  -f workflow-plane/argocd/bootstrap/project.yaml \
+  -f workflow-plane/argocd/bootstrap/application.yaml
 ```
 
-O AppProject `lab02` restringe a origem ao monorepo e permite apenas ConfigMaps em `platform-system` no Hub. Na UI, abra `lab02-gitops-demo`. Confira que a revisão é o SHA informado e que o diff se limita ao ConfigMap `lab02-gitops-demo`. Se estiver `OutOfSync` e o diff corresponder ao exercício, selecione **Sync → Synchronize**.
+O AppProject `lab02` restringe a origem ao monorepo e permite apenas ConfigMaps em `platform-system` no Hub. Na UI, abra `lab02-gitops-demo`. Confira no diff o ConfigMap `lab02-gitops-demo`. Antes do primeiro sync, a Application aparece como `OutOfSync` e o ConfigMap como `Missing`. Selecione **Sync → Synchronize** para aplicar o manifesto.
 
 ```bash
 kubectl --context kind-platform-management -n argocd get application lab02-gitops-demo \
@@ -96,12 +96,12 @@ kubectl --context kind-platform-management -n platform-system get configmap lab0
   -o 'jsonpath={.data.mensagem}{"\n"}'
 ```
 
-O valor esperado é `definido-no-git`. Se a aplicação mostrar `Unknown` ou `ComparisonError`, inspecione `kubectl --context kind-platform-management -n argocd describe application lab02-gitops-demo`. Confira a conectividade ao GitHub, o SHA publicado e o caminho. Consulte os logs de `deployment/argocd-repo-server` no namespace `argocd` se a comparação continuar falhando.
+O valor esperado é `definido-no-git`. Se a aplicação mostrar `Unknown` ou `ComparisonError`, inspecione `kubectl --context kind-platform-management -n argocd describe application lab02-gitops-demo`. Confira a conectividade ao GitHub e o caminho do manifesto em `main`. Consulte os logs de `deployment/argocd-repo-server` no namespace `argocd` se a comparação continuar falhando.
 
 ## O que observar
 
 - As Applications `argo-workflows` e `crossplane-core` têm `hub-addons` como owner e podem ser sincronizadas separadamente.
-- A Application de demonstração fica `Synced` e `Healthy` na revisão selecionada. O ConfigMap no Hub contém `definido-no-git`, conforme o manifesto dessa revisão.
+- A Application de demonstração fica `Synced` e `Healthy`. A coluna `REVISION` mostra o commit de `main` que o Argo CD resolveu. O ConfigMap contém `definido-no-git`.
 
 ## 4. Limpar o exercício
 
