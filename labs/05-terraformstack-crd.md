@@ -57,6 +57,8 @@ hub create --dry-run=server --validate=strict \
 
 A descoberta da API lista `terraformstacks` e `terraformstacks/status`. A última saída mostra o exemplo aceito pela API. O módulo `lab-network` e o destino `entity-a/uat` são dados do exercício. A resolução dos destinos AWS entra mais adiante no roteiro. [Schema do CRD](../control-plane/terraformstack/crd/terraformstack.yaml) · [Solicitação de exemplo](../control-plane/terraformstack/demo/terraformstack.yaml)
 
+Na Etapa 09, os módulos Terraform passam a receber valores dos YAMLs em `config/`. Um módulo auxiliar resolve a herança entre padrão global, entidade e ambiente. O `TerraformStack` seleciona a revisão desses arquivos em `spec.configuration.revision`. [Decisão sobre configuração por entidade e ambiente](../docs/adr/0006-terraformrun-and-application-ci.md#configuração-por-entidade-e-ambiente)
+
 ## O que observar
 
 - O Argo CD sincroniza a definição do tipo e o Kubernetes informa a condição `Established`.
