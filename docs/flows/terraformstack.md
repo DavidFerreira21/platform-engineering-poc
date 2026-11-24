@@ -237,37 +237,21 @@ A publicação e distribuição dos **outputs selecionados** do Terraform, por e
 
 A execução inicial permanece em `kind`. As etapas AWS serão realizadas somente com destino, credenciais, custos e autorização verificados. O roadmap só será revisado em conjunto depois de documentarmos os três fluxos arquiteturais.
 
-## 12. Referências
+## 12. Documentos relacionados
 
-- [GitOps Flow](gitops.md)
-- [ADR-0006 — TerraformStack, aprovação e reconciliação](../adr/0006-terraformrun-and-application-ci.md)
-- [ADR-0003 — Ownership e reconciliação](../adr/0003-reconciliation-and-gitops.md)
+- [GitOps Flow](gitops.md) · [GitOps Bridge Flow](gitops-bridge.md)
+- [ADR-0006 — TerraformStack, aprovação e drift](../adr/0006-terraformrun-and-application-ci.md)
 - [Contrato TerraformStack v1alpha1](../../control-plane/terraformstack/crd/terraformstack.yaml)
-- [Solicitação de exemplo](../../control-plane/terraformstack/demo/terraformstack.yaml)
-- [Laboratório da Etapa 05](../../labs/05-terraformstack-crd.md)
-- [Roadmap da POC](../learning-roadmap.md)
+- [Roadmap](../learning-roadmap.md)
 
-**Documento complementar:** [GitOps Bridge Flow](gitops-bridge.md).
+## 13. Referências externas — conceitos aplicados
 
-## 13. Referências externas — aprovação, políticas e implementação
+O `TerraformStack` e seu controller são **uma composição arquitetural da POC**, não uma implementação atribuída às referências abaixo.
 
-Os mecanismos publicados abaixo ajudam a fundamentar a separação **plan → avaliação → decisão → apply**, a governança por políticas e as pausas de execução. **O TerraformStack Controller da POC é um desenho próprio**: não afirmar que HashiCorp ou Adobe usam este mesmo CRD ou o mesmo controlador.
-
-### Documentação e padrões
-
-| Fonte | Conceito utilizado |
+| Referência | Conceito aplicado na POC |
 | --- | --- |
-| [HashiCorp — Policy Enforcement](https://developer.hashicorp.com/terraform/cloud-docs/policy-enforcement) | Avaliação de planos contra políticas antes da aplicação; policy-as-code |
-| [HashiCorp — Run States and Stages](https://docs.hashicorp.com/terraform/cloud-docs/workspaces/run/states) | Separação entre estados de plan, avaliação de políticas, confirmação e apply |
-| [HashiCorp — Compare Policy Frameworks](https://developer.hashicorp.com/terraform/policy/compare) | Contexto de OPA/Sentinel e tradeoffs de mecanismos de política |
-| [Argo Workflows — Suspending](https://argo-workflows.readthedocs.io/en/latest/walk-through/suspending/) | Ponto de pausa e retomada controlada por uma etapa `suspend` |
-| [Argo Workflows — Workflow Concepts](https://argo-workflows.readthedocs.io/en/latest/workflow-concepts/) | Workflow como execução com início/fim, distinta do lifecycle declarativo da stack |
-| [Argo CD — Cluster Bootstrapping](https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/) | Separação entre entrega GitOps de manifests e ações executadas por controllers |
+| [HashiCorp — Policy Enforcement](https://developer.hashicorp.com/terraform/cloud-docs/policy-enforcement) | **Governança do plano:** avaliar mudanças Terraform com política antes do `apply`, fundamentando as decisões `Auto Apply`, `Require Approval` e `Deny`. |
+| [Argo Workflows — Suspend / Resume](https://argo-workflows.readthedocs.io/en/latest/walk-through/suspending/) | **Gate humano:** suspender a execução para uma decisão autorizada e só então retomar; nossa POC acrescenta vínculo verificável ao hash do plano, revisão e destino. |
+| [Adobe — case CNCF sobre Argo](https://www.cncf.io/case-studies/adobe/) | **Orquestração de plataforma:** utilização real de Argo CD e Argo Workflows em um sistema corporativo de entrega. É uma referência ao uso dos motores, não evidência de um CRD Terraform igual ao nosso. |
 
-### Casos e arquiteturas para comparação
-
-- [CNCF — Adobe: Flex e o ecossistema Argo](https://www.cncf.io/case-studies/adobe/) — referência pública de plataforma que combina Argo CD, Argo Workflows, onboarding e controles. **Não descreve nosso controller TerraformStack**.
-- [AWS EKS Blueprints — Terraform + GitOps Bridge](https://aws-ia.github.io/terraform-aws-eks-blueprints/patterns/gitops/gitops-getting-started-argocd/) — exemplo real de separação entre provisão inicial por Terraform e configuração posterior por Argo CD, com ciclo de vida distinto.
-- [CNCF — Meta: plataforma GitOps com Argo CD](https://www.cncf.io/case-studies/meta/) — comparação sobre rastreabilidade e governança de mudanças declarativas; não é uma implementação de Terraform plan/apply com gates iguais aos da POC.
-
-**Adaptação desta POC:** usar a API Kubernetes como contrato `TerraformStack`, um controller para reconciliação agendada, Argo Workflows como motor de execução, plano imutável, aprovação verificável e política futura de drift é uma composição arquitetural local, a ser demonstrada e testada incrementalmente.
+**Nota:** o mecanismo de drift, o status e a política de concorrência do `TerraformStack` precisam ser comprovados pela implementação e pelos testes da POC.
