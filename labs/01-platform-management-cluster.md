@@ -10,7 +10,7 @@ Preparar um Hub Kubernetes local reproduzível e verificar o caminho de uma requ
 
 - Criar ou reutilizar o cluster kind `platform-management` e preparar os namespaces `platform-system`, `traefik`, `argocd` e `crossplane-system`. Os dois últimos ficam reservados para as próximas etapas.
 - Instalar o Traefik via Helm e publicar o Deployment, o Service e o Ingress do serviço de demonstração `echo`.
-- Validar `demo.localhost:8080`, provocar um `404` com um host desconhecido e recuperar usando o host correto.
+- Validar `demo.localhost:8080` e acompanhar o caminho da requisição até o Pod.
 - Conferir como revisitar o exercício em um Hub que já tem etapas posteriores.
 
 O exercício roda no Hub local e tem custo AWS zero.
@@ -100,15 +100,14 @@ Browser / curl (127.0.0.1:8080)
 
 A porta 8443 fica preparada para HTTPS futuro, mas **não configuramos CA/certificado TLS confiável** nesta etapa. Não expor dashboard, secrets ou endpoints administrativos.
 
-## Etapa 5 — Observar, provocar erro e recuperar
+## Etapa 5 — Conferir a configuração e os logs
 
 ```bash
 kubectl --context kind-platform-management -n platform-system get ingress,svc,deploy,pods
 kubectl --context kind-platform-management -n traefik logs deploy/traefik --tail=100
-curl --noproxy '*' -i --resolve desconhecido.localhost:8080:127.0.0.1 http://desconhecido.localhost:8080/
 ```
 
-**Falha controlada:** a última requisição deve retornar **404** do Traefik, pois não há uma regra Ingress para `desconhecido.localhost`. Em seguida faça a requisição para `demo.localhost` e observe o sucesso. Isso prova o roteamento baseado no header HTTP `Host`, não apenas que o pod respondeu. Se surgir `connection refused`, confira o mapping/porta. Se houver `503`, confira endpoints e health do backend. Se houver `404` para a rota correta, confira `IngressClass` e regras.
+O Ingress associa o host `demo.localhost` ao Service `echo`. Se houver `connection refused`, confira o mapeamento de portas. Para `503`, confira os endpoints e o estado do backend. Para `404` na rota esperada, confira a `IngressClass` e a regra de host.
 
 ## Etapa 6 — Reexaminar o Hub existente
 
@@ -126,7 +125,6 @@ O serviço `echo` fica disponível para a verificação do Hub em etapas posteri
 - [ ] Namespaces esperados disponíveis para os componentes do Hub.
 - [ ] Traefik está saudável e usando NodePorts 30080/30443.
 - [ ] `demo.localhost:8080` retorna `platform-management-ok`.
-- [ ] Host incorreto retorna `404` e é possível explicar a rota do tráfego.
 
 ## Próximas etapas
 

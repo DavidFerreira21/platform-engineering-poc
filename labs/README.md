@@ -13,7 +13,7 @@ O [roteiro prático](../docs/learning-roadmap.md) reúne as sete fases e o aceit
 
 ## Como ler e reproduzir uma etapa
 
-Os guias registram como a POC foi construída e por que cada decisão entrou naquele ponto. **Objetivo** e **O que será feito** delimitam o exercício. **Por que fizemos assim** explica a escolha. **O que observar** liga o resultado aos sinais do sistema. Os comandos permitem reproduzir a decisão, diagnosticar a falha controlada e limpar os recursos do exercício.
+Os guias registram como a POC foi construída e por que cada decisão entrou naquele ponto. **Objetivo** e **O que será feito** delimitam o exercício. **Por que fizemos assim** explica a escolha. **O que observar** liga o resultado aos sinais do sistema. Os comandos reproduzem a construção e verificam o comportamento esperado. As orientações de diagnóstico ajudam a investigar problemas que apareçam durante o percurso.
 
 - **Observar.** Use consultas, eventos e logs para conferir o estado atual do Hub. Verifique as dependências da etapa, mesmo quando o Hub já tiver componentes de etapas posteriores.
 - **Sincronizar.** Quando a etapa pedir uma mudança, confira a `Application`, a revisão esperada e seu diff antes do **Sync**. Cada componente com ciclo próprio tem sua `Application`. Uma etapa pode usar componentes que já estão saudáveis.

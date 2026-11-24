@@ -14,8 +14,8 @@ Preparar o Kubernetes local e exercitar Argo CD, Argo Workflows e Crossplane no 
 | :--- | :--- | :--- |
 | **00** | [Documentação e monorepo](repository-structure.md) | Arquitetura, decisões, estrutura e ownership alinhados |
 | **01** | [Hub kind e Traefik](../labs/01-platform-management-cluster.md) | API Kubernetes, namespaces, CoreDNS, portas e Ingress HTTP local verificados |
-| **02** | [Argo CD central e catálogo de add-ons](../labs/02-argocd-central.md) | `ApplicationSet` gera as Applications de Argo Workflows e Crossplane Core a partir do Git. A demonstração comprova drift e restauração de um ConfigMap |
-| **03** | [Argo Workflows](../labs/03-argo-workflows.md) | A Application do catálogo instala controller e CRDs. Workflow local observado em sucesso, falha controlada e reexecução |
+| **02** | [Argo CD central e catálogo de add-ons](../labs/02-argocd-central.md) | `ApplicationSet` gera as Applications de Argo Workflows e Crossplane Core. A demonstração entrega um ConfigMap a partir de uma revisão Git identificável |
+| **03** | [Argo Workflows](../labs/03-argo-workflows.md) | A Application do catálogo instala controller e CRDs. Uma execução local mostra o estado do Workflow, o Pod criado e o log do contêiner |
 | **04** | [Crossplane Core](../labs/04-crossplane-core.md) | A Application do catálogo instala o Crossplane Core. XRD e Composition de teste reconciliam um ConfigMap local |
 
 ## Fase 2 — TerraformStack e primeira execução na AWS
@@ -24,8 +24,8 @@ Exercitar o contrato no Control Plane e a execução simulada no Workflow Plane.
 
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
-| **05** | CRD Kubernetes `TerraformStack` via GitOps | A Application `terraformstack-crd` publica o CRD. A API aceita um exemplo válido, rejeita um exemplo inválido e expõe o subrecurso de status. O teste usa dados fictícios e segue o [ADR-0006](adr/0006-terraformrun-and-application-ci.md) |
-| **06** | Controller, Argo Workflows e Terraform Executor simulado | A Application `terraformstack-controller` entrega o controller e o `WorkflowTemplate`. Após sincronizar a solicitação `TerraformStack`, observar o Workflow criado pelo controller, o status, a falha e a reexecução no Hub |
+| **05** | CRD Kubernetes `TerraformStack` via GitOps | A Application `terraformstack-crd` publica o CRD. A API aceita uma solicitação fictícia e permite inspecionar o schema e o subrecurso de status. [ADR-0006](adr/0006-terraformrun-and-application-ci.md) |
+| **06** | Controller, Argo Workflows e Terraform Executor simulado | A Application `terraformstack-controller` entrega o controller e o `WorkflowTemplate`. Após sincronizar a solicitação `TerraformStack`, acompanhar a execução simulada e o status publicado pelo controller |
 | **07** | [Registro e validação de UAT](../labs/07-registro-ambientes-aws.md) | O registro de Environment vincula `entity-a/uat` à conta e à região esperadas. O acesso humano é conferido via IAM Identity Center e STS |
 | **08** | Identidade do Terraform Executor e backend de estado | O Platform Team prepara a role e inicializa o backend com autorização, state segregado e lock. O executor resolve o destino pela Foundation, renova a sessão temporária e recusa identidades ou destinos indevidos |
 | **09** | Rede UAT via `TerraformStack` com aprovação | Argo Workflows gera o plano da rede, pausa para aprovação individual na UI, revalida e aplica o mesmo plano. Status, auditoria e sub-redes privadas verificadas |
@@ -57,7 +57,7 @@ Instrumentar a plataforma e a aplicação de teste. Diagnosticar falhas, evoluir
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
 | **16** | Coleta de logs, métricas e traces | OpenTelemetry no Data Plane e visualização central com Grafana, Loki e Tempo, correlacionando sinais da aplicação e dos controllers |
-| **17** | Diagnóstico, recuperação e custos | Falha controlada detectada, investigada e recuperada. Evidências de alertas, auditoria, custos e reexecução |
+| **17** | Diagnóstico, recuperação e custos | Usar sinais e registros das execuções para investigar ocorrências, documentar a recuperação e acompanhar os custos |
 | **18** | Detecção de drift do `TerraformStack` | Plan periódico sobre uma stack UAT já aplicada distingue alterações externas de mudanças declaradas e publica condição ou alerta, sem remediação |
 | **19** | Reconciliação do `TerraformStack` por políticas | Políticas versionadas distinguem auto apply permitido, aprovação obrigatória e bloqueio, incluindo cenários destrutivos |
 | **20** | [Registro de PROD](../labs/07-registro-ambientes-aws.md#uso-do-registro-prod-na-etapa-20) e isolamento UAT/PROD e PCI/Non-PCI | Validar PROD como destino separado antes dos testes entre contas. Testar negativas de IAM e de destinos GitOps com o que já está disponível. Validar GitOps ponta a ponta em outros clusters quando houver provisionamento autorizado |

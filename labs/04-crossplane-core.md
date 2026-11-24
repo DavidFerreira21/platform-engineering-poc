@@ -10,7 +10,7 @@ Validar a reconciliação de um recurso composto no Hub e observar como o schema
 
 - Sincronizar a Application `crossplane-core`, gerada pelo `ApplicationSet` da Etapa 02, para instalar o Crossplane Core e seus CRDs.
 - Instalar a função de composição do exercício, aplicar o XRD de `LabMessage` e sua Composition e criar um `LabMessage` em `platform-system`. Conferir as condições do recurso e o ConfigMap criado pelo Crossplane.
-- Tentar gravar uma mensagem vazia, observar a rejeição pela API e confirmar que valores válidos são reconciliados no ConfigMap.
+- Consultar o schema publicado pelo XRD e conferir a mensagem do `LabMessage` no ConfigMap.
 - Remover os recursos do exercício e manter o Crossplane Core instalado.
 
 O exercício roda no Hub local e tem custo AWS zero.
@@ -60,6 +60,7 @@ hub wait --for=condition=Established --timeout=90s crd/labmessages.lab.platform.
 hub apply -f "$demo/xr.yaml"
 hub -n platform-system wait --for=condition=Synced --timeout=120s labmessage/lab03-demo
 hub -n platform-system wait --for=condition=Ready --timeout=120s labmessage/lab03-demo
+hub explain labmessage.spec.message --api-version=lab.platform.example/v1alpha1
 hub -n platform-system get labmessage lab03-demo
 hub -n platform-system get configmap -l lab.platform.example/exercise=lab03 \
   -o 'custom-columns=NAME:.metadata.name,OWNER:.metadata.ownerReferences[0].name,MESSAGE:.data.mensagem'
@@ -67,34 +68,12 @@ hub -n platform-system get configmap -l lab.platform.example/exercise=lab03 \
 
 A saída deve mostrar um ConfigMap cujo owner é `lab03-demo` e cuja mensagem é `reconciliado-pelo-crossplane`. O `Ready` depende de a função observar o ConfigMap com o label do exercício. Se os waits expirarem, consulte `hub describe function.pkg.crossplane.io lab03-patch-and-transform`, `hub describe xrd labmessages.lab.platform.example` e `hub -n platform-system describe labmessage lab03-demo`.
 
-## 3. Provocar uma falha de validação e recuperar
-
-Tente gravar uma mensagem vazia. A API deve rejeitar o patch pois o schema exige ao menos um caractere. Observe a mensagem do servidor e confira que o XR manteve o valor anterior.
-
-```bash
-hub -n platform-system patch labmessage lab03-demo --type merge \
-  -p '{"spec":{"message":""}}'
-hub -n platform-system get labmessage lab03-demo -o 'jsonpath={.spec.message}{"\n"}'
-```
-
-Agora use uma mensagem válida. Aguarde o ConfigMap refletir o novo valor sem escrever diretamente nele, e reaplique o manifesto para restaurar o valor de referência.
-
-```bash
-hub -n platform-system patch labmessage lab03-demo --type merge \
-  -p '{"spec":{"message":"mensagem-recuperada"}}'
-hub -n platform-system wait configmap -l lab.platform.example/exercise=lab03 \
-  --for='jsonpath={.data.mensagem}=mensagem-recuperada' --timeout=120s
-hub apply -f "$demo/xr.yaml"
-hub -n platform-system wait configmap -l lab.platform.example/exercise=lab03 \
-  --for='jsonpath={.data.mensagem}=reconciliado-pelo-crossplane' --timeout=120s
-```
-
 ## O que observar
 
-- O schema rejeita a mensagem vazia e o `LabMessage` persistido mantém o valor anterior.
-- Na alteração válida, compare as condições do XR e a mensagem do ConfigMap. A reconciliação do exercício é visível no recurso composto no Hub.
+- O campo `spec.message` aparece na API a partir do schema do XRD.
+- O `LabMessage` chega a `Synced` e `Ready`. O ConfigMap identifica o XR como owner e contém a mensagem declarada no manifesto.
 
-## 4. Limpar o exercício
+## 3. Limpar o exercício
 
 Remova primeiro o XR enquanto a função e o Crossplane ainda estão ativos. Confirme que o ConfigMap composto sumiu antes de remover a API e a função.
 

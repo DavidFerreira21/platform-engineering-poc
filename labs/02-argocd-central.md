@@ -4,21 +4,20 @@
 
 ## Objetivo
 
-Configurar o Argo CD para descobrir os add-ons do Hub no Git e demonstrar como ele restaura um recurso alterado no cluster.
+Configurar o Argo CD para descobrir os add-ons do Hub no Git e acompanhar a entrega de um recurso a partir de uma revisão publicada.
 
 ## O que será feito
 
 - Instalar o Argo CD central via Helm e acessar sua interface por port-forward local.
 - Aplicar o bootstrap do `ApplicationSet` `hub-addons` e conferir as Applications de Argo Workflows e Crossplane Core geradas a partir do catálogo no Git.
 - Criar o AppProject `lab02` e a Application `lab02-gitops-demo`. Sincronizar manualmente um commit publicado para criar o ConfigMap de demonstração em `platform-system`.
-- Alterar o ConfigMap no cluster, observar `OutOfSync` e sincronizar novamente para restaurar o valor do Git.
 - Remover os recursos de demonstração e manter o bootstrap dos add-ons para as etapas seguintes.
 
 O exercício roda no Hub local e tem custo AWS zero.
 
 ## Por que fizemos assim
 
-O Argo CD é o ponto de entrada para entregar os componentes do Hub a partir do Git. O catálogo gera uma Application por componente para que cada um tenha sua revisão e seu diff. Para observar drift, usamos uma Application separada com um ConfigMap e um SHA fixo. Assim a comparação usa o mesmo manifesto antes e depois da alteração no cluster.
+O Argo CD é o ponto de entrada para entregar os componentes do Hub a partir do Git. O catálogo gera uma Application por componente para que cada um tenha sua revisão e seu diff. A demonstração usa uma Application separada com um SHA fixo para ligar o conteúdo do Git ao ConfigMap entregue no cluster.
 
 ## Pré-requisitos
 
@@ -29,7 +28,7 @@ O Argo CD é o ponto de entrada para entregar os componentes do Hub a partir do 
 
 Execute os comandos da raiz do monorepo.
 
-Se o Argo CD e o `ApplicationSet` `hub-addons` já estiverem disponíveis, use as consultas do passo 2 para observar as Applications. Para repetir a demonstração de drift, comece no passo 3.
+Se o Argo CD e o `ApplicationSet` `hub-addons` já estiverem disponíveis, use as consultas do passo 2 para observar as Applications. Para repetir a entrega do ConfigMap, comece no passo 3.
 
 ## 1. Instalar e acessar o Argo CD
 
@@ -99,21 +98,12 @@ kubectl --context kind-platform-management -n platform-system get configmap lab0
 
 O valor esperado é `definido-no-git`. Se a aplicação mostrar `Unknown` ou `ComparisonError`, inspecione `kubectl --context kind-platform-management -n argocd describe application lab02-gitops-demo`. Confira a conectividade ao GitHub, o SHA publicado e o caminho. Consulte os logs de `deployment/argocd-repo-server` no namespace `argocd` se a comparação continuar falhando.
 
-## 4. Provocar drift e recuperar
-
-```bash
-kubectl --context kind-platform-management -n platform-system patch configmap lab02-gitops-demo \
-  --type merge -p '{"data":{"mensagem":"alterado-no-cluster"}}'
-```
-
-Use **Refresh** na aplicação e observe `OutOfSync`. Abra **Diff** e compare o valor no cluster com o valor do Git. Execute **Sync** novamente e repita os comandos de verificação. A revisão deve continuar a mesma e o valor deve voltar a `definido-no-git`.
-
 ## O que observar
 
 - As Applications `argo-workflows` e `crossplane-core` têm `hub-addons` como owner e podem ser sincronizadas separadamente.
-- Na Application de demonstração, o valor editado aparece no diff. O sync restaura `definido-no-git` usando a revisão original.
+- A Application de demonstração fica `Synced` e `Healthy` na revisão selecionada. O ConfigMap no Hub contém `definido-no-git`, conforme o manifesto dessa revisão.
 
-## 5. Limpar o exercício
+## 4. Limpar o exercício
 
 ```bash
 kubectl --context kind-platform-management -n argocd delete application lab02-gitops-demo --ignore-not-found
