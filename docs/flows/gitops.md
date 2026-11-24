@@ -6,7 +6,7 @@
 
 ![Fluxo GitOps: Platform Addons, Crossplane, TerraformStack e Domain Applications](./gitops-flow.png)
 
-[Visualizar o diagrama SVG em tamanho completo](./gitops-flow.png)
+[Visualizar o diagrama em tamanho completo](./gitops-flow.png)
 
 ## 1. Objetivo e princípio
 
@@ -120,7 +120,7 @@ As landing zones podem ser isoladas, sem VPC Peering nem Transit Gateway. O padr
 
 Git define **configuração e intenção declarativas**; não é obrigatório armazenar nele outputs dinâmicos, credenciais ou Terraform state.
 
-O fluxo de **GitOps Bridge** será documentado separadamente em `docs/flows/gitops-bridge.md`: publicação de outputs selecionados do Terraform no Parameter Store, consumo por External Secrets Operator e, quando aplicável, parâmetros de ApplicationSet. Também serão tratados atualização, revogação e limpeza de parâmetros, sem exposição de segredos em annotations.
+O [GitOps Bridge Flow](gitops-bridge.md) documenta separadamente: publicação de outputs selecionados do Terraform no Parameter Store, consumo por External Secrets Operator e, quando aplicável, parâmetros de ApplicationSet. Também serão tratados atualização, revogação e limpeza de parâmetros, sem exposição de segredos em annotations.
 
 ## 10. Implementação incremental
 
@@ -157,4 +157,29 @@ Os laboratórios iniciais permanecem em **kind**; adicionar dependências AWS an
 - [ADR-0007 — Personas e Developer Experience](../adr/0007-personas-and-developer-experience.md)
 - [Etapa 02 — Argo CD central](../../labs/02-argocd-central.md)
 
-**Próximos fluxos a documentar:** `docs/flows/terraformstack.md` e `docs/flows/gitops-bridge.md`.
+**Fluxos complementares:** [TerraformStack Flow](terraformstack.md) e [GitOps Bridge Flow](gitops-bridge.md).
+
+## 13. Referências externas — fundamentos, padrões e casos reais
+
+As referências são **fundamentos para escolhas e comparações**, não alegações de que outra empresa implementou exatamente nosso Control Plane, nossos CRDs ou a mesma divisão entre Argo central e local.
+
+### Documentação e padrões
+
+| Fonte | Conceito que fundamenta a POC |
+| --- | --- |
+| [Argo CD — Cluster Bootstrapping](https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/) | Bootstrap progressivo e implantação de componentes por clusters registrados |
+| [Argo CD — ApplicationSet Cluster Generator](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-Cluster/) | Descoberta e seleção de clusters por labels/annotations |
+| [Argo CD — Matrix Generator](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-Matrix/) | Combinação declarativa entre catálogo/ambientes/destinos |
+| [AWS EKS Blueprints — Multi-Cluster Hub & Spoke](https://aws-ia.github.io/terraform-aws-eks-blueprints/patterns/gitops/gitops-multi-cluster-hub-spoke-argocd/) | Exemplo implementável de Argo CD e GitOps Bridge em topologia multicluster |
+| [AWS — GitOps model with Crossplane and Argo CD](https://aws.amazon.com/blogs/containers/gitops-model-for-provisioning-and-bootstrapping-amazon-eks-clusters-using-crossplane-and-argo-cd/) | Integração da entrega declarativa com provisionamento/reconciliação cloud |
+
+### Estudos de caso e experiências
+
+- [CNCF — Galaxy FinX: GitOps e Argo CD em mais de 100 clusters](https://www.cncf.io/case-studies/galaxy-finx/) — contexto real de padronização e operação multicluster; **não valida automaticamente** nossa topologia PCI.
+- [CNCF — Adobe: Flex, Argo CD e Argo Workflows](https://www.cncf.io/case-studies/adobe/) — referência à separação de componentes, governança e workflows de uma plataforma de entrega.
+- [CNCF — Swisscom: plataforma Kubernetes e GitOps](https://www.cncf.io/case-studies/swisscom/) — inspiração para padronização, políticas e controle da plataforma em múltiplos ambientes.
+- [CNCF — Meta: entrega de infraestrutura de IA com Argo CD e Kargo](https://www.cncf.io/case-studies/meta/) — caso de GitOps, configuração como código e reconciliação em grande escala; **o escopo do case não é TerraformStack**.
+- [Spotify Engineering — Supercharged Developer Portals](https://engineering.atspotify.com/2024/04/supercharged-developer-portals) — referência a ownership, padrões e Developer Experience. **Spotify é referência de camada de experiência, não evidência de uso do nosso desenho GitOps ou de ausência de portal.**
+- [Relex Solutions — palestra PlatformCon 2026, Terraform e Argo CD](https://youtu.be/CsRkYanlPCQ) — inspiração inicial para separação de lifecycle entre infraestrutura e aplicações; a adaptação à AWS, ao Crossplane e ao TerraformStack é própria desta POC.
+
+**Critério de uso:** referenciar uma prática só quando a publicação descreve efetivamente aquele mecanismo. Os detalhes da POC continuam sendo decisões arquiteturais próprias e devem ser validados nos laboratórios.
