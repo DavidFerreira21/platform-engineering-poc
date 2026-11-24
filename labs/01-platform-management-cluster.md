@@ -77,7 +77,7 @@ kubectl --context kind-platform-management -n traefik get deployment,pods,servic
 
 O script instala/atualiza o Traefik via Helm, espera o Deployment e aplica um **Deployment + Service + Ingress Kubernetes nativo** de demonstração, definido em [`demo.yaml`](../platform/hub/traefik/demo.yaml).
 
-O serviço `echo` usa o Ingress nativo do Kubernetes para demonstrar o roteamento HTTP. O Traefik também carrega seu provider de CRDs para publicar a rota HTTPS do Argo Workflows na Etapa 03.
+O serviço `echo` usa o Ingress nativo do Kubernetes para demonstrar o roteamento HTTP. O Traefik também carrega seu provider de CRDs para publicar as interfaces do Argo CD e do Argo Workflows nas Etapas 02 e 03.
 
 ## Etapa 4 — Validar o caminho de rede
 
@@ -98,7 +98,7 @@ Browser / curl (127.0.0.1:8080)
     → Deployment echo :5678
 ```
 
-A porta 8443 recebe a rota HTTPS do Argo Workflows na Etapa 03. O serviço `echo` demonstra a entrada HTTP na porta 8080.
+A porta 8443 recebe as rotas HTTPS do Argo CD e do Argo Workflows nas etapas seguintes. O serviço `echo` demonstra a entrada HTTP na porta 8080.
 
 ## Etapa 5 — Conferir a configuração e os logs
 

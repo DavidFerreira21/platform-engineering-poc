@@ -8,7 +8,7 @@ Configurar o Argo CD para descobrir os add-ons do Hub no Git e acompanhar a entr
 
 ## O que será feito
 
-- Instalar o Argo CD central via Helm e acessar sua interface por port-forward local.
+- Instalar o Argo CD central via Helm e abrir sua interface HTTPS pelo Traefik.
 - Aplicar o bootstrap do `ApplicationSet` `hub-addons` e conferir as Applications de Argo Workflows e Crossplane Core geradas a partir do catálogo no Git.
 - Criar o AppProject `lab02` e a Application `lab02-gitops-demo`. Sincronizar manualmente a Application para entregar o ConfigMap de demonstração de `main` em `platform-system`.
 - Remover os recursos de demonstração e manter o bootstrap dos add-ons para as etapas seguintes.
@@ -17,36 +17,32 @@ O exercício roda no Hub local e tem custo AWS zero.
 
 ## Por que fizemos assim
 
-O Argo CD é o ponto de entrada para entregar os componentes do Hub a partir do Git. O catálogo gera uma Application por componente para que cada um tenha sua revisão e seu diff. A Application de demonstração acompanha `main` e permite observar como o Argo CD aplica o manifesto do ConfigMap no Hub.
+O Argo CD entrega os componentes do Hub a partir do Git. A rota da sua interface entra no mesmo release Helm e usa o Traefik da Etapa 01 para encaminhar HTTPS até o Argo CD. O catálogo gera uma Application por componente para que cada um tenha sua revisão e seu diff. A Application de demonstração acompanha `main` e permite observar como o Argo CD aplica o manifesto do ConfigMap no Hub.
 
 ## Pré-requisitos
 
-- Etapa 01 concluída, com `kind`, `kubectl` e `helm` disponíveis.
+- Etapa 01 concluída, com `kind`, `kubectl`, `helm` e o provider de CRDs do Traefik habilitado.
 - Catálogo dos add-ons e manifesto do ConfigMap de demonstração publicados em `main`.
 - Conectividade do Hub ao GitHub e aos registries das imagens.
 
 Execute os comandos da raiz do monorepo.
 
-Se o Argo CD e o `ApplicationSet` `hub-addons` já estiverem disponíveis, use as consultas do passo 2 para observar as Applications. Para repetir a entrega do ConfigMap, comece no passo 3.
+Se a interface e o `ApplicationSet` `hub-addons` já estiverem disponíveis, use as consultas do passo 2 para observar as Applications. Para repetir a entrega do ConfigMap, comece no passo 3.
 
 ## 1. Instalar e acessar o Argo CD
+
+Se o Hub ainda usa a configuração antiga do Traefik, execute `bash platform/hub/scripts/install-traefik.sh` com a versão atual do repositório antes de instalar ou atualizar o Argo CD.
 
 ```bash
 bash platform/hub/scripts/verify.sh
 bash platform/hub/scripts/install-argocd.sh
 kubectl --context kind-platform-management -n argocd get deployments,statefulsets,pods,svc
+kubectl --context kind-platform-management -n argocd get ingressroutetcp argocd-server
 ```
 
 O chart fixado instala os CRDs de `Application`, `AppProject` e `ApplicationSet`, além do controller de `ApplicationSet`. O Service `argocd-server` deve aparecer como `ClusterIP`. [Versão do chart](../workflow-plane/argocd/chart-version.txt)
 
-Deixe o port-forward aberto em outro terminal.
-
-```bash
-kubectl --context kind-platform-management -n argocd port-forward \
-  --address 127.0.0.1 svc/argocd-server 8081:443
-```
-
-Abra `https://localhost:8081`. O servidor usa um certificado local autoassinado. Para o primeiro acesso, use o usuário `admin` e consulte a senha inicial no terminal local.
+Abra **https://argocd.localhost:8443**. O Traefik encaminha a conexão ao Argo CD, que apresenta o certificado autoassinado do laboratório. Para o primeiro acesso, use o usuário `admin` e consulte a senha inicial no terminal local. [Referência do IngressRouteTCP](https://doc.traefik.io/traefik/reference/routing-configuration/kubernetes/crd/tcp/ingressroutetcp/)
 
 ```bash
 kubectl --context kind-platform-management -n argocd \
@@ -54,7 +50,7 @@ kubectl --context kind-platform-management -n argocd \
 printf '\n'
 ```
 
-Após o login, troque a senha em **User Info → Update Password**. Mantenha as credenciais fora do Git e de registros compartilhados.
+Após o login, troque a senha em **User Info → Update Password**. Mantenha as credenciais fora do Git e de registros compartilhados. Se a URL responder com `404 page not found`, confira o `IngressRouteTCP` e a atualização do Traefik no passo 1.
 
 ## 2. Configurar os add-ons do Hub
 
@@ -112,4 +108,4 @@ kubectl --context kind-platform-management -n argocd delete appproject lab02 --i
 bash platform/hub/scripts/verify.sh
 ```
 
-Encerre o port-forward com Ctrl+C. Mantenha o Argo CD e o `ApplicationSet` `hub-addons` para a Etapa 03. [Operações do Hub](../platform/hub/README.md)
+Mantenha o Argo CD, a rota e o `ApplicationSet` `hub-addons` para a Etapa 03. [Operações do Hub](../platform/hub/README.md)

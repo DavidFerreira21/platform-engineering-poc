@@ -10,6 +10,11 @@ for cmd in kind kubectl helm; do
 done
 kind get clusters | grep -Fxq platform-management || { echo "ERRO: conclua a Etapa 01 primeiro." >&2; exit 1; }
 kubectl --context "$CONTEXT" get namespace argocd >/dev/null
+kubectl --context "$CONTEXT" wait --for=condition=Established --timeout=60s \
+  crd/ingressroutetcps.traefik.io || {
+  echo "ERRO: atualize o Traefik com bash platform/hub/scripts/install-traefik.sh." >&2
+  exit 1
+}
 
 helm repo add argo https://argoproj.github.io/argo-helm --force-update >/dev/null
 helm repo update argo
@@ -20,4 +25,4 @@ kubectl --context "$CONTEXT" wait --for=condition=Established --timeout=60s \
   crd/applications.argoproj.io crd/appprojects.argoproj.io crd/applicationsets.argoproj.io
 kubectl --context "$CONTEXT" -n argocd rollout status \
   deployment/argocd-applicationset-controller --timeout=120s
-echo "Argo CD pronto. Consulte labs/02-argocd-central.md para acessar a interface local."
+echo "Argo CD pronto. Abra https://argocd.localhost:8443."

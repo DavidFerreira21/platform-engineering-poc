@@ -14,7 +14,7 @@ Preparar o Kubernetes local e exercitar Argo CD, Argo Workflows e Crossplane no 
 | :--- | :--- | :--- |
 | **00** | [Documentação e monorepo](repository-structure.md) | Arquitetura, decisões, estrutura e ownership alinhados |
 | **01** | [Hub kind e Traefik](../labs/01-platform-management-cluster.md) | API Kubernetes, namespaces, CoreDNS, portas e Ingress HTTP local verificados |
-| **02** | [Argo CD central e catálogo de add-ons](../labs/02-argocd-central.md) | `ApplicationSet` gera as Applications de Argo Workflows e Crossplane Core. A demonstração entrega um ConfigMap a partir de uma revisão Git identificável |
+| **02** | [Argo CD central e catálogo de add-ons](../labs/02-argocd-central.md) | `ApplicationSet` gera as Applications de Argo Workflows e Crossplane Core. A interface usa HTTPS pelo Traefik e a demonstração entrega um ConfigMap a partir de `main` |
 | **03** | [Argo Workflows](../labs/03-argo-workflows.md) | A Application do catálogo instala controller e CRDs. A interface HTTPS local pelo Traefik e o kubectl mostram o estado do Workflow, o Pod criado e o log do contêiner |
 | **04** | [Crossplane Core](../labs/04-crossplane-core.md) | A Application do catálogo instala o Crossplane Core. XRD e Composition de teste reconciliam um ConfigMap local |
 
