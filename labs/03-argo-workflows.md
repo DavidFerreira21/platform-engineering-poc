@@ -9,14 +9,14 @@ Executar um Workflow local e acompanhar na interface do Argo Workflows o estado 
 ## O que será feito
 
 - Sincronizar a Application `argo-workflows`, gerada pelo `ApplicationSet` da Etapa 02. Conferir o controller, os CRDs, a ServiceAccount do executor e o Argo Server, que serve a interface.
-- Abrir a interface local com um token temporário de leitura e observar a execução de exemplo.
+- Abrir a interface local pelo Traefik com um token temporário de leitura e observar a execução de exemplo.
 - Remover a execução de exemplo e seu Pod. O controller fica disponível para as próximas etapas.
 
 O exercício roda no Hub local e tem custo AWS zero.
 
 ## Por que fizemos assim
 
-O controller e os CRDs do Argo Workflows ficam em uma Application compartilhada. O manifesto do exercício define uma tarefa pequena, e cada submissão cria uma execução com nome próprio. A interface do Argo Workflows usa o Argo Server para reunir o estado e os logs da execução. O acesso nesta etapa é local e de leitura. A Etapa 09 introduz a identidade individual para aprovação de planos.
+O controller e os CRDs do Argo Workflows ficam em uma Application compartilhada. O manifesto do exercício define uma tarefa pequena, e cada submissão cria uma execução com nome próprio. A interface do Argo Workflows usa o Argo Server para reunir o estado e os logs da execução. O Traefik encaminha a conexão HTTPS de `workflows.localhost` ao Argo Server, que termina o TLS. O acesso nesta etapa é local e de leitura. A Etapa 09 introduz a identidade individual para aprovação de planos.
 
 ## Pré-requisitos
 
@@ -30,13 +30,14 @@ hub() { kubectl --context kind-platform-management "$@"; }
 
 ## 1. Conferir a instalação do Argo Workflows
 
-Se o Hub foi preparado antes da habilitação da interface, reaplique o bootstrap da Etapa 02 para o AppProject aceitar o Service do Argo Server.
+Se o Hub já existia antes da configuração da rota, atualize o Traefik da Etapa 01 e reaplique o bootstrap da Etapa 02. Isso habilita o provider de CRDs do Traefik e permite a rota no AppProject.
 
 ```bash
+bash platform/hub/scripts/install-traefik.sh
 hub apply -f platform/hub/addons/bootstrap.yaml
 ```
 
-Na UI do Argo CD, abra **Applications → argo-workflows**. Se o controller e o Argo Server já estiverem disponíveis, confira o estado com os comandos abaixo. Para instalar ou habilitar a interface, confira a versão do chart no catálogo e inspecione o **Diff**. Sincronize a Application quando o diff corresponder à instalação esperada. Um Job de pré-sincronização instala os CRDs completos. O controller executa Workflows no namespace `argo-workflows`. [Entrada do catálogo](../platform/hub/addons/catalog/argo-workflows.yaml)
+Na UI do Argo CD, abra **Applications → argo-workflows**. Se o controller, o Argo Server e a rota já estiverem disponíveis, confira o estado com os comandos abaixo. Para instalar ou publicar a interface, confira a versão do chart no catálogo e inspecione o **Diff**. Sincronize a Application quando o diff corresponder à instalação esperada. Um Job de pré-sincronização instala os CRDs completos. O controller executa Workflows no namespace `argo-workflows`. [Entrada do catálogo](../platform/hub/addons/catalog/argo-workflows.yaml)
 
 ```bash
 hub -n argocd get application argo-workflows
@@ -44,27 +45,22 @@ hub wait --for=condition=Established --timeout=90s \
   crd/workflows.argoproj.io crd/workflowtaskresults.argoproj.io
 hub -n argo-workflows rollout status deployment/argo-workflows-workflow-controller --timeout=120s
 hub -n argo-workflows rollout status deployment/argo-workflows-server --timeout=120s
-hub -n argo-workflows get service argo-workflows-server
+hub -n argo-workflows get service/argo-workflows-server ingressroutetcp/argo-workflows-server
 ```
 
 Após sincronizar, confira `Synced` e `Healthy`. Em um Hub existente, a disponibilidade do controller e dos CRDs é o ponto de partida do exercício. Se a Application estiver ausente, confira o `ApplicationSet` na Etapa 02. Se o sync falhar antes de criar o controller, consulte `hub -n argocd describe application argo-workflows` e, se o Job ainda existir, `hub -n argo-workflows logs job/argo-workflows-crd-install`.
 
 ## 2. Abrir a interface do Argo Workflows
 
-Em outro terminal, mantenha o port-forward aberto.
-
-```bash
-kubectl --context kind-platform-management -n argo-workflows port-forward \
-  --address 127.0.0.1 svc/argo-workflows-server 2746:2746
-```
-
-Abra **https://localhost:2746**. O Argo Server usa um certificado local autoassinado. Gere um token temporário no terminal do exercício.
+Abra **https://workflows.localhost:8443**. O Argo Server apresenta o certificado autoassinado do laboratório. Gere um token temporário no terminal do exercício.
 
 ```bash
 printf 'Bearer %s\n' "$(hub -n argo-workflows create token argo-workflows-viewer --duration=30m)"
 ```
 
-Cole a linha inteira, incluindo `Bearer`, no campo de token da interface. Selecione o namespace `argo-workflows`. Se a sessão expirar, gere outro token. [Modo de autenticação](https://argo-workflows.readthedocs.io/en/release-4.1/argo-server-auth-mode/) · [Acesso à interface](https://argo-workflows.readthedocs.io/en/release-4.1/argo-server/)
+Cole a linha inteira, incluindo `Bearer`, no campo de token da interface. Selecione o namespace `argo-workflows`. Se a sessão expirar, gere outro token. [Modo de autenticação](https://argo-workflows.readthedocs.io/en/release-4.1/argo-server-auth-mode/) · [Rota TCP do Traefik](https://doc.traefik.io/traefik/reference/routing-configuration/kubernetes/crd/tcp/ingressroutetcp/)
+
+Se a URL responder com `404 page not found`, confira se a Application está sincronizada, se o `IngressRouteTCP` aparece no comando do passo 1 e se o Traefik foi atualizado. Para investigar a rota, consulte `hub -n traefik logs deployment/traefik --tail=100`.
 
 ## 3. Executar e observar
 
@@ -95,4 +91,4 @@ hub -n argo-workflows get "$run" --ignore-not-found
 hub -n argo-workflows get pods -l "workflows.argoproj.io/workflow=${run##*/}"
 ```
 
-As duas consultas devem retornar listas vazias. Encerre o port-forward com Ctrl+C. O controller e a interface ficam disponíveis para as próximas etapas. [Documentação do Argo Workflows](https://argo-workflows.readthedocs.io/en/latest/installation/)
+As duas consultas devem retornar listas vazias. O controller e a interface ficam disponíveis para as próximas etapas. [Documentação do Argo Workflows](https://argo-workflows.readthedocs.io/en/latest/installation/)

@@ -19,7 +19,7 @@ providers:
   kubernetesIngress:
     enabled: true
   kubernetesCRD:
-    enabled: false
+    enabled: true
   kubernetesGateway:
     enabled: false
 ingressRoute:
