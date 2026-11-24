@@ -32,6 +32,7 @@ Os registros de Domain ficam no monorepo. O DevOps Federado mantém os manifests
 ### Primeira implementação
 
 - `platform/hub/kind-config.yaml` e `platform/hub/scripts/`: criação, inspeção e remoção **apenas do cluster local kind**.
+- `platform/hub/addons/` reúne o bootstrap dos AppProjects e do `ApplicationSet`, além de uma entrada por add-on do Hub. [Guia da Etapa 02](../labs/02-argocd-central.md)
 - [Guias das etapas](../labs/README.md) em `labs/`, começando pelo Hub local na Etapa 01.
 - `foundation/config/entity-a/{uat,prod}/environment.yaml` contém os registros de UAT e PROD com IDs distintos, região, baseline de rede e clusters EKS previstos. O roteiro usa UAT pela primeira vez na [Etapa 07](../labs/07-registro-ambientes-aws.md). PROD entra na Etapa 20 para validar isolamento.
 

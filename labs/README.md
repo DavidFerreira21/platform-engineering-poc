@@ -6,7 +6,7 @@ O [roteiro prático](../docs/learning-roadmap.md) reúne as sete fases e o aceit
 | :--- | :--- |
 | **00** | [Documentação e monorepo](../docs/repository-structure.md) |
 | **01** | [Hub kind e Traefik](01-platform-management-cluster.md) |
-| **02** | [Argo CD central](02-argocd-central.md) |
+| **02** | [Argo CD central e catálogo de add-ons](02-argocd-central.md) |
 | **03** | [Argo Workflows](03-argo-workflows.md) |
 | **04** | [Crossplane Core](04-crossplane-core.md) |
 | **07** | [Registro e validação de UAT](07-registro-ambientes-aws.md) |

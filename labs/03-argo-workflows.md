@@ -8,7 +8,7 @@ Executar um Workflow local e usar o estado da execução, os Pods e os logs para
 
 ## O que será feito
 
-- Criar o namespace `argo-workflows`, o AppProject `platform-workflows` e a Application `argo-workflows`. Sincronizar pelo Argo CD a instalação do controller, dos CRDs e da ServiceAccount do executor.
+- Sincronizar a Application `argo-workflows`, gerada pelo `ApplicationSet` da Etapa 02. Conferir o controller, os CRDs e a ServiceAccount do executor.
 - Submeter três execuções do mesmo manifesto e observar os estados `Succeeded`, `Failed` e `Succeeded`. A segunda execução usa um parâmetro que provoca uma falha no contêiner.
 - Remover os três Workflows e seus Pods. O controller fica disponível para as próximas etapas.
 
@@ -16,7 +16,7 @@ O exercício roda no Hub local e tem custo AWS zero.
 
 ## Pré-requisitos
 
-- Etapa 02 concluído, com o Argo CD central acessível.
+- Etapa 02 concluída, com o Argo CD central acessível e `hub-addons` como owner da Application `argo-workflows`.
 - `kubectl` com o contexto `kind-platform-management`. O Hub precisa de acesso ao repositório Helm e aos registries das imagens.
 - Execute os comandos na raiz do monorepo e no mesmo terminal.
 
@@ -26,13 +26,7 @@ hub() { kubectl --context kind-platform-management "$@"; }
 
 ## 1. Sincronizar o controller e os CRDs
 
-```bash
-bootstrap=workflow-plane/argo-workflows/bootstrap
-hub apply -f "$bootstrap/namespace.yaml" -f "$bootstrap/project.yaml"
-hub apply -f "$bootstrap/application.yaml"
-```
-
-Na UI do Argo CD, abra **Applications → argo-workflows**. Após a primeira comparação indicar `OutOfSync`, selecione **Sync → Synchronize**. O chart `2.0.18` usa Argo Workflows `v4.1.6`. Um Job de pré-sincronização instala os CRDs completos. O controller executa Workflows apenas em `argo-workflows`. A observação do exercício é feita com `kubectl`.
+Na UI do Argo CD, abra **Applications → argo-workflows**. Se estiver `OutOfSync`, selecione **Sync → Synchronize**. O chart `2.0.18` usa Argo Workflows `v4.1.6`. Um Job de pré-sincronização instala os CRDs completos. O controller executa Workflows no namespace `argo-workflows`. [Entrada do catálogo](../platform/hub/addons/catalog/argo-workflows.yaml)
 
 ```bash
 hub -n argocd get application argo-workflows
@@ -41,7 +35,7 @@ hub wait --for=condition=Established --timeout=90s \
 hub -n argo-workflows rollout status deployment/argo-workflows-workflow-controller --timeout=120s
 ```
 
-A Application deve ficar `Synced` e `Healthy`. Se o sync falhar antes de criar o controller, consulte `hub -n argocd describe application argo-workflows` e, se o Job ainda existir, `hub -n argo-workflows logs job/argo-workflows-crd-install`.
+A Application deve ficar `Synced` e `Healthy`. Se ela estiver ausente, confira o `ApplicationSet` na Etapa 02. Se o sync falhar antes de criar o controller, consulte `hub -n argocd describe application argo-workflows` e, se o Job ainda existir, `hub -n argo-workflows logs job/argo-workflows-crd-install`.
 
 ## 2. Executar e observar
 

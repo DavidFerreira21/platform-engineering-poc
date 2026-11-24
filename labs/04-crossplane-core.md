@@ -8,7 +8,7 @@ Validar a reconciliação de um recurso composto no Hub e observar como o schema
 
 ## O que será feito
 
-- Criar o AppProject `platform-crossplane` e a Application `crossplane-core` para instalar o Crossplane Core e seus CRDs via Argo CD.
+- Sincronizar a Application `crossplane-core`, gerada pelo `ApplicationSet` da Etapa 02, para instalar o Crossplane Core e seus CRDs.
 - Instalar a função de composição do exercício, aplicar o XRD de `LabMessage` e sua Composition e criar um `LabMessage` em `platform-system`. Conferir as condições do recurso e o ConfigMap criado pelo Crossplane.
 - Tentar gravar uma mensagem vazia, observar a rejeição pela API e confirmar que valores válidos são reconciliados no ConfigMap.
 - Remover os recursos do exercício e manter o Crossplane Core instalado.
@@ -17,7 +17,7 @@ O exercício roda no Hub local e tem custo AWS zero.
 
 ## Pré-requisitos
 
-- Hub da Etapa 01 com Argo CD central acessível conforme a Etapa 02 e Argo Workflows verificado na Etapa 03.
+- Argo CD central acessível, com `hub-addons` como owner da Application `crossplane-core`, e Argo Workflows verificado na Etapa 03.
 - `kubectl` com o contexto `kind-platform-management` e conectividade do Hub ao repositório Helm e aos registries das imagens e da função.
 - Execute os comandos da raiz do monorepo. Nos exemplos, `hub` seleciona explicitamente o contexto local.
 
@@ -28,12 +28,7 @@ hub get namespace argocd crossplane-system platform-system
 
 ## 1. Sincronizar o Crossplane Core
 
-```bash
-hub apply -f control-plane/crossplane/bootstrap/project.yaml
-hub apply -f control-plane/crossplane/bootstrap/application.yaml
-```
-
-Na UI do Argo CD, abra **Applications → crossplane-core**. Aguarde a primeira comparação mostrar `OutOfSync` e então selecione **Sync → Synchronize**. A Application usa o chart Crossplane `2.4.3` e o AppProject limita a origem, o destino e os tipos usados pelo chart.
+Na UI do Argo CD, abra **Applications → crossplane-core**. Se estiver `OutOfSync`, selecione **Sync → Synchronize**. A Application usa o chart Crossplane `2.4.3`. Se ela estiver ausente, confira o `ApplicationSet` na Etapa 02. [Entrada do catálogo](../platform/hub/addons/catalog/crossplane-core.yaml)
 
 ```bash
 hub -n argocd get application crossplane-core -o \
@@ -105,4 +100,4 @@ hub delete -f "$demo/composition.yaml" -f "$demo/xrd.yaml" -f "$demo/function.ya
 
 Mantenha a Application `crossplane-core` sincronizada para as próximas etapas. [Documentação do Crossplane](https://docs.crossplane.io/latest/guides/function-patch-and-transform/)
 
-A próxima entrega do [roteiro](../docs/learning-roadmap.md#fase-2--terraformstack-e-primeira-execução-na-aws) é o CRD `TerraformStack` na Etapa 05, com testes no Hub local.
+A próxima entrega do roteiro é publicar o CRD `TerraformStack` via GitOps na Etapa 05 e validar seu contrato na API do Hub. [Roteiro da Fase 2](../docs/learning-roadmap.md#fase-2--terraformstack-e-primeira-execução-na-aws)

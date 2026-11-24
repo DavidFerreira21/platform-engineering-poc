@@ -14,9 +14,9 @@ Preparar o Kubernetes local e exercitar Argo CD, Argo Workflows e Crossplane no 
 | :--- | :--- | :--- |
 | **00** | [Documentação e monorepo](repository-structure.md) | Arquitetura, decisões, estrutura e ownership alinhados |
 | **01** | [Hub kind e Traefik](../labs/01-platform-management-cluster.md) | API Kubernetes, namespaces, CoreDNS, portas e Ingress HTTP local verificados |
-| **02** | [Argo CD central](../labs/02-argocd-central.md) | Sincronização GitOps, drift e restauração de um ConfigMap |
-| **03** | [Argo Workflows](../labs/03-argo-workflows.md) | Controller e CRDs instalados por Argo CD. Workflow local observado em sucesso, falha controlada e reexecução |
-| **04** | [Crossplane Core](../labs/04-crossplane-core.md) | XRD e Composition de teste reconciliam um ConfigMap local |
+| **02** | [Argo CD central e catálogo de add-ons](../labs/02-argocd-central.md) | `ApplicationSet` gera as Applications de Argo Workflows e Crossplane Core a partir do Git. A demonstração comprova drift e restauração de um ConfigMap |
+| **03** | [Argo Workflows](../labs/03-argo-workflows.md) | A Application do catálogo instala controller e CRDs. Workflow local observado em sucesso, falha controlada e reexecução |
+| **04** | [Crossplane Core](../labs/04-crossplane-core.md) | A Application do catálogo instala o Crossplane Core. XRD e Composition de teste reconciliam um ConfigMap local |
 
 ## Fase 2 — TerraformStack e primeira execução na AWS
 
@@ -24,8 +24,8 @@ Exercitar o contrato no Control Plane e a execução simulada no Workflow Plane.
 
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
-| **05** | CRD Kubernetes `TerraformStack` | A API do Hub aceita um exemplo válido, rejeita um exemplo inválido e expõe o subrecurso de status. O teste usa dados fictícios e segue o [ADR-0006](adr/0006-terraformrun-and-application-ci.md) |
-| **06** | Controller, Argo Workflows e Terraform Executor simulado | Um `TerraformStack` sincronizado do Git dispara um Workflow e atualiza status. Sucesso, falha e reexecução segura são observados no Hub |
+| **05** | CRD Kubernetes `TerraformStack` via GitOps | O catálogo do Hub entrega o CRD a partir do Git. A API aceita um exemplo válido, rejeita um exemplo inválido e expõe o subrecurso de status. O teste usa dados fictícios e segue o [ADR-0006](adr/0006-terraformrun-and-application-ci.md) |
+| **06** | Controller, Argo Workflows e Terraform Executor simulado | Argo CD sincroniza o controller, o `WorkflowTemplate` e a solicitação `TerraformStack`. O controller cria cada Workflow e atualiza status. Sucesso, falha e reexecução segura são observados no Hub |
 | **07** | [Registro e validação de UAT](../labs/07-registro-ambientes-aws.md) | O registro de Environment vincula `entity-a/uat` à conta e à região esperadas. O acesso humano é conferido via IAM Identity Center e STS |
 | **08** | Identidade do Terraform Executor e backend de estado | O Platform Team prepara a role e inicializa o backend com autorização, state segregado e lock. O executor resolve o destino pela Foundation, renova a sessão temporária e recusa identidades ou destinos indevidos |
 | **09** | Rede UAT via `TerraformStack` com aprovação | Argo Workflows gera o plano da rede, pausa para aprovação individual na UI, revalida e aplica o mesmo plano. Status, auditoria e sub-redes privadas verificadas |

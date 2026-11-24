@@ -4,20 +4,22 @@
 
 ## Objetivo
 
-Demonstrar como o Argo CD reconcilia o estado do Hub com uma revisão do Git e restaura um recurso alterado no cluster.
+Configurar o Argo CD para descobrir os add-ons do Hub no Git e demonstrar como ele restaura um recurso alterado no cluster.
 
 ## O que será feito
 
-- Instalar o Argo CD central via Helm, com os CRDs de Application e AppProject, e acessar sua interface por port-forward local.
+- Instalar o Argo CD central via Helm e acessar sua interface por port-forward local.
+- Aplicar o bootstrap do `ApplicationSet` `hub-addons` e conferir as Applications de Argo Workflows e Crossplane Core geradas a partir do catálogo no Git.
 - Criar o AppProject `lab02` e a Application `lab02-gitops-demo`. Sincronizar manualmente um commit publicado para criar o ConfigMap de demonstração em `platform-system`.
 - Alterar o ConfigMap no cluster, observar `OutOfSync` e sincronizar novamente para restaurar o valor do Git.
-- Remover os recursos de demonstração e verificar o Hub. O Argo CD fica disponível para a Etapa 03.
+- Remover os recursos de demonstração e manter o bootstrap dos add-ons para as etapas seguintes.
 
 O exercício roda no Hub local e tem custo AWS zero.
 
 ## Pré-requisitos
 
-- Etapa 01 concluído, com `kind`, `kubectl` e `helm` disponíveis.
+- Etapa 01 concluída, com `kind`, `kubectl` e `helm` disponíveis.
+- Catálogo dos add-ons publicado em `main`, a revisão que o `ApplicationSet` monitora.
 - Uma revisão publicada neste monorepo que contenha `workflow-plane/argocd/demo/configmap.yaml`.
 - Conectividade do Hub ao GitHub e aos registries das imagens.
 
@@ -31,7 +33,7 @@ bash platform/hub/scripts/install-argocd.sh
 kubectl --context kind-platform-management -n argocd get deployments,statefulsets,pods,svc
 ```
 
-O [chart fixado](../workflow-plane/argocd/chart-version.txt) instala os CRDs de Application e AppProject. O Service `argocd-server` deve aparecer como `ClusterIP`. O script pode ser executado novamente para reaplicar a configuração.
+O chart fixado instala os CRDs de `Application`, `AppProject` e `ApplicationSet`, além do controller de `ApplicationSet`. O Service `argocd-server` deve aparecer como `ClusterIP`. [Versão do chart](../workflow-plane/argocd/chart-version.txt)
 
 Deixe o port-forward aberto em outro terminal.
 
@@ -50,7 +52,28 @@ printf '\n'
 
 Após o login, troque a senha em **User Info → Update Password**. Mantenha as credenciais fora do Git e de registros compartilhados.
 
-## 2. Sincronizar uma revisão publicada
+## 2. Configurar os add-ons do Hub
+
+```bash
+hub() { kubectl --context kind-platform-management "$@"; }
+hub apply -f platform/hub/addons/bootstrap.yaml
+hub -n argocd wait --for=create --timeout=180s \
+  application/argo-workflows application/crossplane-core
+hub -n argocd wait --timeout=180s \
+  --for='jsonpath={.metadata.ownerReferences[?(@.kind=="ApplicationSet")].name}=hub-addons' \
+  application/argo-workflows application/crossplane-core
+hub -n argocd get applicationset hub-addons
+hub -n argocd get application argo-workflows crossplane-core \
+  -o 'custom-columns=APP:.metadata.name,OWNER:.metadata.ownerReferences[?(@.kind=="ApplicationSet")].name,SYNC:.status.sync.status'
+```
+
+O `ApplicationSet` lê `platform/hub/addons/catalog/*.yaml` em `main` e gera uma `Application` por arquivo. O bootstrap também declara os AppProjects que limitam a origem, o destino e os tipos de recurso de cada add-on. A coluna `OWNER` deve mostrar `hub-addons` nas duas linhas. Em um Hub novo, cada add-on aguarda o sync manual indicado nas Etapas 03 e 04. [Bootstrap do Hub](../platform/hub/addons/bootstrap.yaml)
+
+Se o Hub já tiver essas Applications, use os mesmos comandos. O `ApplicationSet` assume as Applications com os nomes existentes e mantém as versões dos charts, as configurações e os nomes dos releases. Confira a coluna `OWNER` antes de seguir.
+
+Se uma Application estiver ausente ou sem owner, consulte `hub -n argocd describe applicationset hub-addons` e os logs de `deployment/argocd-applicationset-controller` no namespace `argocd`. Confira se a revisão `main` contém o catálogo e se o Hub alcança o GitHub. Em seguida, repita a verificação.
+
+## 3. Sincronizar uma revisão publicada
 
 O monorepo deste lab é público. O Argo CD lê a URL HTTPS declarada na Application sem credenciais. Comece pelo comando abaixo.
 
@@ -70,7 +93,7 @@ kubectl --context kind-platform-management -n platform-system get configmap lab0
 
 O valor esperado é `definido-no-git`. Se a aplicação mostrar `Unknown` ou `ComparisonError`, inspecione `kubectl --context kind-platform-management -n argocd describe application lab02-gitops-demo`. Confira a conectividade ao GitHub, o SHA publicado e o caminho. Consulte os logs de `deployment/argocd-repo-server` no namespace `argocd` se a comparação continuar falhando.
 
-## 3. Provocar drift e recuperar
+## 4. Provocar drift e recuperar
 
 ```bash
 kubectl --context kind-platform-management -n platform-system patch configmap lab02-gitops-demo \
@@ -79,7 +102,7 @@ kubectl --context kind-platform-management -n platform-system patch configmap la
 
 Use **Refresh** na aplicação e observe `OutOfSync`. Abra **Diff** e compare o valor no cluster com o valor do Git. Execute **Sync** novamente e repita os comandos de verificação. A revisão deve continuar a mesma e o valor deve voltar a `definido-no-git`.
 
-## 4. Limpar o exercício
+## 5. Limpar o exercício
 
 ```bash
 kubectl --context kind-platform-management -n argocd delete application lab02-gitops-demo --ignore-not-found
@@ -88,6 +111,6 @@ kubectl --context kind-platform-management -n argocd delete appproject lab02 --i
 bash platform/hub/scripts/verify.sh
 ```
 
-Encerre o port-forward com Ctrl+C. Mantenha o Argo CD instalado para a Etapa 03.
+Encerre o port-forward com Ctrl+C. Mantenha o Argo CD e o `ApplicationSet` `hub-addons` para a Etapa 03.
 
 Para desinstalar o Argo CD opcionalmente, primeiro confirme que nenhuma outra aplicação depende dele. Execute `helm --kube-context kind-platform-management -n argocd uninstall argocd`. O chart mantém os CRDs. A exclusão dos CRDs é uma operação separada e remove todas as instâncias desses tipos no cluster.
