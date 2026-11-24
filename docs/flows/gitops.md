@@ -4,9 +4,9 @@
 > **Atual:** Hub `kind` com bootstrap por scripts, Argo CD central e catálogo de add-ons.  
 > **Futuro:** EKS, múltiplas entidades/ambientes e avaliação do EKS Argo CD Capability.
 
-![Fluxo GitOps: Platform Addons, Crossplane, TerraformStack e Domain Applications](./gitops-flow.svg)
+![Fluxo GitOps: Platform Addons, Crossplane, TerraformStack e Domain Applications](./gitops-flow.png)
 
-[Visualizar o diagrama SVG em tamanho completo](./gitops-flow.svg)
+[Visualizar o diagrama SVG em tamanho completo](./gitops-flow.png)
 
 ## 1. Objetivo e princípio
 
