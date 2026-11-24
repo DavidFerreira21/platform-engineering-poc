@@ -191,28 +191,17 @@ Não antecipar contas, clusters ou custos AWS apenas para validar o desenho.
 - Falhas de publicação, leitura, configuração, atualização e remoção são diferenciáveis e auditáveis.
 - Nenhuma senha, token, kubeconfig, plan ou state aparece em Git, annotation, logs ou status.
 
-## 10. Referências técnicas e arquiteturas publicadas
+## 10. Referências externas — conceitos aplicados
 
-As referências abaixo fornecem **padrões e mecanismos verificáveis**; nenhuma implementa exatamente a arquitetura desta POC. **A combinação e as fronteiras de ownership documentadas aqui são decisões locais**, não atribuições a terceiros.
+O Bridge da POC é uma **adaptação**: publica outputs selecionados no **SSM Parameter Store da conta de destino** e faz consumo local via ESO. As fontes descrevem os mecanismos de referência, não essa mesma topologia em produção.
 
-### Referências de implementação
+| Referência | Conceito aplicado na POC |
+| --- | --- |
+| [AWS EKS Blueprints — Argo CD / GitOps Bridge](https://aws-ia.github.io/terraform-aws-eks-blueprints/patterns/gitops/gitops-getting-started-argocd/) | **Ponte entre infraestrutura e GitOps:** reutilizar metadados gerados pelo Terraform na configuração declarativa de add-ons geridos pelo Argo CD. O exemplo AWS usa detalhes próprios, que não copiamos integralmente. |
+| [AWS AppMod Blueprints — GitOps Bridge Architecture](https://github.com/aws-samples/appmod-blueprints/blob/main/docs/platform/gitops-bridge-architecture.md) | **Projeto de referência implementável:** ApplicationSets, cluster secrets e External Secrets Operator para distribuir configurações de add-ons. Ajuda a entender o mecanismo; não altera o ownership central da POC. |
+| [External Secrets Operator — AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/) | **Consumo declarativo de outputs:** `ExternalSecret` e `SecretStore` para buscar valores do SSM e materializar Secrets no cluster autorizado. |
 
-| Fonte | Padrão aproveitado | Limite da analogia |
-| --- | --- | --- |
-| [AWS EKS Blueprints — Argo CD e GitOps Bridge](https://aws-ia.github.io/terraform-aws-eks-blueprints/patterns/gitops/gitops-getting-started-argocd/) | Bootstrap de EKS/add-ons com Terraform e Argo CD | O laboratório não adota integralmente o exemplo nem o mesmo backend de outputs |
-| [AWS EKS Blueprints — Multi-Cluster Hub & Spoke](https://aws-ia.github.io/terraform-aws-eks-blueprints/patterns/gitops/gitops-multi-cluster-hub-spoke-argocd/) | Descoberta e distribuição de configurações entre clusters | Rede, identidade, PCI e landing zones exigem desenho próprio |
-| [GitOps Bridge — projeto de referência](https://github.com/gitops-bridge-dev/gitops-bridge) | Conceito de transportar metadata Terraform até GitOps | Não assumir que o projeto usa nosso fluxo específico via Parameter Store |
-| [AWS AppMod Blueprints — GitOps Bridge Architecture](https://github.com/aws-samples/appmod-blueprints/blob/main/docs/platform/gitops-bridge-architecture.md) | Cluster secrets, ApplicationSets e ESO em implantação de add-ons | É exemplo técnico, não uma garantia de adequação a todas as contas |
-| [External Secrets Operator — AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/) | `ExternalSecret`/`SecretStore` e sincronização a partir do SSM | A leitura depende de cluster, namespace e identidade |
-| [External Secrets Operator — AWS Access](https://external-secrets.io/latest/provider/aws-access/) | Autenticação com credenciais temporárias e roles AWS | IAM/Pod Identity/IRSA devem ser validados no ambiente real |
-| [Argo CD — Cluster Generator](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-Cluster/) | Uso de labels/annotations dos **clusters registrados** | Não busca Secrets arbitrários em clusters remotos |
-| [AWS — Hierarquia de parâmetros](https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-hierarchies.html) | Prefixos e organização por Environment | Organização de paths não substitui IAM mínimo |
-| [AWS — Restringir acesso a parâmetros](https://docs.aws.amazon.com/systems-manager/latest/userguide/ps-restrict-parameter-access.html) | Políticas de leitura e KMS | Particularidades de políticas hierárquicas precisam ser testadas |
-
-### Contexto de adoção em plataformas
-
-- [CNCF — Galaxy FinX: Kubernetes em mais de 100 clusters com Argo CD](https://www.cncf.io/case-studies/galaxy-finx/) — reforça a necessidade de automação e governança multicluster; **não é evidência de uso do mesmo Bridge**.
-- [CNCF — Adobe: plataforma GitOps com Argo CD e Argo Workflows](https://www.cncf.io/case-studies/adobe/) — referência ao uso de múltiplos motores e controles de entrega; **não é descrição do nosso fluxo de outputs**.
+**Nota:** registro do cluster, autorização IAM/RBAC e distribuição de parâmetros são processos distintos; Parameter Store não registra clusters automaticamente.
 
 ## 11. Documentos relacionados
 
