@@ -155,14 +155,14 @@ Os laboratórios iniciais permanecem em **kind**; adicionar dependências AWS an
 - [TerraformStack Flow](terraformstack.md) · [GitOps Bridge Flow](gitops-bridge.md)
 - [ADR-0003 — Reconciliação e GitOps](../adr/0003-reconciliation-and-gitops.md)
 
-## 13. Referências externas — conceitos aplicados
+## 13. Inspirações externas
 
-Estas fontes fundamentam **princípios específicos**; não reproduzimos integralmente a arquitetura de nenhuma delas.
+Os exemplos abaixo mostram **formas diferentes de resolver problemas parecidos**. Eles ajudaram a orientar a separação de responsabilidades e os limites de cada fluxo, mas não representam uma arquitetura copiada integralmente.
 
-| Referência | Conceito aplicado na POC |
-| --- | --- |
-| [RELEX Solutions — *Where State Meets Sync*, PlatformCon 2026](https://2026.platformcon.com/sessions/where-state-meets-sync-scaling-platforms-without-the-hype) | **Separação de responsabilidades:** Terraform cuida da infraestrutura, enquanto Argo CD mantém um ciclo GitOps independente para aplicações e componentes. Foi a inspiração inicial do fluxo. |
-| [AWS EKS Blueprints — Multi-Cluster Hub & Spoke](https://aws-ia.github.io/terraform-aws-eks-blueprints/patterns/gitops/gitops-multi-cluster-hub-spoke-argocd/) | **Distribuição declarativa multicluster:** Argo CD e ApplicationSets para selecionar e instalar add-ons em destinos diferentes. A POC adapta o padrão ao ownership corporativo e aos limites entre contas. |
-| [Adobe — case CNCF sobre Argo](https://www.cncf.io/case-studies/adobe/) | **GitOps como capacidade de plataforma:** práticas padronizadas e composição de ferramentas Argo para entrega governada em escala. Não implica que a Adobe utilize nossa topologia ou o `TerraformStack`. |
+**[RELEX Solutions — Where State Meets Sync (PlatformCon 2026)](https://2026.platformcon.com/sessions/where-state-meets-sync-scaling-platforms-without-the-hype).** A RELEX apresentou a evolução de uma plataforma AKS em que infraestrutura e releases Helm eram acoplados ao Terraform. A empresa passou a gerenciar infraestrutura com Terraform Cloud e aplicações com Argo CD, dando a cada camada seu próprio ciclo de vida. **Inspiração na POC:** separar o provisionamento da infraestrutura da entrega GitOps de componentes e aplicações, sem começar obrigatoriamente por um portal.
 
-**Nota:** os contratos, a divisão central/local e as políticas PCI desta POC são decisões próprias, a serem validadas nos laboratórios.
+**[Quince — Scaling Across Continents with Crossplane](https://tech.quince.com/from-whiteboard-to-production-scaling-quince-across-continents-with-crossplane-41dfb51d37a2).** A equipe descreveu a divisão da plataforma entre **Foundation em Terraform** — redes, EKS e IAM compartilhado — e **recursos específicos das aplicações em Crossplane**, como S3, filas e bancos. **Inspiração na POC:** distinguir Foundation/Entity Core de Domain Infrastructure, dando a cada camada um motor e um ownership apropriados. Na nossa arquitetura, o Crossplane é centralizado; a implementação da Quince não precisa ser igual.
+
+**[AWS EKS Blueprints — Multi-Cluster Hub & Spoke](https://aws-ia.github.io/terraform-aws-eks-blueprints/patterns/gitops/gitops-multi-cluster-hub-spoke-argocd/).** O exemplo da AWS provisiona clusters EKS e utiliza um Argo CD no Hub para descobrir destinos e distribuir add-ons por ApplicationSets. **Inspiração na POC:** governança central e instalação declarativa de Platform Addons em Management, PCI e Non-PCI, preservando a autonomia do Argo CD local para aplicações.
+
+**Síntese:** a inspiração está nos **princípios de separação e reconciliação**, não na adoção das mesmas ferramentas, topologia, permissões ou políticas de cada projeto.
