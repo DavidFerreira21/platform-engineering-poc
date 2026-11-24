@@ -2,10 +2,6 @@
 
 [← Arquitetura](../architecture.md) · [GitOps Flow](gitops.md) · [ADR-0006](../adr/0006-terraformrun-and-application-ci.md) · [Roadmap](../learning-roadmap.md)
 
-> **Estado:** desenho arquitetural aprovado para documentação; implementação incremental, conforme o roadmap.  
-> **Implementado/documentado até aqui:** contrato `TerraformStack` v1alpha1 e seu guia da Etapa 05.  
-> **Previsto:** controller e execução simulada (Etapa 06); execução real com aprovação (Etapa 09); detecção de drift (Etapa 18); reconciliação por políticas (Etapa 19).
->
 > **Nota sobre status:** os nomes de estados apresentados neste documento descrevem o **lifecycle lógico esperado**, não campos ou enums já implementados no CRD. O schema atual expõe `status.conditions`; a estrutura definitiva de `phase`, condições e referências será consolidada durante a implementação do controller.
 
 ## 1. Visão geral
