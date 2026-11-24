@@ -43,6 +43,11 @@ Se a Application estiver ausente, confirme que a entrada do catálogo está publ
 ```bash
 hub wait --for=condition=Established --timeout=90s crd/terraformstacks.platform.example.io
 hub api-resources --api-group=platform.example.io
+```
+
+A descoberta pode levar alguns segundos após a condição `Established`. Repita a consulta até `terraformstacks` aparecer. Em seguida, inspecione o contrato e valide a solicitação.
+
+```bash
 hub explain terraformstacks.spec --api-version=platform.example.io/v1alpha1 --recursive
 hub explain terraformstacks.status.conditions --api-version=platform.example.io/v1alpha1
 hub get --raw /apis/platform.example.io/v1alpha1
