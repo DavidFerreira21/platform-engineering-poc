@@ -13,7 +13,45 @@ source:
         full: true
       singleNamespace: true
       server:
-        enabled: false
+        enabled: true
+        secure: true
+        serviceType: ClusterIP
+        authModes:
+          - client
+      extraObjects:
+        - apiVersion: v1
+          kind: ServiceAccount
+          metadata:
+            name: argo-workflows-viewer
+            namespace: argo-workflows
+        - apiVersion: rbac.authorization.k8s.io/v1
+          kind: Role
+          metadata:
+            name: argo-workflows-viewer
+            namespace: argo-workflows
+          rules:
+            - apiGroups: [argoproj.io]
+              resources: [workflows, workflowtemplates, cronworkflows]
+              verbs: [get, list, watch]
+            - apiGroups: [""]
+              resources: [pods]
+              verbs: [get, list, watch]
+            - apiGroups: [""]
+              resources: [pods/log]
+              verbs: [get]
+        - apiVersion: rbac.authorization.k8s.io/v1
+          kind: RoleBinding
+          metadata:
+            name: argo-workflows-viewer
+            namespace: argo-workflows
+          subjects:
+            - kind: ServiceAccount
+              name: argo-workflows-viewer
+              namespace: argo-workflows
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: Role
+            name: argo-workflows-viewer
       workflow:
         serviceAccount:
           create: true

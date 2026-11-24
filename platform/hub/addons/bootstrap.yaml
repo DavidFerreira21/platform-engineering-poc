@@ -31,6 +31,8 @@ spec:
     - group: ""
       kind: ConfigMap
     - group: ""
+      kind: Service
+    - group: ""
       kind: ServiceAccount
 ---
 apiVersion: argoproj.io/v1alpha1
