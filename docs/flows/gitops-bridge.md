@@ -191,17 +191,17 @@ Não antecipar contas, clusters ou custos AWS apenas para validar o desenho.
 - Falhas de publicação, leitura, configuração, atualização e remoção são diferenciáveis e auditáveis.
 - Nenhuma senha, token, kubeconfig, plan ou state aparece em Git, annotation, logs ou status.
 
-## 10. Referências externas — conceitos aplicados
+## 10. Inspirações externas
 
-O Bridge da POC é uma **adaptação**: publica outputs selecionados no **SSM Parameter Store da conta de destino** e faz consumo local via ESO. As fontes descrevem os mecanismos de referência, não essa mesma topologia em produção.
+O fluxo proposto adapta o padrão GitOps Bridge ao contexto de **contas AWS separadas por Environment**, publicação seletiva no **Parameter Store** e consumo por operadores Kubernetes locais. Os projetos abaixo ilustram partes desse problema, sem afirmar que tenham implementado nosso desenho completo.
 
-| Referência | Conceito aplicado na POC |
-| --- | --- |
-| [AWS EKS Blueprints — Argo CD / GitOps Bridge](https://aws-ia.github.io/terraform-aws-eks-blueprints/patterns/gitops/gitops-getting-started-argocd/) | **Ponte entre infraestrutura e GitOps:** reutilizar metadados gerados pelo Terraform na configuração declarativa de add-ons geridos pelo Argo CD. O exemplo AWS usa detalhes próprios, que não copiamos integralmente. |
-| [AWS AppMod Blueprints — GitOps Bridge Architecture](https://github.com/aws-samples/appmod-blueprints/blob/main/docs/platform/gitops-bridge-architecture.md) | **Projeto de referência implementável:** ApplicationSets, cluster secrets e External Secrets Operator para distribuir configurações de add-ons. Ajuda a entender o mecanismo; não altera o ownership central da POC. |
-| [External Secrets Operator — AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/) | **Consumo declarativo de outputs:** `ExternalSecret` e `SecretStore` para buscar valores do SSM e materializar Secrets no cluster autorizado. |
+**[AWS EKS Blueprints — GitOps Bridge com Argo CD](https://aws-ia.github.io/terraform-aws-eks-blueprints/patterns/gitops/gitops-getting-started-argocd/).** O exemplo provisiona infraestrutura com Terraform e utiliza metadados gerados durante essa etapa para configurar add-ons posteriormente pelo Argo CD, sem acoplar sua instalação ao Terraform. **Inspiração na POC:** tratar outputs como um contrato de integração entre a infraestrutura provisionada e seus consumidores GitOps.
 
-**Nota:** registro do cluster, autorização IAM/RBAC e distribuição de parâmetros são processos distintos; Parameter Store não registra clusters automaticamente.
+**[AWS AppMod Blueprints — GitOps Bridge Architecture](https://github.com/aws-samples/appmod-blueprints/blob/main/docs/platform/gitops-bridge-architecture.md).** Esse projeto reúne **metadados de clusters, cluster secrets, ApplicationSets e External Secrets Operator** para automatizar a distribuição de componentes entre clusters EKS. **Inspiração na POC:** descobrir e configurar add-ons a partir de informações produzidas pela plataforma, mantendo claro que o registro central de um cluster é diferente de um Secret local. O exemplo utiliza mecanismos próprios, inclusive AWS Secrets Manager; a POC escolheu estudar o Parameter Store.
+
+**[External Secrets Operator — AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/).** O ESO oferece um mecanismo declarativo para consultar parâmetros SSM autorizados e materializar seus valores em Kubernetes Secrets no cluster onde opera. **Inspiração na POC:** consumir outputs dinamicamente no Management EKS — e em PCI/Non-PCI quando necessário — sem conceder aos consumidores acesso ao Terraform state. O ESO não registra automaticamente clusters no Argo CD central.
+
+**Síntese:** a ligação entre **Terraform → Parameter Store → ESO → consumidor** é uma adaptação da POC; ownership, IAM, contas e política de publicação são definidos e validados localmente.
 
 ## 11. Documentos relacionados
 
