@@ -1,89 +1,249 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1120" viewBox="0 0 1800 1120" role="img" aria-labelledby="title description">
-<title id="title">GitOps Flow — Platform Engineering POC</title>
-<desc id="description">Git como fonte de verdade. Argo CD central distribui add-ons corporativos, sincroniza Capabilities para Crossplane e TerraformStacks para o controller e Argo Workflows. Argo CD local entrega aplicações nos clusters PCI e Non-PCI. Bootstrap kind via script, EKS Capability em avaliação futura.</desc>
-<defs>
-<marker id="blue" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0L8 4.5L0 9Z" fill="#3977c5"/></marker>
-<marker id="green" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0L8 4.5L0 9Z" fill="#159a7b"/></marker>
-<marker id="purple" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0L8 4.5L0 9Z" fill="#8855d8"/></marker>
-<filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="5" stdDeviation="9" flood-color="#183b60" flood-opacity=".08"/></filter>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1672" height="941" viewBox="0 0 1672 941" role="img" aria-labelledby="ttl desc"><title id="ttl">Fluxo GitOps — Platform Engineering POC</title><desc id="desc">Git é a fonte de verdade. O Control Plane na conta AWS da plataforma entrega Platform Addons via Argo CD, recursos S3 e Aurora via Crossplane e EKS, IAM, VPC por TerraformStack e Argo Workflows para uma conta de ambiente separada. O Argo CD local no Management EKS administra aplicações em PCI e Non-PCI. UAT e PROD são contas separadas.</desc><defs>
+<linearGradient id="bluebg" x2="0" y2="1"><stop stop-color="#d6e7ff"/><stop offset="1" stop-color="#f6faff"/></linearGradient>
+<linearGradient id="greenbg" x2="0" y2="1"><stop stop-color="#e6fbeb"/><stop offset="1" stop-color="#f6fff7"/></linearGradient>
+<linearGradient id="topblue" x2="0" y2="1"><stop stop-color="#c3dfff"/><stop offset="1" stop-color="#edf6ff"/></linearGradient>
+<linearGradient id="topteal" x2="0" y2="1"><stop stop-color="#c4f2f4"/><stop offset="1" stop-color="#f0ffff"/></linearGradient>
+<linearGradient id="toppurple" x2="0" y2="1"><stop stop-color="#ded0ff"/><stop offset="1" stop-color="#fbf7ff"/></linearGradient>
+<linearGradient id="topgreen" x2="0" y2="1"><stop stop-color="#c9fcb0"/><stop offset="1" stop-color="#eeffde"/></linearGradient>
+<filter id="shadow" x="-20%" y="-20%" width="150%" height="155%"><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#3a6292" flood-opacity=".16"/></filter>
+<marker id="arrowblue" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#087bfa"/></marker>
+<marker id="arrowteal" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#00aab0"/></marker>
+<marker id="arrowpurple" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#8d19f9"/></marker>
+<marker id="arrowgreen" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#17b61b"/></marker>
+<symbol id="cloud" viewBox="0 0 64 64"><path d="M15 45C5 45 4 30 13 25Q18 21 25 24Q28 7 44 10Q57 12 59 26Q66 29 62 39Q59 46 51 46H15Z" fill="none" stroke="#087bfa" stroke-width="4" stroke-linejoin="round"/></symbol>
+<symbol id="cloudgreen" viewBox="0 0 64 64"><path d="M15 45C5 45 4 30 13 25Q18 21 25 24Q28 7 44 10Q57 12 59 26Q66 29 62 39Q59 46 51 46H15Z" fill="none" stroke="#12b10a" stroke-width="4" stroke-linejoin="round"/></symbol>
+<symbol id="kube" viewBox="0 0 60 60"><path d="M30 3L53 17V43L30 57L7 43V17Z" fill="#0775e9"/><g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><circle cx="30" cy="30" r="13"/><circle cx="30" cy="30" r="4"/><path d="M30 11V49 M11 30H49 M17 17L43 43 M43 17L17 43"/></g></symbol>
+<symbol id="layers" viewBox="0 0 60 60"><g fill="none" stroke="#087bfa" stroke-width="4" stroke-linejoin="round"><path d="M8 22L30 10L52 22L30 34Z"/><path d="M8 32L30 44L52 32"/><path d="M8 43L30 55L52 43"/></g></symbol>
+<symbol id="cube" viewBox="0 0 60 60"><g fill="none" stroke="#16bd17" stroke-width="4" stroke-linejoin="round"><path d="M30 6L52 18V43L30 56L8 43V18Z"/><path d="M8 18L30 31L52 18M30 31V56"/></g></symbol>
+<symbol id="cubeblue" viewBox="0 0 60 60"><g fill="none" stroke="#087bfa" stroke-width="4" stroke-linejoin="round"><path d="M30 6L52 18V43L30 56L8 43V18Z"/><path d="M8 18L30 31L52 18M30 31V56"/></g></symbol>
+<symbol id="git" viewBox="0 0 60 60"><rect x="9" y="9" width="42" height="42" rx="5" fill="#fc613b" transform="rotate(45 30 30)"/><g fill="none" stroke="#fff" stroke-width="3.1"><path d="M20 18V39M20 22L40 38"/></g><g fill="#fff"><circle cx="20" cy="18" r="4"/><circle cx="20" cy="39" r="4"/><circle cx="40" cy="38" r="4"/></g></symbol>
+<symbol id="code" viewBox="0 0 60 60"><rect x="8" y="9" width="44" height="44" rx="7" fill="none" stroke="#087bfa" stroke-width="3.8"/><path d="M25 24L17 30L25 36M35 24L43 30L35 36M33 21L27 39" stroke="#087bfa" stroke-width="3.8" fill="none"/></symbol>
+<symbol id="doc" viewBox="0 0 60 60"><rect x="11" y="6" width="38" height="49" rx="5" stroke="#087bfa" stroke-width="3.7" fill="none"/><path d="M19 20H40M19 30H40M19 40H35" stroke="#087bfa" stroke-width="3.7"/></symbol>
+<symbol id="octo" viewBox="0 0 66 77"><path d="M15 47Q12 33 14 25Q17 8 33 8Q50 8 53 25V52Q54 64 43 64H23Q12 62 15 47Z" fill="#ff772c" stroke="#ef4c22" stroke-width="2"/><path d="M18 55Q10 58 8 69M27 61L24 73M38 62L40 73M49 54L55 69" fill="none" stroke="#ef6424" stroke-width="7" stroke-linecap="round"/><ellipse cx="25" cy="36" rx="10" ry="13" fill="#fff"/><ellipse cx="43" cy="35" rx="10" ry="13" fill="#fff"/><circle cx="27" cy="38" r="4.5" fill="#202b3d"/><circle cx="44" cy="36" r="4.5" fill="#202b3d"/><path d="M31 53Q36 58 41 53" fill="none" stroke="#5b281c" stroke-width="2.5" stroke-linecap="round"/><path d="M12 19Q33 -5 55 20" fill="none" stroke="#8bd8ff" stroke-width="6" stroke-linecap="round"/><path d="M9 24V42M58 24V42" stroke="#b5e8ff" stroke-width="7" stroke-linecap="round"/></symbol>
+<symbol id="cross" viewBox="0 0 60 60"><path d="M30 3L54 16L30 30L6 16Z" fill="#00b6b5"/><path d="M6 16L30 30V58L6 44Z" fill="#3bd5bd"/><path d="M54 16L30 30V58L54 44Z" fill="#ffc421"/></symbol>
+<symbol id="terra" viewBox="0 0 60 60"><path fill="#8750dd" d="M4 10L21 20V40L4 30ZM24 22L41 32V52L24 42ZM24 4L41 14V29L24 19ZM44 14L57 6V26L44 34Z"/></symbol>
+<symbol id="workflow" viewBox="0 0 60 60"><g fill="none" stroke="#8d19f9" stroke-width="3.7"><path d="M30 13V31L14 44M30 31L46 44"/><circle cx="30" cy="10" r="7" fill="#fff"/><circle cx="14" cy="47" r="7" fill="#fff"/><circle cx="46" cy="47" r="7" fill="#fff"/></g></symbol>
+<symbol id="net" viewBox="0 0 60 60"><g fill="none" stroke="#8d19f9" stroke-width="3.6"><path d="M30 12V31L13 47M30 31L47 47"/><circle cx="30" cy="11" r="7"/><circle cx="13" cy="48" r="7"/><circle cx="47" cy="48" r="7"/></g></symbol>
+<symbol id="iam" viewBox="0 0 60 60"><g fill="none" stroke="#8d19f9" stroke-width="3.8"><circle cx="30" cy="17" r="10"/><path d="M12 52Q12 33 30 33Q48 33 48 52"/></g></symbol>
+<symbol id="bucket" viewBox="0 0 60 60"><path d="M9 14Q30 4 51 14L45 51Q30 60 15 51Z" fill="none" stroke="#0cad1d" stroke-width="3.8"/><ellipse cx="30" cy="15" rx="21" ry="8" fill="#e4ffe9" stroke="#0cad1d" stroke-width="3.8"/></symbol>
+<symbol id="db" viewBox="0 0 60 60"><g fill="none" stroke="#087bfa" stroke-width="3.5"><path d="M10 15V47Q30 62 50 47V15"/><ellipse cx="30" cy="15" rx="20" ry="8" fill="#f0f9ff"/><path d="M10 26Q30 40 50 26M10 38Q30 51 50 38"/></g></symbol>
+<symbol id="shield" viewBox="0 0 60 60"><path d="M30 5L51 13V28Q51 48 30 56Q9 48 9 28V13Z" fill="none" stroke="#1a418d" stroke-width="4"/><path d="M18 30L28 40L43 21" fill="none" stroke="#1a418d" stroke-width="4"/></symbol>
+<symbol id="sync" viewBox="0 0 60 60"><g fill="none" stroke="#087bfa" stroke-width="4" stroke-linecap="round"><path d="M11 27Q11 9 30 9Q48 9 51 24M51 33Q48 51 30 51Q12 51 9 37"/><path d="M42 19L51 25L54 13M18 41L9 35L7 47"/></g></symbol>
+<symbol id="info" viewBox="0 0 60 60"><circle cx="30" cy="30" r="22" fill="none" stroke="#087bfa" stroke-width="4"/><path d="M30 27V44" stroke="#087bfa" stroke-width="4"/><circle cx="30" cy="17" r="3.7" fill="#087bfa"/></symbol>
 </defs>
-<rect width="1800" height="1120" fill="#f7faff"/>
-<text x="50" y="72" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="41" font-weight="800" fill="#11284a" text-anchor="start">FLUXO GITOPS</text>
-<text x="50" y="109" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="23" font-weight="400" fill="#526681" text-anchor="start">Platform Engineering POC  ·  Git como fonte de verdade para add-ons, infraestrutura e aplicações</text>
-<rect x="35" y="155" width="265" height="800" rx="20" fill="#ffffff" stroke="#bdd2ec" stroke-width="1.7"/>
-<rect x="325" y="155" width="945" height="800" rx="20" fill="#ffffff" stroke="#acc7ed" stroke-width="1.7"/>
-<rect x="1295" y="155" width="470" height="800" rx="20" fill="#ffffff" stroke="#afdaca" stroke-width="1.7"/>
-<rect x="35" y="155" width="265" height="76" rx="20" fill="#e7f0ff" stroke="#bdd2ec" stroke-width="1.7"/>
-<rect x="325" y="155" width="945" height="76" rx="20" fill="#e7f0ff" stroke="#acc7ed" stroke-width="1.7"/>
-<rect x="1295" y="155" width="470" height="76" rx="20" fill="#e9f8f1" stroke="#afdaca" stroke-width="1.7"/>
-<text x="58" y="202" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="750" fill="#173e70" text-anchor="start">GIT  ·  Fonte de verdade</text>
-<text x="357" y="202" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="25" font-weight="750" fill="#173e70" text-anchor="start">CONTROL PLANE DA PLATAFORMA</text>
-<text x="1321" y="201" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="23" font-weight="750" fill="#14795d" text-anchor="start">ENTITY / ENVIRONMENT</text>
-<rect x="1602" y="177" width="132" height="36" rx="18" fill="#cef4e0" stroke="#a9e8c8" stroke-width="1.7"/><text x="1668" y="201" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="16" font-weight="750" fill="#17684f" text-anchor="middle">UAT / PROD</text>
-<rect x="356" y="247" width="882" height="53" rx="12" fill="#f0f5fd" stroke="#d9e6f6" stroke-width="1.7"/>
-<text x="380" y="270" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="16" font-weight="700" fill="#294c79" text-anchor="start">HOJE   Script + Helm no kind</text>
-<text x="380" y="289" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" font-weight="500" fill="#526681" text-anchor="start">FUTURO   Terraform + EKS / Argo CD Capability (sob validação)</text>
-<text x="58" y="271" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="16" font-weight="500" fill="#63758c" text-anchor="start">Contratos versionados</text>
-<rect x="55" y="299" width="225" height="90" rx="12" fill="#f6faff" stroke="#cddff3" stroke-width="1.7"/><circle cx="80" cy="331" r="14" fill="#2867b2" opacity=".14"/><circle cx="80" cy="331" r="5" fill="#2867b2"/><text x="104" y="331" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" font-weight="700" fill="#193a63" text-anchor="start">Catálogo de add-ons</text><text x="104" y="355" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="500" fill="#5b6c81" text-anchor="start">Perfis e versões</text>
-<rect x="55" y="410" width="225" height="90" rx="12" fill="#f6faff" stroke="#cddff3" stroke-width="1.7"/><circle cx="80" cy="443" r="14" fill="#169f95" opacity=".14"/><circle cx="80" cy="443" r="5" fill="#169f95"/><text x="104" y="439" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" font-weight="700" fill="#193a63" text-anchor="start">Capabilities</text><text x="104" y="463" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="500" fill="#5b6c81" text-anchor="start">Manifests Crossplane</text>
-<rect x="55" y="521" width="225" height="90" rx="12" fill="#f6faff" stroke="#cddff3" stroke-width="1.7"/><circle cx="80" cy="552" r="14" fill="#8855d8" opacity=".14"/><circle cx="80" cy="552" r="5" fill="#8855d8"/><text x="104" y="551" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" font-weight="700" fill="#193a63" text-anchor="start">TerraformStack</text><text x="104" y="575" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="500" fill="#5b6c81" text-anchor="start">Infraestrutura desejada</text>
-<rect x="55" y="632" width="225" height="90" rx="12" fill="#f6faff" stroke="#cddff3" stroke-width="1.7"/><circle cx="80" cy="662" r="14" fill="#159a7b" opacity=".14"/><circle cx="80" cy="662" r="5" fill="#159a7b"/><text x="104" y="659" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" font-weight="700" fill="#193a63" text-anchor="start">Manifests das apps</text><text x="104" y="683" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="500" fill="#5b6c81" text-anchor="start">Repositório da squad</text>
-<rect x="55" y="773" width="225" height="129" rx="12" fill="#f2f6fb" stroke="#d9e6f3" stroke-width="1.7"/><text x="73" y="808" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="16" font-weight="700" fill="#193a63" text-anchor="start">PR → revisão → merge</text><text x="73" y="834" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" font-weight="500" fill="#526681" text-anchor="start">GitOps entrega a intenção.</text><text x="73" y="859" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" font-weight="500" fill="#526681" text-anchor="start">A execução é delegada</text><text x="73" y="884" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" font-weight="500" fill="#526681" text-anchor="start">aos respectivos motores.</text>
-<rect x="352" y="448" width="177" height="160" rx="16" fill="#e8f1ff" stroke="#90b8ec" stroke-width="1.7"/>
-<text x="441" y="492" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="24" font-weight="800" fill="#154a92" text-anchor="middle">ARGO CD</text><text x="441" y="524" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="800" fill="#154a92" text-anchor="middle">CENTRAL</text><text x="441" y="558" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" font-weight="500" fill="#365d8b" text-anchor="middle">Sincronização Git</text><text x="441" y="583" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" font-weight="500" fill="#365d8b" text-anchor="middle">e governança</text>
-<path d="M280 566 H350" fill="none" stroke="#3977c5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#blue)"/>
-<text x="568" y="327" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20" font-weight="800" fill="#1b5ba4" text-anchor="start">01  PLATFORM GITOPS</text>
-<rect x="553" y="340" width="687" height="139" rx="14" fill="#f1f7ff" stroke="#9bc0ee" stroke-width="1.7"/>
-<rect x="577" y="379" width="184" height="57" rx="10" fill="#ffffff" stroke="#a9c8ef" stroke-width="1.7"/><text x="669" y="414" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19" font-weight="700" fill="#1c5898" text-anchor="middle">ApplicationSet</text>
-<rect x="815" y="379" width="212" height="57" rx="10" fill="#ffffff" stroke="#a9c8ef" stroke-width="1.7"/><text x="921" y="414" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="18" font-weight="700" fill="#1c5898" text-anchor="middle">Add-ons corporativos</text>
-<rect x="1062" y="379" width="150" height="57" rx="10" fill="#e7f4ff" stroke="#a9c8ef" stroke-width="1.7"/><text x="1137" y="401" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="16" font-weight="700" fill="#1c5898" text-anchor="middle">Cluster profiles</text><text x="1137" y="421" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="500" fill="#537492" text-anchor="middle">Management/PCI</text>
-<path d="M760 407 H813" fill="none" stroke="#3977c5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#blue)"/><path d="M1027 407 H1060" fill="none" stroke="#3977c5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#blue)"/>
-<text x="573" y="460" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="500" fill="#5a7696" text-anchor="start">Git Generator + Cluster Generator + Matrix (arquitetura-alvo)</text>
-<text x="568" y="511" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20" font-weight="800" fill="#148c84" text-anchor="start">02  INFRASTRUCTURE GITOPS  ·  CROSSPLANE</text>
-<rect x="553" y="526" width="687" height="139" rx="14" fill="#eefdFA" stroke="#9dded5" stroke-width="1.7"/>
-<rect x="574" y="565" width="163" height="56" rx="10" fill="#fff" stroke="#98d9d3" stroke-width="1.7"/><text x="655" y="598" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="18" font-weight="700" fill="#16766f" text-anchor="middle">CR Capability</text>
-<rect x="780" y="565" width="184" height="56" rx="10" fill="#fff" stroke="#98d9d3" stroke-width="1.7"/><text x="872" y="598" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="18" font-weight="700" fill="#16766f" text-anchor="middle">Crossplane central</text>
-<rect x="1011" y="565" width="203" height="56" rx="10" fill="#e3f9f4" stroke="#98d9d3" stroke-width="1.7"/><text x="1112" y="588" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" font-weight="750" fill="#16766f" text-anchor="middle">AWS</text><text x="1112" y="608" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" font-weight="500" fill="#276f68" text-anchor="middle">S3 · Aurora RDS</text>
-<path d="M737 593 H778" fill="none" stroke="#3977c5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#blue)"/><path d="M964 593 H1009" fill="none" stroke="#3977c5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#blue)"/>
-<text x="573" y="646" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="500" fill="#4a7975" text-anchor="start">Argo entrega o CR na API do Hub; Crossplane reconcilia a AWS.</text>
-<text x="568" y="698" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20" font-weight="800" fill="#8250cc" text-anchor="start">03  INFRASTRUCTURE GITOPS  ·  TERRAFORM</text>
-<rect x="553" y="713" width="687" height="164" rx="14" fill="#f7f2ff" stroke="#c8b0f1" stroke-width="1.7"/>
-<rect x="571" y="759" width="150" height="58" rx="10" fill="#fff" stroke="#d0b8ef" stroke-width="1.7"/><text x="646" y="783" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="16" font-weight="750" fill="#7446b0" text-anchor="middle">TerraformStack</text><text x="646" y="803" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="500" fill="#8764ac" text-anchor="middle">CR + controller</text>
-<rect x="759" y="759" width="144" height="58" rx="10" fill="#fff" stroke="#d0b8ef" stroke-width="1.7"/><text x="831" y="783" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="16" font-weight="750" fill="#7446b0" text-anchor="middle">Argo Workflows</text><text x="831" y="803" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="500" fill="#8764ac" text-anchor="middle">Plan / gate</text>
-<rect x="941" y="759" width="148" height="58" rx="10" fill="#fff" stroke="#d0b8ef" stroke-width="1.7"/><text x="1015" y="783" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" font-weight="750" fill="#7446b0" text-anchor="middle">Terraform</text><text x="1015" y="803" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="500" fill="#8764ac" text-anchor="middle">Executor</text>
-<rect x="1124" y="759" width="97" height="58" rx="10" fill="#eee1ff" stroke="#d0b8ef" stroke-width="1.7"/><text x="1172" y="783" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="18" font-weight="750" fill="#7446b0" text-anchor="middle">AWS</text><text x="1172" y="802" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="500" fill="#8764ac" text-anchor="middle">EKS/VPC</text>
-<path d="M721 787 H757" fill="none" stroke="#8855d8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#purple)"/><path d="M903 787 H939" fill="none" stroke="#8855d8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#purple)"/><path d="M1089 787 H1122" fill="none" stroke="#8855d8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#purple)"/>
-<text x="573" y="846" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="500" fill="#806b9b" text-anchor="start">Execução governada; drift e remediação por políticas.</text>
-<path d="M529 486 H541 V407 H551" fill="none" stroke="#3977c5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#blue)"/>
-<path d="M529 518 H541 V593 H551" fill="none" stroke="#3977c5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#blue)"/>
-<path d="M529 550 H541 V787 H551" fill="none" stroke="#3977c5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#blue)"/>
-<rect x="356" y="905" width="882" height="35" rx="10" fill="#edf4fd" stroke="#d5e4f4" stroke-width="1.7"/><text x="377" y="928" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" font-weight="600" fill="#375a85" text-anchor="start">Argo CD sincroniza a intenção; cada motor possui sua própria responsabilidade de reconciliação.</text>
-<rect x="1320" y="263" width="418" height="184" rx="16" fill="#f5f9ff" stroke="#bad4ee" stroke-width="1.7"/>
-<text x="1343" y="298" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20" font-weight="800" fill="#1d5590" text-anchor="start">MANAGEMENT CLUSTER</text>
-<rect x="1341" y="318" width="176" height="75" rx="10" fill="#fff" stroke="#a9c8ef" stroke-width="1.7"/><text x="1429" y="349" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="18" font-weight="750" fill="#1d5590" text-anchor="middle">Argo CD Local</text><text x="1429" y="371" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="500" fill="#58799b" text-anchor="middle">Apps e extensões</text>
-<rect x="1537" y="318" width="177" height="75" rx="10" fill="#fff" stroke="#a9c8ef" stroke-width="1.7"/><text x="1625" y="349" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" font-weight="750" fill="#1d5590" text-anchor="middle">Add-ons de gestão</text><text x="1625" y="371" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="500" fill="#58799b" text-anchor="middle">Padrão corporativo</text>
-<text x="1342" y="422" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" font-weight="500" fill="#52728b" text-anchor="start">Argo local: ownership das aplicações autorizadas</text>
-<rect x="1320" y="525" width="418" height="150" rx="16" fill="#f4fbf8" stroke="#a8dacc" stroke-width="1.7"/>
-<text x="1343" y="560" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20" font-weight="800" fill="#14765b" text-anchor="start">CLUSTER PCI</text>
-<rect x="1341" y="577" width="176" height="64" rx="10" fill="#e5f1ff" stroke="#bad4ee" stroke-width="1.7"/><text x="1429" y="604" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" font-weight="700" fill="#1c5898" text-anchor="middle">Platform Addons</text><text x="1429" y="625" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="500" fill="#537492" text-anchor="middle">Argo central</text>
-<rect x="1537" y="577" width="177" height="64" rx="10" fill="#e4f8ef" stroke="#addfc5" stroke-width="1.7"/><text x="1625" y="604" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="16" font-weight="700" fill="#16765b" text-anchor="middle">Domain Applications</text><text x="1625" y="625" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="500" fill="#528b72" text-anchor="middle">Argo local</text>
-<rect x="1320" y="729" width="418" height="150" rx="16" fill="#f4fbf8" stroke="#a8dacc" stroke-width="1.7"/>
-<text x="1343" y="764" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20" font-weight="800" fill="#14765b" text-anchor="start">CLUSTER NON-PCI</text>
-<rect x="1341" y="781" width="176" height="64" rx="10" fill="#e5f1ff" stroke="#bad4ee" stroke-width="1.7"/><text x="1429" y="808" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" font-weight="700" fill="#1c5898" text-anchor="middle">Platform Addons</text><text x="1429" y="829" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="500" fill="#537492" text-anchor="middle">Argo central</text>
-<rect x="1537" y="781" width="177" height="64" rx="10" fill="#e4f8ef" stroke="#addfc5" stroke-width="1.7"/><text x="1625" y="808" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="16" font-weight="700" fill="#16765b" text-anchor="middle">Domain Applications</text><text x="1625" y="829" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="500" fill="#528b72" text-anchor="middle">Argo local</text>
-<path d="M1240 407 H1285 V364 H1318" fill="none" stroke="#3977c5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#blue)"/>
-<path d="M1285 407 V608 H1339" fill="none" stroke="#3977c5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#blue)"/>
-<path d="M1285 608 V811 H1339" fill="none" stroke="#3977c5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#blue)"/>
-<text x="1298" y="486" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#2464aa" text-anchor="start">Add-ons</text>
-<path d="M1518 392 H1597 V497 H1640 V575" fill="none" stroke="#159a7b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#green)"/>
-<path d="M1640 641 V779" fill="none" stroke="#159a7b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#green)"/>
-<text x="1590" y="493" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#168568" text-anchor="start">Apps</text>
-<rect x="1320" y="897" width="418" height="43" rx="10" fill="#eaf6ef" stroke="#c2e5d0" stroke-width="1.7"/><text x="1529" y="925" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="650" fill="#277252" text-anchor="middle">Ownership sem sobreposição entre Argo central e local</text>
-<rect x="35" y="986" width="1730" height="97" rx="16" fill="#ffffff" stroke="#cdddec" stroke-width="1.7"/>
-<text x="59" y="1024" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20" font-weight="800" fill="#213f65" text-anchor="start">LEGENDA</text>
-<circle cx="248" cy="1014" r="14" fill="#3977c5" opacity=".14"/><circle cx="248" cy="1014" r="5" fill="#3977c5"/><text x="274" y="1021" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" font-weight="750" fill="#1d5ca1" text-anchor="start">Platform GitOps</text><text x="274" y="1046" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="500" fill="#536c86" text-anchor="start">Add-ons corporativos</text>
-<circle cx="605" cy="1014" r="14" fill="#159a7b" opacity=".14"/><circle cx="605" cy="1014" r="5" fill="#159a7b"/><text x="631" y="1021" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" font-weight="750" fill="#15775e" text-anchor="start">Domain GitOps</text><text x="631" y="1046" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="500" fill="#536c86" text-anchor="start">Apps das squads</text>
-<circle cx="914" cy="1014" r="14" fill="#159f99" opacity=".14"/><circle cx="914" cy="1014" r="5" fill="#159f99"/><text x="940" y="1021" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" font-weight="750" fill="#168078" text-anchor="start">Crossplane</text><text x="940" y="1046" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="500" fill="#536c86" text-anchor="start">Capabilities AWS</text>
-<circle cx="1204" cy="1014" r="14" fill="#8855d8" opacity=".14"/><circle cx="1204" cy="1014" r="5" fill="#8855d8"/><text x="1230" y="1021" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" font-weight="750" fill="#7750b1" text-anchor="start">TerraformStack</text><text x="1230" y="1046" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="500" fill="#536c86" text-anchor="start">Foundation / EKS</text>
-<circle cx="1510" cy="1014" r="14" fill="#3977c5" opacity=".14"/><circle cx="1510" cy="1014" r="5" fill="#3977c5"/><text x="1536" y="1021" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" font-weight="750" fill="#1c5b98" text-anchor="start">Reconciliação</text><text x="1536" y="1046" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="500" fill="#536c86" text-anchor="start">Sem drift indevido</text>
+<rect x="0" y="0" width="1672" height="941" rx="0" fill="#fff" stroke="none" stroke-width="0" />
+<use href="#cloud" x="95" y="6" width="103" height="93"/>
+<use href="#kube" x="129" y="37" width="49" height="49"/>
+<path d="M220 10V88" stroke="#46658d" stroke-width="2"/>
+<text x="251" y="48" font-size="46" font-weight="800" fill="#07112a" text-anchor="start" xml:space="preserve"><tspan x="251" dy="0">Fluxo GitOps — Platform Engineering POC</tspan></text>
+<text x="253" y="80" font-size="27" font-weight="400" fill="#415d86" text-anchor="start" xml:space="preserve"><tspan x="253" dy="0">Git como fonte de verdade para add-ons, infraestrutura e aplicações</tspan></text>
+<path d="M1247 10V89" stroke="#5f739a" stroke-width="2"/>
+<rect x="1271" y="9" width="327" height="80" rx="24" fill="#e8e4ff" stroke="none" stroke-width="0" />
+<use href="#db" x="1288" y="24" width="57" height="55"/>
+<text x="1350" y="42" font-size="21" font-weight="800" fill="#061842" text-anchor="start" xml:space="preserve"><tspan x="1350" dy="0">UAT e PROD são</tspan></text>
+<text x="1350" y="67" font-size="21" font-weight="800" fill="#061842" text-anchor="start" xml:space="preserve"><tspan x="1350" dy="0">contas AWS distintas</tspan></text>
+<rect x="252" y="113" width="794" height="682" rx="21" fill="#f8fbff" stroke="#0b78fa" stroke-width="1.7" filter="url(#shadow)"/>
+<rect x="1064" y="113" width="578" height="682" rx="22" fill="#f8fff9" stroke="#14ba18" stroke-width="1.7" filter="url(#shadow)"/>
+<rect x="255" y="115" width="789" height="58" rx="19" fill="url(#topblue)" stroke="none" stroke-width="0" />
+<rect x="1067" y="115" width="573" height="58" rx="19" fill="url(#greenbg)" stroke="none" stroke-width="0" />
+<use href="#cloud" x="281" y="121" width="53" height="49"/>
+<text x="347" y="151" font-size="28" font-weight="800" fill="#071a3e" text-anchor="start" xml:space="preserve"><tspan x="347" dy="0">Conta AWS da Plataforma</tspan></text>
+<use href="#cloudgreen" x="1087" y="121" width="52" height="50"/>
+<text x="1150" y="150" font-size="23" font-weight="800" fill="#081a20" text-anchor="start" xml:space="preserve"><tspan x="1150" dy="0">Conta AWS do Environment</tspan></text>
+<rect x="1486" y="125" width="135" height="37" rx="19" fill="url(#topgreen)" stroke="#78d65d" stroke-width="1.2" />
+<text x="1554" y="149" font-size="18" font-weight="800" fill="#083d1e" text-anchor="middle" xml:space="preserve"><tspan x="1554" dy="0">UAT ou PROD</tspan></text>
+<rect x="274" y="174" width="756" height="602" rx="23" fill="#f2f7ff" stroke="#e5efff" stroke-width="6" />
+<rect x="274" y="178" width="756" height="56" rx="20" fill="url(#topblue)" stroke="none" stroke-width="0" />
+<use href="#kube" x="326" y="182" width="55" height="49"/>
+<text x="393" y="218" font-size="28" font-weight="800" fill="#071a3e" text-anchor="start" xml:space="preserve"><tspan x="393" dy="0">Control Plane da Plataforma</tspan></text>
+<rect x="284" y="238" width="736" height="58" rx="15" fill="#e0eeff" stroke="#e8f4ff" stroke-width="2" />
+<use href="#info" x="323" y="253" width="34" height="34"/>
+<text x="381" y="261" font-size="18" font-weight="690" fill="#152344" text-anchor="start" xml:space="preserve"><tspan x="381" dy="0">Hoje: bootstrap por script no kind</tspan></text>
+<text x="381" y="284" font-size="18" font-weight="550" fill="#152344" text-anchor="start" xml:space="preserve"><tspan x="381" dy="0">Futuro: Terraform + EKS Argo CD Capability (em avaliação)</tspan></text>
+<rect x="5" y="245" width="237" height="443" rx="17" fill="#f2f8ff" stroke="#86b7f9" stroke-width="1.5" filter="url(#shadow)"/>
+<rect x="5" y="245" width="237" height="81" rx="18" fill="url(#topblue)" stroke="none" stroke-width="1.5" />
+<use href="#git" x="20" y="262" width="50" height="48"/>
+<text x="79" y="285" font-size="26" font-weight="800" fill="#081837" text-anchor="start" xml:space="preserve"><tspan x="79" dy="0">Git —</tspan></text>
+<text x="79" y="308" font-size="18" font-weight="770" fill="#0e1b36" text-anchor="start" xml:space="preserve"><tspan x="79" dy="0">Fonte de verdade</tspan></text>
+<rect x="17" y="346" width="215" height="64" rx="13" fill="#fff" stroke="#7aaff5" stroke-width="1.5" />
+<use href="#layers" x="29" y="354" width="52" height="48"/>
+<text x="97" y="373" font-size="19" font-weight="540" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="97" dy="0">Catálogo de</tspan></text>
+<text x="97" y="396" font-size="19" font-weight="540" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="97" dy="0">add-ons</tspan></text>
+<rect x="17" y="425" width="215" height="81" rx="13" fill="#fff" stroke="#7aaff5" stroke-width="1.5" />
+<use href="#cubeblue" x="29" y="437" width="52" height="56"/>
+<text x="97" y="449" font-size="18" font-weight="540" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="97" dy="0">Capabilities /</tspan></text>
+<text x="97" y="472" font-size="18" font-weight="540" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="97" dy="0">manifests de</tspan></text>
+<text x="97" y="495" font-size="18" font-weight="540" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="97" dy="0">infraestrutura</tspan></text>
+<rect x="17" y="520" width="215" height="69" rx="13" fill="#fff" stroke="#7aaff5" stroke-width="1.5" />
+<use href="#code" x="30" y="530" width="52" height="51"/>
+<text x="97" y="548" font-size="18" font-weight="550" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="97" dy="0">TerraformStack /</tspan></text>
+<text x="97" y="573" font-size="18" font-weight="550" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="97" dy="0">contratos</tspan></text>
+<rect x="17" y="602" width="215" height="68" rx="13" fill="#fff" stroke="#7aaff5" stroke-width="1.5" />
+<use href="#doc" x="31" y="610" width="50" height="55"/>
+<text x="97" y="629" font-size="18" font-weight="550" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="97" dy="0">Manifests de</tspan></text>
+<text x="97" y="652" font-size="18" font-weight="550" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="97" dy="0">aplicações</tspan></text>
+<rect x="300" y="430" width="117" height="173" rx="18" fill="url(#topblue)" stroke="#087bfa" stroke-width="1.4" filter="url(#shadow)"/>
+<use href="#octo" x="328" y="451" width="60" height="74"/>
+<text x="358" y="546" font-size="23" font-weight="800" fill="#071b50" text-anchor="middle" xml:space="preserve"><tspan x="358" dy="0">Argo CD</tspan></text>
+<text x="358" y="575" font-size="23" font-weight="800" fill="#071b50" text-anchor="middle" xml:space="preserve"><tspan x="358" dy="0">Central</tspan></text>
+<path d="M242 528H299" fill="none" stroke="#087bfa" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowblue)"/>
+<path d="M417 485H431V421Q431 416 438 416H457" fill="none" stroke="#087bfa" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowblue)"/>
+<path d="M417 540H456" fill="none" stroke="#00aab0" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowteal)"/>
+<path d="M417 561H429V664Q429 665 436 665H456" fill="none" stroke="#8d19f9" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowpurple)"/>
+<path d="M364 430V348Q364 333 382 333H1100Q1114 333 1114 316H1195" fill="none" stroke="#17b61b" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowgreen)"/>
+<rect x="586" y="305" width="294" height="50" rx="20" fill="url(#topgreen)" stroke="#8adb5b" stroke-width="1.3" />
+<text x="732" y="328" font-size="20" font-weight="790" fill="#061e0d" text-anchor="middle" xml:space="preserve"><tspan x="732" dy="0">Instala e configura</tspan></text>
+<text x="732" y="346" font-size="15" font-weight="590" fill="#061e0d" text-anchor="middle" xml:space="preserve"><tspan x="732" dy="0">(o Argo CD Local no Management EKS)</tspan></text>
+<rect x="459" y="370" width="455" height="93" rx="16" fill="#f2f8ff" stroke="#0d83f9" stroke-width="1.5" filter="url(#shadow)"/>
+<rect x="461" y="372" width="451" height="33" rx="14" fill="url(#topblue)" stroke="none" stroke-width="1.5" />
+<circle cx="491" cy="387" r="15" fill="#087bfa"/>
+<text x="491" y="393" font-size="20" font-weight="780" fill="#fff" text-anchor="middle" xml:space="preserve"><tspan x="491" dy="0">1</tspan></text>
+<text x="519" y="396" font-size="21" font-weight="800" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="519" dy="0">Platform GitOps</tspan></text>
+<rect x="476" y="408" width="189" height="44" rx="10" fill="#fff" stroke="#8cbdff" stroke-width="1.5" />
+<use href="#layers" x="484" y="412" width="38" height="37"/>
+<text x="530" y="436" font-size="17" font-weight="660" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="530" dy="0">ApplicationSet</tspan></text>
+<rect x="712" y="408" width="189" height="44" rx="10" fill="#e4f0ff" stroke="#8cbdff" stroke-width="1.5" />
+<text x="807" y="436" font-size="17" font-weight="680" fill="#0d1b38" text-anchor="middle" xml:space="preserve"><tspan x="807" dy="0">Platform Addons</tspan></text>
+<path d="M665 430H710" fill="none" stroke="#087bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowblue)"/>
+<rect x="949" y="403" width="101" height="51" rx="12" fill="#147df7" stroke="#147df7" stroke-width="1" />
+<text x="999" y="424" font-size="16" font-weight="750" fill="#fff" text-anchor="middle" xml:space="preserve"><tspan x="999" dy="0">Platform</tspan></text>
+<text x="999" y="444" font-size="16" font-weight="750" fill="#fff" text-anchor="middle" xml:space="preserve"><tspan x="999" dy="0">Addons</tspan></text>
+<path d="M914 430H948" fill="none" stroke="#087bfa" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowblue)"/>
+<rect x="459" y="479" width="455" height="109" rx="17" fill="#effdfe" stroke="#14b1ba" stroke-width="1.5" filter="url(#shadow)"/>
+<rect x="460" y="481" width="452" height="34" rx="16" fill="url(#topteal)" stroke="none" stroke-width="1.5" />
+<circle cx="494" cy="500" r="15" fill="#00aab0"/>
+<text x="494" y="506" font-size="20" font-weight="780" fill="#fff" text-anchor="middle" xml:space="preserve"><tspan x="494" dy="0">2</tspan></text>
+<text x="528" y="508" font-size="20" font-weight="750" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="528" dy="0">Infrastructure GitOps — Crossplane</tspan></text>
+<rect x="476" y="520" width="174" height="54" rx="10" fill="#fff" stroke="#8bd3df" stroke-width="1.5" />
+<use href="#kube" x="485" y="526" width="50" height="45"/>
+<text x="545" y="542" font-size="17" font-weight="600" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="545" dy="0">Kubernetes</tspan></text>
+<text x="545" y="562" font-size="17" font-weight="600" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="545" dy="0">API</tspan></text>
+<rect x="707" y="520" width="181" height="54" rx="10" fill="#fff" stroke="#8bd3df" stroke-width="1.5" />
+<use href="#cross" x="720" y="525" width="48" height="45"/>
+<text x="777" y="542" font-size="17" font-weight="620" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="777" dy="0">Crossplane</tspan></text>
+<text x="777" y="562" font-size="17" font-weight="620" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="777" dy="0">central</tspan></text>
+<path d="M650 548H706" fill="none" stroke="#00aab0" stroke-width="3.1" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowteal)"/>
+<path d="M888 548H931" fill="none" stroke="#00aab0" stroke-width="3.1" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowteal)"/>
+<rect x="934" y="508" width="145" height="79" rx="14" fill="#d4faff" stroke="#14b4c1" stroke-width="1.2" />
+<text x="1006" y="527" font-size="15" font-weight="690" fill="#063c4b" text-anchor="middle" xml:space="preserve"><tspan x="1006" dy="0">Provisiona na</tspan></text>
+<text x="1006" y="545" font-size="15" font-weight="690" fill="#063c4b" text-anchor="middle" xml:space="preserve"><tspan x="1006" dy="0">conta de destino</tspan></text>
+<text x="1006" y="563" font-size="13" font-weight="540" fill="#0e3c4a" text-anchor="middle" xml:space="preserve"><tspan x="1006" dy="0">(S3 / Aurora / outras</tspan></text>
+<text x="1006" y="579" font-size="13" font-weight="540" fill="#0e3c4a" text-anchor="middle" xml:space="preserve"><tspan x="1006" dy="0">Capabilities)</tspan></text>
+<rect x="459" y="603" width="455" height="101" rx="17" fill="#f7f0ff" stroke="#9047fa" stroke-width="1.5" filter="url(#shadow)"/>
+<rect x="460" y="604" width="453" height="36" rx="16" fill="url(#toppurple)" stroke="none" stroke-width="1.5" />
+<circle cx="493" cy="622" r="15" fill="#8d19f9"/>
+<text x="493" y="628" font-size="20" font-weight="780" fill="#fff" text-anchor="middle" xml:space="preserve"><tspan x="493" dy="0">3</tspan></text>
+<text x="528" y="630" font-size="21" font-weight="760" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="528" dy="0">Infrastructure GitOps — Terraform</tspan></text>
+<rect x="475" y="644" width="137" height="49" rx="10" fill="#fff" stroke="#b18ff5" stroke-width="1.5" />
+<use href="#layers" x="480" y="650" width="34" height="35"/>
+<text x="516" y="668" font-size="13" font-weight="670" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="516" dy="0">TerraformStack</tspan></text>
+<text x="516" y="684" font-size="13" font-weight="670" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="516" dy="0">CRD</tspan></text>
+<rect x="636" y="644" width="119" height="49" rx="10" fill="#fff" stroke="#b18ff5" stroke-width="1.5" />
+<use href="#workflow" x="643" y="650" width="34" height="35"/>
+<text x="687" y="668" font-size="15" font-weight="680" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="687" dy="0">Argo</tspan></text>
+<text x="687" y="684" font-size="15" font-weight="680" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="687" dy="0">Workflows</tspan></text>
+<rect x="778" y="644" width="123" height="49" rx="10" fill="#fff" stroke="#b18ff5" stroke-width="1.5" />
+<use href="#terra" x="785" y="650" width="34" height="35"/>
+<text x="827" y="668" font-size="14" font-weight="680" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="827" dy="0">Terraform</tspan></text>
+<text x="827" y="684" font-size="14" font-weight="680" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="827" dy="0">Executor</tspan></text>
+<path d="M612 670H635" fill="none" stroke="#8d19f9" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowpurple)"/>
+<path d="M755 670H777" fill="none" stroke="#8d19f9" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowpurple)"/>
+<rect x="939" y="633" width="143" height="69" rx="13" fill="#f0e3ff" stroke="#b179ff" stroke-width="1.5" />
+<text x="1010" y="653" font-size="15" font-weight="730" fill="#3d1373" text-anchor="middle" xml:space="preserve"><tspan x="1010" dy="0">Provisiona na</tspan></text>
+<text x="1010" y="671" font-size="15" font-weight="700" fill="#3d1373" text-anchor="middle" xml:space="preserve"><tspan x="1010" dy="0">conta de destino</tspan></text>
+<text x="1010" y="690" font-size="14" font-weight="590" fill="#3d1373" text-anchor="middle" xml:space="preserve"><tspan x="1010" dy="0">(VPC / IAM / EKS)</tspan></text>
+<path d="M901 669H938" fill="none" stroke="#8d19f9" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowpurple)"/>
+<rect x="295" y="718" width="720" height="54" rx="14" fill="#deecff" stroke="none" stroke-width="0" />
+<use href="#shield" x="320" y="728" width="43" height="40"/>
+<text x="387" y="742" font-size="17" font-weight="570" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="387" dy="0">O Control Plane hospeda contratos, controllers e governança GitOps —</tspan></text>
+<text x="387" y="762" font-size="17" font-weight="570" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="387" dy="0">não os recursos de workload.</tspan></text>
+<rect x="1106" y="174" width="500" height="46" rx="13" fill="#e0eeff" stroke="none" stroke-width="0" />
+<use href="#info" x="1130" y="181" width="32" height="32"/>
+<text x="1173" y="203" font-size="18" font-weight="580" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1173" dy="0">Cada Environment é uma conta AWS separada.</tspan></text>
+<rect x="1165" y="236" width="421" height="118" rx="15" fill="url(#topblue)" stroke="#72adfb" stroke-width="1.3" filter="url(#shadow)"/>
+<use href="#kube" x="1202" y="239" width="44" height="43"/>
+<text x="1254" y="267" font-size="24" font-weight="800" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1254" dy="0">Management EKS</tspan></text>
+<rect x="1176" y="279" width="181" height="65" rx="11" fill="#fff" stroke="#8cbbff" stroke-width="1.5" />
+<use href="#octo" x="1193" y="284" width="47" height="56"/>
+<text x="1252" y="307" font-size="17" font-weight="760" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1252" dy="0">Argo CD</tspan></text>
+<text x="1252" y="329" font-size="17" font-weight="760" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1252" dy="0">Local</tspan></text>
+<path d="M1382 279V340" stroke="#6b84af" stroke-width="1.6"/>
+<rect x="1403" y="280" width="171" height="59" rx="12" fill="#fff" stroke="#8cbbff" stroke-width="1.5" />
+<use href="#layers" x="1415" y="284" width="47" height="49"/>
+<text x="1465" y="306" font-size="17" font-weight="650" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1465" dy="0">Management</tspan></text>
+<text x="1465" y="328" font-size="17" font-weight="650" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1465" dy="0">Add-ons</tspan></text>
+<path d="M1050 429H1114Q1126 429 1126 410V356Q1126 334 1147 334H1194" fill="none" stroke="#087bfa" stroke-width="3.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowblue)"/>
+<path d="M1450 354V392" fill="none" stroke="#17b61b" stroke-width="3.3" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M1238 442V412Q1238 393 1258 393H1490Q1508 393 1508 413V441" fill="none" stroke="#17b61b" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowgreen)"/>
+<rect x="1270" y="375" width="210" height="33" rx="17" fill="url(#topgreen)" stroke="#99e46a" stroke-width="1.5" />
+<text x="1375" y="397" font-size="18" font-weight="780" fill="#0b4a16" text-anchor="middle" xml:space="preserve"><tspan x="1375" dy="0">Domain Applications</tspan></text>
+<rect x="1142" y="443" width="225" height="150" rx="15" fill="#f6fbff" stroke="#76b2f9" stroke-width="1.3" filter="url(#shadow)"/>
+<rect x="1144" y="444" width="222" height="34" rx="13" fill="url(#topblue)" stroke="none" stroke-width="0" />
+<use href="#kube" x="1157" y="445" width="36" height="31"/>
+<text x="1208" y="469" font-size="20" font-weight="780" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1208" dy="0">EKS PCI</tspan></text>
+<rect x="1153" y="483" width="204" height="46" rx="10" fill="#fff" stroke="#8cbbff" stroke-width="1.5" />
+<use href="#layers" x="1168" y="486" width="41" height="37"/>
+<text x="1219" y="512" font-size="17" font-weight="630" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1219" dy="0">Platform Addons</tspan></text>
+<rect x="1153" y="537" width="204" height="45" rx="10" fill="url(#topgreen)" stroke="#a0e480" stroke-width="1.5" />
+<use href="#cube" x="1167" y="541" width="37" height="35"/>
+<text x="1219" y="553" font-size="18" font-weight="650" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1219" dy="0">Domain</tspan></text>
+<text x="1219" y="573" font-size="18" font-weight="650" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1219" dy="0">Applications</tspan></text>
+<rect x="1396" y="443" width="230" height="150" rx="15" fill="#f6fbff" stroke="#76b2f9" stroke-width="1.3" filter="url(#shadow)"/>
+<rect x="1398" y="444" width="227" height="34" rx="13" fill="url(#topblue)" stroke="none" stroke-width="0" />
+<use href="#kube" x="1412" y="445" width="36" height="31"/>
+<text x="1462" y="469" font-size="20" font-weight="780" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1462" dy="0">EKS Non-PCI</tspan></text>
+<rect x="1407" y="483" width="208" height="46" rx="10" fill="#fff" stroke="#8cbbff" stroke-width="1.5" />
+<use href="#layers" x="1421" y="486" width="41" height="37"/>
+<text x="1473" y="512" font-size="17" font-weight="630" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1473" dy="0">Platform Addons</tspan></text>
+<rect x="1407" y="537" width="208" height="45" rx="10" fill="url(#topgreen)" stroke="#a0e480" stroke-width="1.5" />
+<use href="#cube" x="1421" y="541" width="37" height="35"/>
+<text x="1473" y="553" font-size="18" font-weight="650" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1473" dy="0">Domain</tspan></text>
+<text x="1473" y="573" font-size="18" font-weight="650" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1473" dy="0">Applications</tspan></text>
+<rect x="1144" y="613" width="482" height="165" rx="16" fill="#f8fbff" stroke="#72b0fb" stroke-width="1.5" />
+<use href="#cloud" x="1165" y="624" width="49" height="41"/>
+<text x="1223" y="642" font-size="21" font-weight="790" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1223" dy="0">Recursos AWS do Environment</tspan></text>
+<text x="1223" y="662" font-size="16" font-weight="480" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1223" dy="0">Provisionados pelos fluxos de Crossplane e Terraform</tspan></text>
+<rect x="1160" y="676" width="97" height="84" rx="10" fill="#fff" stroke="#77affb" stroke-width="1.5" />
+<use href="#net" x="1185" y="681" width="47" height="45"/>
+<text x="1209" y="743" font-size="17" font-weight="730" fill="#0d1b38" text-anchor="middle" xml:space="preserve"><tspan x="1209" dy="0">VPC</tspan></text>
+<rect x="1267" y="676" width="97" height="84" rx="10" fill="#fff" stroke="#77affb" stroke-width="1.5" />
+<use href="#iam" x="1292" y="681" width="47" height="45"/>
+<text x="1316" y="743" font-size="17" font-weight="730" fill="#0d1b38" text-anchor="middle" xml:space="preserve"><tspan x="1316" dy="0">IAM</tspan></text>
+<rect x="1373" y="676" width="97" height="84" rx="10" fill="#fff" stroke="#77affb" stroke-width="1.5" />
+<use href="#bucket" x="1398" y="681" width="47" height="45"/>
+<text x="1422" y="743" font-size="17" font-weight="730" fill="#0d1b38" text-anchor="middle" xml:space="preserve"><tspan x="1422" dy="0">S3</tspan></text>
+<rect x="1482" y="676" width="128" height="84" rx="10" fill="#fff" stroke="#77affb" stroke-width="1.5" />
+<use href="#db" x="1507" y="681" width="47" height="45"/>
+<text x="1546" y="743" font-size="17" font-weight="730" fill="#0d1b38" text-anchor="middle" xml:space="preserve"><tspan x="1546" dy="0">Aurora /</tspan><tspan x="1546" dy="18.87">RDS</tspan></text>
+<path d="M1079 547H1105Q1113 547 1113 557V664Q1113 665 1126 665H1143" fill="none" stroke="#00aab0" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowteal)"/>
+<path d="M1082 671H1101Q1106 671 1106 684V712H1143" fill="none" stroke="#8d19f9" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowpurple)"/>
+<rect x="6" y="817" width="1636" height="96" rx="15" fill="#fff" stroke="#a8c9f2" stroke-width="1.4" filter="url(#shadow)"/>
+<text x="29" y="863" font-size="23" font-weight="800" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="29" dy="0">Legenda:</tspan></text>
+<path d="M151 833V893" stroke="#8299be" stroke-width="1.5"/>
+<path d="M407 833V893" stroke="#8299be" stroke-width="1.5"/>
+<path d="M704 833V893" stroke="#8299be" stroke-width="1.5"/>
+<path d="M1025 833V893" stroke="#8299be" stroke-width="1.5"/>
+<path d="M1328 833V893" stroke="#8299be" stroke-width="1.5"/>
+<use href="#layers" x="169" y="832" width="57" height="56"/>
+<text x="234" y="843" font-size="16" font-weight="770" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="234" dy="0">Platform GitOps:</tspan></text>
+<text x="234" y="864" font-size="15" font-weight="530" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="234" dy="0">add-ons da plataforma</tspan></text>
+<text x="234" y="885" font-size="15" font-weight="530" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="234" dy="0">(Platform Addons)</tspan></text>
+<use href="#cubeblue" x="429" y="835" width="47" height="46"/>
+<text x="481" y="843" font-size="16" font-weight="730" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="481" dy="0">Infrastructure GitOps</tspan></text>
+<text x="481" y="863" font-size="16" font-weight="730" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="481" dy="0">(Crossplane):</tspan></text>
+<text x="481" y="884" font-size="14" font-weight="530" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="481" dy="0">S3 / Aurora na conta</tspan></text>
+<text x="481" y="902" font-size="14" font-weight="530" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="481" dy="0">de destino</tspan></text>
+<use href="#workflow" x="721" y="838" width="45" height="43"/>
+<text x="776" y="843" font-size="16" font-weight="730" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="776" dy="0">Infrastructure GitOps</tspan></text>
+<text x="776" y="863" font-size="16" font-weight="730" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="776" dy="0">(Terraform):</tspan></text>
+<text x="776" y="883" font-size="14" font-weight="530" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="776" dy="0">VPC / IAM / EKS na</tspan></text>
+<text x="776" y="901" font-size="14" font-weight="530" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="776" dy="0">conta de destino</tspan></text>
+<use href="#cube" x="1043" y="837" width="47" height="46"/>
+<text x="1093" y="843" font-size="16" font-weight="770" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1093" dy="0">Domain GitOps:</tspan></text>
+<text x="1093" y="863" font-size="14" font-weight="530" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1093" dy="0">aplicações de domínio</tspan></text>
+<text x="1093" y="883" font-size="14" font-weight="530" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1093" dy="0">em PCI e Non-PCI</tspan></text>
+<use href="#sync" x="1344" y="835" width="53" height="52"/>
+<text x="1404" y="843" font-size="15" font-weight="760" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1404" dy="0">Reconciliação contínua:</tspan></text>
+<text x="1404" y="864" font-size="14" font-weight="530" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1404" dy="0">Git é fonte de verdade</tspan></text>
+<text x="1404" y="884" font-size="14" font-weight="530" fill="#0d1b38" text-anchor="start" xml:space="preserve"><tspan x="1404" dy="0">e mantém a conformidade</tspan></text>
 </svg>
