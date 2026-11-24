@@ -57,8 +57,8 @@ Após o login, troque a senha em **User Info → Update Password**. Mantenha as 
 ```bash
 hub() { kubectl --context kind-platform-management "$@"; }
 hub apply -f platform/hub/addons/bootstrap.yaml
-hub -n argocd wait --for=create --timeout=180s \
-  application/argo-workflows application/crossplane-core
+hub -n argocd wait --for=condition=ResourcesUpToDate --timeout=180s \
+  applicationset/hub-addons
 hub -n argocd wait --timeout=180s \
   --for='jsonpath={.metadata.ownerReferences[?(@.kind=="ApplicationSet")].name}=hub-addons' \
   application/argo-workflows application/crossplane-core
