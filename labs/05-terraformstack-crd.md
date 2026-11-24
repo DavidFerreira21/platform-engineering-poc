@@ -57,7 +57,7 @@ hub create --dry-run=server --validate=strict \
 
 A descoberta da API lista `terraformstacks` e `terraformstacks/status`. A última saída mostra o exemplo aceito pela API. O módulo `lab-network` e o destino `entity-a/uat` são dados do exercício. A resolução dos destinos AWS entra mais adiante no roteiro. [Schema do CRD](../control-plane/terraformstack/crd/terraformstack.yaml) · [Solicitação de exemplo](../control-plane/terraformstack/demo/terraformstack.yaml)
 
-Quando o executor passar a consumir variáveis de módulos, os valores de cada stack entrarão no YAML de configuração do destino em `spec.inputs`. [Decisão sobre valores por stack](../docs/adr/0006-terraformrun-and-application-ci.md#valores-por-stack)
+Na Etapa 09, os módulos Terraform passam a receber valores dos YAMLs em `config/`. Um módulo auxiliar resolve a herança entre padrão global, entidade e ambiente. O `TerraformStack` seleciona a revisão desses arquivos em `spec.configuration.revision`. [Decisão sobre configuração por entidade e ambiente](../docs/adr/0006-terraformrun-and-application-ci.md#configuração-por-entidade-e-ambiente)
 
 ## O que observar
 

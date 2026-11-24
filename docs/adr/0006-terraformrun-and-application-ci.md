@@ -16,7 +16,7 @@ A POC usa a **Kubernetes API como contrato técnico** e quatro camadas de owners
 
 O recurso **`TerraformStack`** tem um CRD próprio versionado na Etapa 05. Na Etapa 06, o **TerraformStack Controller** passa a observar esse recurso no Control Plane do Hub.
 
-- O `spec` referencia **módulo aprovado e versão/revisão fixada**, entradas autorizadas e o destino lógico `Entity + Environment`; o controller resolve, em cadastro confiável, credenciais AWS, backend/state e permissões.
+- O `spec` referencia **módulo aprovado e versão fixada**, o destino lógico `Entity + Environment` e, a partir da Etapa 09, a revisão dos YAMLs de configuração. O controller resolve credenciais AWS, backend, state e permissões a partir do cadastro autorizado.
 - O recurso mantém o ciclo de vida da **infraestrutura desejada**; não representa apenas um `terraform apply`.
 - O `status` expõe condições, última verificação, revisão observada, resumo do último plan, classificação, referência de workflow, estado de aprovação e divergência detectada. Não guardar segredos nem todo o plan em `status`.
 - `TerraformRun` fica **reservado como nome opcional para uma execução imutável** (ou pode ser substituído por um Argo Workflow criado pelo controller). **Não criar um segundo CRD só para representar runs antes de existir justificativa.**
@@ -26,30 +26,35 @@ O recurso **`TerraformStack`** tem um CRD próprio versionado na Etapa 05. Na Et
 
 A Etapa 05 publica `platform.example.io/v1alpha1` com escopo de namespace. O schema exige `spec.module.name`, `spec.module.version`, `spec.target.entity` e `spec.target.environment`. O subrecurso `/status` oferece `conditions` para o controller. O exemplo usa referências fictícias e pode ser validado com dry-run na API do Hub. Entradas de módulo, resolução de destinos e políticas de reconciliação evoluem nas etapas que passam a usá-las. [Schema](../../control-plane/terraformstack/crd/terraformstack.yaml) · [Exemplo](../../control-plane/terraformstack/demo/terraformstack.yaml) · [Guia da Etapa 05](../../labs/05-terraformstack-crd.md)
 
-### Valores por stack
+### Configuração por entidade e ambiente
 
-O módulo Terraform reúne código reutilizável e declara suas variáveis em `variables.tf`, com tipos, validações e valores padrão quando aplicável. Cada stack versiona seus valores no próprio manifesto `TerraformStack`, em `spec.inputs`. O manifesto pertence à configuração do destino. Por exemplo, a configuração da rede UAT pode ficar em `foundation/config/entity-a/uat/network.yaml`. O registro `environment.yaml` continua descrevendo o destino e os componentes previstos para o ambiente. [Variáveis de entrada no Terraform](https://developer.hashicorp.com/terraform/language/values/variables)
+O monorepo centraliza os valores dos módulos Terraform em `config/`. Cada módulo usa um arquivo próprio, como `network.yaml` ou `eks.yaml`. A composição vai do nível global para a entidade e depois para o ambiente. Esta é a estrutura prevista, usando `br` como entidade ilustrativa.
 
-Este é o formato previsto para quando o executor passar a consumir as variáveis do módulo.
-
-```yaml
-apiVersion: platform.example.io/v1alpha1
-kind: TerraformStack
-metadata:
-  name: network-uat
-  namespace: platform-system
-spec:
-  module:
-    name: aws-network
-    version: "1.0.0"
-  target:
-    entity: entity-a
-    environment: uat
-  inputs:
-    vpc_cidr: 10.42.0.0/16
+```text
+config/
+├── network.yaml
+├── eks.yaml
+└── br/
+    ├── network.yaml
+    └── uat/
+        ├── network.yaml
+        └── eks.yaml
 ```
 
-Alterar um valor passa por PR e muda o `spec` sincronizado pelo Argo CD. O controller observa a nova `generation` e solicita outro plano para o mesmo módulo e versão. O executor valida os valores contra as entradas permitidas do módulo e gera `stack.tfvars.json` no diretório da execução. O `terraform plan` recebe esse arquivo via `-var-file`. O apply continua vinculado ao plano aprovado. Credenciais, roles e backend são resolvidos pela plataforma a partir do destino autorizado. [Arquivos de variáveis do Terraform](https://developer.hashicorp.com/terraform/language/values/variables#variable-definition-files)
+O nível mais específico prevalece. Os mapas combinam chaves nos níveis definidos pelo schema. Se `br/uat/network.yaml` sobrescrever apenas `vpc.cidr`, os outros campos de `vpc` continuam herdados. Uma lista declarada no nível mais específico substitui a lista anterior inteira. Uma chave ou um arquivo ausente mantém os valores já herdados.
+
+Exemplo de sobrescrita para `config/br/uat/network.yaml`.
+
+```yaml
+vpc:
+  cidr: 10.42.0.0/16
+```
+
+Um módulo auxiliar Terraform chamado `configuration` lê os YAMLs com `yamldecode(file(...))` e compõe os mapas com `merge` explícito nos níveis definidos pelo schema. A primeira implementação resolve `network.yaml` na Etapa 09. O módulo raiz passa a configuração resolvida ao módulo de infraestrutura por entradas tipadas, por exemplo `vpc_cidr = module.configuration.network.vpc.cidr`. O módulo de rede declara seus tipos, validações e valores padrão aplicáveis em `variables.tf`. [Leitura de YAML no Terraform](https://developer.hashicorp.com/terraform/language/functions/yamldecode) · [Mesclagem de mapas](https://developer.hashicorp.com/terraform/language/functions/merge) · [Variáveis de entrada](https://developer.hashicorp.com/terraform/language/values/variables)
+
+O `TerraformStack` seleciona a revisão da configuração em `spec.configuration.revision`, campo que entra junto da primeira stack real de rede. O primeiro PR publica os YAMLs em `main`. Um segundo PR promove o commit da configuração no manifesto da stack. Após o sync, o controller observa a nova `generation` e solicita um novo plan com a mesma versão do módulo. O executor disponibiliza, no diretório de trabalho, os arquivos do commit selecionado antes de iniciar o Terraform. O `environment.yaml` registra o destino AWS, e a plataforma resolve as credenciais, as roles e o backend autorizados para esse destino.
+
+Na Etapa 09, os testes do módulo auxiliar cobrem os três níveis de herança, a preservação dos campos vizinhos, a substituição de listas e a rejeição de valores incompatíveis com o schema. A validação do fluxo confirma que promover outra revisão muda os valores do próximo plan e preserva a versão do módulo.
 
 ## Decisão 2 — GitOps aplica a intenção; Argo Workflows executa Terraform
 
@@ -86,10 +91,10 @@ Backstage / CLI / pessoa → PR + validações + aprovação Git
 
 **Implementação prevista (sem código ou infraestrutura criados por este ADR):**
 
-1. O `TerraformStack Controller` dispara um Workflow com identificação imutável de Stack, `metadata.generation`, revisão Git, módulo/versão e destino resolvido de uma lista permitida; o Workflow adquire lock de state.
-2. O executor gera `terraform plan -out` e persiste o plano binário **em armazenamento privado e com prazo de validade**, associado a hash SHA-256, state/serial e identidade do destino. Expõe apenas metadados não sensíveis para consulta.
+1. O `TerraformStack Controller` dispara um Workflow com identificação imutável da stack, `metadata.generation`, revisão Git da solicitação, revisão dos YAMLs de configuração, módulo, versão e destino autorizado. O Workflow adquire o lock do state.
+2. O executor gera `terraform plan -out` com a configuração da revisão selecionada. Persiste o plano binário **em armazenamento privado e com prazo de validade**, associado ao hash SHA-256, ao state/serial, à revisão de configuração e à identidade do destino. Expõe apenas metadados não sensíveis para consulta.
 3. O passo de aprovação da UI usa um template `suspend: {}`, **sem `duration` que retome automaticamente**. Acesso ao Argo Server deve usar autenticação individual e autorização restrita a aprovadores, com trilha auditável de quem retomou o Workflow. Um simples `resume` não é autorização suficiente sem essa identidade verificável.
-4. Após o `resume`, um passo independente valida: identidade/autorização do aprovador, vínculo da decisão ao Workflow e ao hash do plano, revisão e `generation` ainda vigentes, validade do artefato, lock/state e destino. Qualquer falha, expiração ou plano alterado **bloqueia o apply**, exige novo plan e nova aprovação.
+4. Após o `resume`, um passo independente valida a identidade e a autorização do aprovador, o vínculo da decisão ao Workflow e ao hash do plano, as revisões da solicitação e da configuração, a `generation`, a validade do artefato, o lock/state e o destino. Qualquer falha, expiração ou mudança nesses vínculos **bloqueia o apply** e exige novo plan e nova aprovação.
 5. O executor aplica **o arquivo de plano aprovado**, não executa um novo `terraform plan` implícito, verifica o resultado e atualiza `status`. A confirmação de sucesso depende de verificação da execução; `Argo CD Synced` não comprova o resultado na AWS.
 6. Reprovação, cancelamento, timeout e erro terminam sem apply; retry é controlado e nunca reaproveita aprovação para plano diferente. Operações `destroy` ou deleção de Stack não são autorizadas implicitamente.
 
@@ -132,7 +137,7 @@ O código, a pipeline CI/CD **e os manifests Kubernetes da aplicação de exempl
 - **Etapa 05.** A Application `terraformstack-crd` entrega o CRD pelo catálogo do Hub. A API Kubernetes valida exemplos com dados fictícios.
 - **Etapa 06.** A Application `terraformstack-controller` entrega o controller e o `WorkflowTemplate`. Com ambos disponíveis, o Argo CD sincroniza a solicitação de exemplo e o controller cria o Workflow de execução simulada. [Divisão das Applications](0003-reconciliation-and-gitops.md#applications-e-sincronização-no-hub)
 - **Etapas 07 e 08.** Registro de UAT, identidade temporária do executor e inicialização autorizada do backend de estado.
-- **Etapa 09.** Rede UAT aplicada com state segregado, lock e aprovação humana do plano imutável.
+- **Etapa 09.** Rede UAT aplicada com a revisão dos YAMLs selecionada na stack, state segregado, lock e aprovação humana do plano imutável.
 - **Etapas 18 e 19.** Detecção de drift com status e alerta. Depois, reconciliação com Policy Engine versionado.
 - **A validar:** formato final da API, status/conditions, requeue/scheduling, política de alterações de spec durante workflows, engine de políticas, versionamento de módulo, catálogo, lock de state e aprovação segura.
 
