@@ -9,8 +9,12 @@ Registrar UAT como o primeiro destino AWS do `TerraformStack`. Confirmar a ident
 ## O que será feito
 
 - Criar ou revisar o `environment.yaml` de UAT na Foundation. Ele declara o ID da conta, a região, o baseline de rede e os tipos de EKS previstos.
-- Validar o perfil do operador via IAM Identity Center e STS. Provocar e corrigir uma divergência de região.
+- Validar o perfil do operador via IAM Identity Center e STS.
 - Versionar o registro por PR. A conta UAT é um pré-requisito e a consulta ao STS tem custo AWS zero.
+
+## Por que fizemos assim
+
+O primeiro contato com a AWS começa pela conferência do destino e da identidade do operador. O registro na Foundation documenta a conta e a região esperadas antes de a etapa seguinte configurar a identidade temporária do executor.
 
 ## Pré-requisitos
 
@@ -45,20 +49,11 @@ bash foundation/scripts/verify-environment-identity.sh platform-poc-uat "$uat_ac
 
 O resultado esperado é `OK`. O script compara a conta e a região do perfil com os valores esperados e confere a conta e a role retornadas pelo STS.
 
-### Falha controlada e recuperação
+Se houver uma divergência, confira a conta escolhida no IAM Identity Center e a região do perfil com `aws configure get region --profile platform-poc-uat`. Compare esses valores com o registro UAT antes de repetir a verificação.
 
-Passe uma região diferente da declarada. O script deve interromper a validação antes de chamar o STS. Confira a região do perfil e repita com a região correta.
+## O que observar
 
-```bash
-if [[ "$uat_region" == us-west-2 ]]; then
-  wrong_region=us-east-1
-else
-  wrong_region=us-west-2
-fi
-bash foundation/scripts/verify-environment-identity.sh platform-poc-uat "$uat_account" "$wrong_region"
-aws configure get region --profile platform-poc-uat
-bash foundation/scripts/verify-environment-identity.sh platform-poc-uat "$uat_account" "$uat_region"
-```
+- A conferência com o perfil correto retorna `OK` e comprova o acesso humano à conta declarada. A identidade do executor é verificada na etapa seguinte.
 
 ## 3. Publicar e limpar
 
@@ -66,7 +61,7 @@ bash foundation/scripts/verify-environment-identity.sh platform-poc-uat "$uat_ac
 git add foundation/config/entity-a/uat/environment.yaml
 git diff --cached --check
 git diff --cached -- foundation/config/entity-a/uat/environment.yaml
-unset uat_account uat_region wrong_region
+unset uat_account uat_region
 ```
 
 Se você criou ou alterou o registro, publique a mudança por PR. O aceite da etapa é o YAML de UAT versionado e o resultado `OK` para o perfil do operador. A Etapa 08 prepara a identidade temporária do executor e o backend de estado.

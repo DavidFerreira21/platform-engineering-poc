@@ -17,5 +17,7 @@ helm --kube-context "$CONTEXT" upgrade --install argocd argo/argo-cd \
   --namespace argocd --version "$CHART_VERSION" --values "$CONFIG/values.yaml" \
   --wait --timeout 5m
 kubectl --context "$CONTEXT" wait --for=condition=Established --timeout=60s \
-  crd/applications.argoproj.io crd/appprojects.argoproj.io
+  crd/applications.argoproj.io crd/appprojects.argoproj.io crd/applicationsets.argoproj.io
+kubectl --context "$CONTEXT" -n argocd rollout status \
+  deployment/argocd-applicationset-controller --timeout=120s
 echo "Argo CD pronto. Consulte labs/02-argocd-central.md para acessar a interface local."

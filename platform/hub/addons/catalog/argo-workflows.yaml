@@ -1,0 +1,21 @@
+name: argo-workflows
+project: platform-workflows
+namespace: argo-workflows
+source:
+  repoURL: https://argoproj.github.io/argo-helm
+  chart: argo-workflows
+  targetRevision: "2.0.18"
+  helm:
+    releaseName: argo-workflows
+    valuesObject:
+      crds:
+        install: true
+        full: true
+      singleNamespace: true
+      server:
+        enabled: false
+      workflow:
+        serviceAccount:
+          create: true
+        rbac:
+          create: true

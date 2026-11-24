@@ -4,19 +4,23 @@
 
 ## Objetivo
 
-Executar um Workflow local e usar o estado da execução, os Pods e os logs para diagnosticar uma falha e confirmar a recuperação.
+Executar um Workflow local e acompanhar como o controller registra seu estado, cria um Pod e disponibiliza os logs da execução.
 
 ## O que será feito
 
-- Criar o namespace `argo-workflows`, o AppProject `platform-workflows` e a Application `argo-workflows`. Sincronizar pelo Argo CD a instalação do controller, dos CRDs e da ServiceAccount do executor.
-- Submeter três execuções do mesmo manifesto e observar os estados `Succeeded`, `Failed` e `Succeeded`. A segunda execução usa um parâmetro que provoca uma falha no contêiner.
-- Remover os três Workflows e seus Pods. O controller fica disponível para as próximas etapas.
+- Sincronizar a Application `argo-workflows`, gerada pelo `ApplicationSet` da Etapa 02. Conferir o controller, os CRDs e a ServiceAccount do executor.
+- Submeter um Workflow de exemplo e conferir o estado `Succeeded`, o Pod e o log do contêiner.
+- Remover a execução de exemplo e seu Pod. O controller fica disponível para as próximas etapas.
 
 O exercício roda no Hub local e tem custo AWS zero.
 
+## Por que fizemos assim
+
+O controller e os CRDs do Argo Workflows ficam em uma Application compartilhada. O manifesto do exercício define uma tarefa pequena, e cada submissão cria uma execução com nome próprio. Assim podemos acompanhar o processamento de uma solicitação e correlacionar seu estado, seu Pod e seus logs.
+
 ## Pré-requisitos
 
-- Etapa 02 concluído, com o Argo CD central acessível.
+- Etapa 02 concluída, com o Argo CD central acessível e `hub-addons` como owner da Application `argo-workflows`.
 - `kubectl` com o contexto `kind-platform-management`. O Hub precisa de acesso ao repositório Helm e aos registries das imagens.
 - Execute os comandos na raiz do monorepo e no mesmo terminal.
 
@@ -24,15 +28,9 @@ O exercício roda no Hub local e tem custo AWS zero.
 hub() { kubectl --context kind-platform-management "$@"; }
 ```
 
-## 1. Sincronizar o controller e os CRDs
+## 1. Conferir o controller e os CRDs
 
-```bash
-bootstrap=workflow-plane/argo-workflows/bootstrap
-hub apply -f "$bootstrap/namespace.yaml" -f "$bootstrap/project.yaml"
-hub apply -f "$bootstrap/application.yaml"
-```
-
-Na UI do Argo CD, abra **Applications → argo-workflows**. Após a primeira comparação indicar `OutOfSync`, selecione **Sync → Synchronize**. O chart `2.0.18` usa Argo Workflows `v4.1.6`. Um Job de pré-sincronização instala os CRDs completos. O controller executa Workflows apenas em `argo-workflows`. A observação do exercício é feita com `kubectl`.
+Na UI do Argo CD, abra **Applications → argo-workflows**. Se o componente já estiver saudável, confira a instalação com os comandos abaixo. Se a etapa exigir a instalação, confira a versão do chart no catálogo e inspecione o **Diff**. Sincronize a Application quando o diff corresponder à instalação esperada. Um Job de pré-sincronização instala os CRDs completos. O controller executa Workflows no namespace `argo-workflows`. [Entrada do catálogo](../platform/hub/addons/catalog/argo-workflows.yaml)
 
 ```bash
 hub -n argocd get application argo-workflows
@@ -41,7 +39,7 @@ hub wait --for=condition=Established --timeout=90s \
 hub -n argo-workflows rollout status deployment/argo-workflows-workflow-controller --timeout=120s
 ```
 
-A Application deve ficar `Synced` e `Healthy`. Se o sync falhar antes de criar o controller, consulte `hub -n argocd describe application argo-workflows` e, se o Job ainda existir, `hub -n argo-workflows logs job/argo-workflows-crd-install`.
+Após sincronizar, confira `Synced` e `Healthy`. Em um Hub existente, a disponibilidade do controller e dos CRDs é o ponto de partida do exercício. Se a Application estiver ausente, confira o `ApplicationSet` na Etapa 02. Se o sync falhar antes de criar o controller, consulte `hub -n argocd describe application argo-workflows` e, se o Job ainda existir, `hub -n argo-workflows logs job/argo-workflows-crd-install`.
 
 ## 2. Executar e observar
 
@@ -56,37 +54,20 @@ hub -n argo-workflows logs -l "workflows.argoproj.io/workflow=${run##*/}" -c mai
 
 O log esperado é `lab02b-workflow-ok`. O Pod usa a ServiceAccount `argo-workflow`, com permissões para o executor publicar resultados em `workflowtaskresults`. Cada submissão recebe um nome próprio.
 
-## 3. Provocar uma falha e reexecutar
+Se a execução não chegar a `Succeeded`, consulte `hub -n argo-workflows describe "$run"`, os eventos do Pod e os logs do controller.
 
-Submeta o mesmo manifesto com um parâmetro inválido para a lógica do contêiner. O patch altera apenas a cópia submetida.
+## O que observar
 
-```bash
-failed=$(hub patch --local -f "$manifest" --type=json \
-  -p '[{"op":"replace","path":"/spec/arguments/parameters/0/value","value":"falhar"}]' \
-  -o yaml | hub create -f - -o name)
-hub -n argo-workflows wait "$failed" --for='jsonpath={.status.phase}=Failed' --timeout=180s
-hub -n argo-workflows get "$failed"
-hub -n argo-workflows get pods -l "workflows.argoproj.io/workflow=${failed##*/}"
-hub -n argo-workflows logs -l "workflows.argoproj.io/workflow=${failed##*/}" -c main
-```
+- O Workflow fica `Succeeded`. O nome da execução identifica seu Pod e seus logs.
+- O log `lab02b-workflow-ok` é a saída da tarefa declarada no manifesto.
 
-O log deve mostrar `falha controlada: resultado esperado é ok`. Se o Workflow parar em `Error` ou o Pod não iniciar, inspecione `hub -n argo-workflows describe "$failed"`, os eventos do Pod e os logs do controller.
-
-Reenvie o manifesto com o parâmetro padrão. O Workflow anterior permanece disponível para comparar as duas execuções.
+## 3. Limpar o exercício
 
 ```bash
-recovered=$(hub create -f "$manifest" -o name)
-hub -n argo-workflows wait "$recovered" --for='jsonpath={.status.phase}=Succeeded' --timeout=180s
-hub -n argo-workflows logs -l "workflows.argoproj.io/workflow=${recovered##*/}" -c main
-```
-
-## 4. Limpar o exercício
-
-```bash
-hub -n argo-workflows delete "$run" "$failed" "$recovered" \
+hub -n argo-workflows delete "$run" \
   --ignore-not-found --cascade=foreground --timeout=120s
-hub -n argo-workflows get workflows -l lab.platform.example/exercise=lab02b
-hub -n argo-workflows get pods -l "workflows.argoproj.io/workflow in (${run##*/},${failed##*/},${recovered##*/})"
+hub -n argo-workflows get "$run" --ignore-not-found
+hub -n argo-workflows get pods -l "workflows.argoproj.io/workflow=${run##*/}"
 ```
 
 As duas consultas devem retornar listas vazias. Mantenha o controller instalado para uso nas próximas etapas. [Documentação do Argo Workflows](https://argo-workflows.readthedocs.io/en/latest/installation/)

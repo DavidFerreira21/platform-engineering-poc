@@ -8,16 +8,20 @@ Validar a reconciliação de um recurso composto no Hub e observar como o schema
 
 ## O que será feito
 
-- Criar o AppProject `platform-crossplane` e a Application `crossplane-core` para instalar o Crossplane Core e seus CRDs via Argo CD.
+- Sincronizar a Application `crossplane-core`, gerada pelo `ApplicationSet` da Etapa 02, para instalar o Crossplane Core e seus CRDs.
 - Instalar a função de composição do exercício, aplicar o XRD de `LabMessage` e sua Composition e criar um `LabMessage` em `platform-system`. Conferir as condições do recurso e o ConfigMap criado pelo Crossplane.
-- Tentar gravar uma mensagem vazia, observar a rejeição pela API e confirmar que valores válidos são reconciliados no ConfigMap.
+- Consultar o schema publicado pelo XRD e conferir a mensagem do `LabMessage` no ConfigMap.
 - Remover os recursos do exercício e manter o Crossplane Core instalado.
 
 O exercício roda no Hub local e tem custo AWS zero.
 
+## Por que fizemos assim
+
+O Crossplane Core é compartilhado pelas etapas. O `LabMessage` usa um XRD e uma Composition de demonstração para tornar a reconciliação visível em um ConfigMap do Hub. Assim é possível rever a validação do contrato e a reconciliação local mesmo em um Hub que já tenha outras Capabilities.
+
 ## Pré-requisitos
 
-- Hub da Etapa 01 com Argo CD central acessível conforme a Etapa 02 e Argo Workflows verificado na Etapa 03.
+- Argo CD central acessível, com `hub-addons` como owner da Application `crossplane-core`, e Argo Workflows verificado na Etapa 03.
 - `kubectl` com o contexto `kind-platform-management` e conectividade do Hub ao repositório Helm e aos registries das imagens e da função.
 - Execute os comandos da raiz do monorepo. Nos exemplos, `hub` seleciona explicitamente o contexto local.
 
@@ -26,14 +30,9 @@ hub() { kubectl --context kind-platform-management "$@"; }
 hub get namespace argocd crossplane-system platform-system
 ```
 
-## 1. Sincronizar o Crossplane Core
+## 1. Conferir o Crossplane Core
 
-```bash
-hub apply -f control-plane/crossplane/bootstrap/project.yaml
-hub apply -f control-plane/crossplane/bootstrap/application.yaml
-```
-
-Na UI do Argo CD, abra **Applications → crossplane-core**. Aguarde a primeira comparação mostrar `OutOfSync` e então selecione **Sync → Synchronize**. A Application usa o chart Crossplane `2.4.3` e o AppProject limita a origem, o destino e os tipos usados pelo chart.
+Na UI do Argo CD, abra **Applications → crossplane-core**. Se o componente já estiver saudável, confira a instalação com os comandos abaixo. Se a etapa exigir a instalação, confira a versão do chart no catálogo e inspecione o **Diff**. Sincronize a Application quando o diff corresponder à instalação esperada. Se ela estiver ausente, confira o `ApplicationSet` na Etapa 02. [Entrada do catálogo](../platform/hub/addons/catalog/crossplane-core.yaml)
 
 ```bash
 hub -n argocd get application crossplane-core -o \
@@ -43,10 +42,9 @@ hub -n crossplane-system rollout status deployment/crossplane-rbac-manager --tim
 hub wait --for=condition=Established --timeout=120s \
   crd/compositeresourcedefinitions.apiextensions.crossplane.io \
   crd/compositions.apiextensions.crossplane.io crd/functions.pkg.crossplane.io
-hub get providers.pkg.crossplane.io
 ```
 
-Confirme `Synced`, `Healthy` e a versão `2.4.3`. Num Hub dedicado a estas etapas, a lista de Providers deve estar vazia. Se o chart não sincronizar, consulte `hub -n argocd describe application crossplane-core` e confira a origem Helm a partir dos logs de `hub -n argocd logs deployment/argocd-repo-server`.
+Após sincronizar, confirme `Synced`, `Healthy` e a revisão do chart. Em um Hub existente, o exercício verifica os Deployments e os CRDs de que o `LabMessage` depende. Se o chart não sincronizar, consulte `hub -n argocd describe application crossplane-core` e confira a origem Helm nos logs de `hub -n argocd logs deployment/argocd-repo-server`.
 
 ## 2. Registrar e consumir uma API local
 
@@ -62,6 +60,7 @@ hub wait --for=condition=Established --timeout=90s crd/labmessages.lab.platform.
 hub apply -f "$demo/xr.yaml"
 hub -n platform-system wait --for=condition=Synced --timeout=120s labmessage/lab03-demo
 hub -n platform-system wait --for=condition=Ready --timeout=120s labmessage/lab03-demo
+hub explain labmessage.spec.message --api-version=lab.platform.example/v1alpha1
 hub -n platform-system get labmessage lab03-demo
 hub -n platform-system get configmap -l lab.platform.example/exercise=lab03 \
   -o 'custom-columns=NAME:.metadata.name,OWNER:.metadata.ownerReferences[0].name,MESSAGE:.data.mensagem'
@@ -69,29 +68,12 @@ hub -n platform-system get configmap -l lab.platform.example/exercise=lab03 \
 
 A saída deve mostrar um ConfigMap cujo owner é `lab03-demo` e cuja mensagem é `reconciliado-pelo-crossplane`. O `Ready` depende de a função observar o ConfigMap com o label do exercício. Se os waits expirarem, consulte `hub describe function.pkg.crossplane.io lab03-patch-and-transform`, `hub describe xrd labmessages.lab.platform.example` e `hub -n platform-system describe labmessage lab03-demo`.
 
-## 3. Provocar uma falha de validação e recuperar
+## O que observar
 
-Tente gravar uma mensagem vazia. A API deve rejeitar o patch pois o schema exige ao menos um caractere. Observe a mensagem do servidor e confira que o XR manteve o valor anterior.
+- O campo `spec.message` aparece na API a partir do schema do XRD.
+- O `LabMessage` chega a `Synced` e `Ready`. O ConfigMap identifica o XR como owner e contém a mensagem declarada no manifesto.
 
-```bash
-hub -n platform-system patch labmessage lab03-demo --type merge \
-  -p '{"spec":{"message":""}}'
-hub -n platform-system get labmessage lab03-demo -o 'jsonpath={.spec.message}{"\n"}'
-```
-
-Agora use uma mensagem válida. Aguarde o ConfigMap refletir o novo valor sem escrever diretamente nele, e reaplique o manifesto para restaurar o valor de referência.
-
-```bash
-hub -n platform-system patch labmessage lab03-demo --type merge \
-  -p '{"spec":{"message":"mensagem-recuperada"}}'
-hub -n platform-system wait configmap -l lab.platform.example/exercise=lab03 \
-  --for='jsonpath={.data.mensagem}=mensagem-recuperada' --timeout=120s
-hub apply -f "$demo/xr.yaml"
-hub -n platform-system wait configmap -l lab.platform.example/exercise=lab03 \
-  --for='jsonpath={.data.mensagem}=reconciliado-pelo-crossplane' --timeout=120s
-```
-
-## 4. Limpar o exercício
+## 3. Limpar o exercício
 
 Remova primeiro o XR enquanto a função e o Crossplane ainda estão ativos. Confirme que o ConfigMap composto sumiu antes de remover a API e a função.
 
@@ -105,4 +87,4 @@ hub delete -f "$demo/composition.yaml" -f "$demo/xrd.yaml" -f "$demo/function.ya
 
 Mantenha a Application `crossplane-core` sincronizada para as próximas etapas. [Documentação do Crossplane](https://docs.crossplane.io/latest/guides/function-patch-and-transform/)
 
-A próxima entrega do [roteiro](../docs/learning-roadmap.md#fase-2--terraformstack-e-primeira-execução-na-aws) é o CRD `TerraformStack` na Etapa 05, com testes no Hub local.
+A próxima entrega do roteiro é publicar o CRD `TerraformStack` via GitOps na Etapa 05 e validar seu contrato na API do Hub. [Roteiro da Fase 2](../docs/learning-roadmap.md#fase-2--terraformstack-e-primeira-execução-na-aws)

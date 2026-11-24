@@ -123,8 +123,8 @@ O código, a pipeline CI/CD **e os manifests Kubernetes da aplicação de exempl
 
 ## Faseamento e pendências
 
-- **Etapa 05.** CRD `TerraformStack` e validação na API Kubernetes com dados fictícios.
-- **Etapa 06.** Controller, Argo Workflows e execução simulada.
+- **Etapa 05.** A Application `terraformstack-crd` entrega o CRD pelo catálogo do Hub. A API Kubernetes valida exemplos com dados fictícios.
+- **Etapa 06.** A Application `terraformstack-controller` entrega o controller e o `WorkflowTemplate`. Com ambos disponíveis, o Argo CD sincroniza a solicitação de exemplo e o controller cria o Workflow de execução simulada. [Divisão das Applications](0003-reconciliation-and-gitops.md#applications-e-sincronização-no-hub)
 - **Etapas 07 e 08.** Registro de UAT, identidade temporária do executor e inicialização autorizada do backend de estado.
 - **Etapa 09.** Rede UAT aplicada com state segregado, lock e aprovação humana do plano imutável.
 - **Etapas 18 e 19.** Detecção de drift com status e alerta. Depois, reconciliação com Policy Engine versionado.
