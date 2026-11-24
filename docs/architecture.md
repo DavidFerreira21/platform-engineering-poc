@@ -24,45 +24,7 @@ A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) �
 
 [**Abrir diagrama em tamanho completo**](arquitetura%20Plataform.png) · O diagrama é **arquitetura-alvo**; não confirma recursos implantados. O contrato inicial `TerraformStack` está versionado na Etapa 05. O controller e os mecanismos de política e drift são entregas posteriores. GitHub Actions de aplicações opera fora do Hub.
 
-### Topologia lógica (Mermaid)
 
-```mermaid
-flowchart TB
-  E["Experience Layer<br/>Backstage · CLI · GitOps · AI/MCP"]
-  subgraph HUB["Platform Management Cluster · kind inicial"]
-    direction TB
-    CP["Control Plane<br/>Kubernetes API · Crossplane central · XRDs<br/>Admission/Policies · TerraformStack CRD · controller proposto"]
-    WF["Workflow Plane<br/>Argo CD central · Argo Workflows · Terraform Executor"]
-    OB["Observability Plane<br/>OpenTelemetry · Grafana · Loki · Tempo · auditoria"]
-    CP --> WF
-  end
-  subgraph DP["Data Plane · Entity A"]
-    direction TB
-    subgraph U["UAT · conta AWS"]
-      UM["Management EKS<br/>Argo CD local · Operators (a definir) · OTel gateway"]
-      UP["EKS PCI"]
-      UN["EKS Non-PCI"]
-      UR["AWS Runtime<br/>Core + Domains"]
-      UM --> UP
-      UM --> UN
-    end
-    subgraph P["PROD · conta AWS"]
-      PM["Management EKS<br/>Argo CD local · Operators (a definir) · OTel gateway"]
-      PP["EKS PCI"]
-      PN["EKS Non-PCI"]
-      PR["AWS Runtime<br/>Core + Domains"]
-      PM --> PP
-      PM --> PN
-    end
-  end
-  E --> CP
-  CP -. "Capabilities" .-> UR
-  CP -. "Capabilities" .-> PR
-  WF -. "Foundation e EKS" .-> UM
-  WF -. "Foundation e EKS" .-> PM
-```
-
-Linhas tracejadas representam integração lógica, **não redes AWS nem permissões concedidas**. A arquitetura permite várias entidades. Cada entidade-alvo contém UAT e PROD em **contas AWS distintas**, cada uma com **Management EKS, EKS PCI, EKS Non-PCI** e serviços AWS. Na representação de **uma entidade** são sete clusters no total (Hub + 2×3), não um limite global. EKS Auto Mode é a preferência para EKS reais, **sob validação de custos, operadores e PCI**; criar um cluster de cada vez. O Argo CD local pode exigir segregação de instâncias/credenciais para PCI.
 
 | Plano | Responsabilidade |
 | :--- | :--- |
