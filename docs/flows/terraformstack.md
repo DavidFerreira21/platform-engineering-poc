@@ -18,8 +18,6 @@ O Git mantém a intenção versionada; Argo CD sincroniza o objeto Kubernetes; o
 
 [Visualizar o diagrama em tamanho completo](./terraformstack-flow.png)
 
-> O arquivo de imagem `terraformstack-flow.png` será adicionado separadamente. O desenho ilustra uma **topologia lógica**: conta da plataforma e contas AWS dos Environments são fronteiras diferentes. Na POC inicial, o Control Plane executa em `kind`; isso não implica que um EKS de plataforma ou uma conexão entre VPCs já existam.
-
 ### Resumo do caminho principal
 
 ```text
