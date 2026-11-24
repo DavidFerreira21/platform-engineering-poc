@@ -1,6 +1,6 @@
 # ⚙️ Workflow Plane
 
-O Workflow Plane mantém processos, GitOps central, aprovação e execução. O Argo Workflows é instalado no Hub após o Argo CD central. [Guia da Etapa 03](../labs/03-argo-workflows.md)
+O Workflow Plane mantém processos, GitOps central, aprovação e execução. O Argo Workflows é instalado no Hub após o Argo CD central. A Etapa 03 habilita a interface por port-forward e usa um token de leitura temporário para observar as execuções. [Guia da Etapa 03](../labs/03-argo-workflows.md)
 
 | Componente | Papel |
 | :--- | :--- |
