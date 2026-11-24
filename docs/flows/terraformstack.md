@@ -244,14 +244,14 @@ A execução inicial permanece em `kind`. As etapas AWS serão realizadas soment
 - [Contrato TerraformStack v1alpha1](../../control-plane/terraformstack/crd/terraformstack.yaml)
 - [Roadmap](../learning-roadmap.md)
 
-## 13. Referências externas — conceitos aplicados
+## 13. Inspirações externas
 
-O `TerraformStack` e seu controller são **uma composição arquitetural da POC**, não uma implementação atribuída às referências abaixo.
+O `TerraformStack` é um contrato **criado para esta POC**, mas o princípio de representar infraestrutura Terraform como recurso declarativo do Kubernetes já aparece em outros projetos. Nosso diferencial está na combinação com Argo Workflows, aprovação vinculada ao plano e reconciliação governada.
 
-| Referência | Conceito aplicado na POC |
-| --- | --- |
-| [HashiCorp — Policy Enforcement](https://developer.hashicorp.com/terraform/cloud-docs/policy-enforcement) | **Governança do plano:** avaliar mudanças Terraform com política antes do `apply`, fundamentando as decisões `Auto Apply`, `Require Approval` e `Deny`. |
-| [Argo Workflows — Suspend / Resume](https://argo-workflows.readthedocs.io/en/latest/walk-through/suspending/) | **Gate humano:** suspender a execução para uma decisão autorizada e só então retomar; nossa POC acrescenta vínculo verificável ao hash do plano, revisão e destino. |
-| [Adobe — case CNCF sobre Argo](https://www.cncf.io/case-studies/adobe/) | **Orquestração de plataforma:** utilização real de Argo CD e Argo Workflows em um sistema corporativo de entrega. É uma referência ao uso dos motores, não evidência de um CRD Terraform igual ao nosso. |
+**[Tofu Controller (antigo Weave TF-Controller)](https://github.com/flux-iac/tofu-controller).** Esse projeto integra Terraform/OpenTofu ao Flux, permitindo reconciliar infraestrutura por GitOps e também executar verificações específicas de drift. **Inspiração na POC:** um controller observar um recurso declarativo de infraestrutura e decidir quando executar ou verificar mudanças, em vez de tratar Terraform somente como uma pipeline acionada manualmente. O nosso motor usa Argo CD e Argo Workflows, não Flux.
 
-**Nota:** o mecanismo de drift, o status e a política de concorrência do `TerraformStack` precisam ser comprovados pela implementação e pelos testes da POC.
+**[HashiCorp — HCP Terraform Operator for Kubernetes](https://developer.hashicorp.com/validated-designs/terraform/user-guide/hcp-terraform-operator-for-kubernetes).** A HashiCorp criou um operador que utiliza Custom Resources, como `Workspace` e `Module`, para administrar recursos e acionar execuções do HCP Terraform a partir do Kubernetes; esses contratos podem ser entregues por GitOps. **Inspiração na POC:** oferecer uma API Kubernetes para solicitar módulos Terraform sem expor ao consumidor os detalhes de execução. Nosso `TerraformStack` não depende do HCP Terraform.
+
+**[Atlantis — Terraform automation via Pull Requests](https://www.runatlantis.io/guide).** O Atlantis executa `terraform plan` a partir de Pull Requests e permite condicionar `apply` à revisão e aprovação, mantendo a operação visível aos participantes. **Inspiração na POC:** tornar o plano uma evidência antes da execução e inserir gates humanos no caminho de mudanças sensíveis. Aqui a aprovação operacional ocorre no Argo Workflows e será vinculada ao plano e às políticas da plataforma.
+
+**Síntese:** esses projetos demonstram abordagens complementares para **Terraform declarativo, reconciliação e aprovação**; a máquina de estados e o controller desta POC são decisões próprias.
