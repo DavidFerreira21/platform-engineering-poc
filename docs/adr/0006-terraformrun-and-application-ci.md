@@ -26,6 +26,31 @@ O recurso **`TerraformStack`** tem um CRD próprio versionado na Etapa 05. Na Et
 
 A Etapa 05 publica `platform.example.io/v1alpha1` com escopo de namespace. O schema exige `spec.module.name`, `spec.module.version`, `spec.target.entity` e `spec.target.environment`. O subrecurso `/status` oferece `conditions` para o controller. O exemplo usa referências fictícias e pode ser validado com dry-run na API do Hub. Entradas de módulo, resolução de destinos e políticas de reconciliação evoluem nas etapas que passam a usá-las. [Schema](../../control-plane/terraformstack/crd/terraformstack.yaml) · [Exemplo](../../control-plane/terraformstack/demo/terraformstack.yaml) · [Guia da Etapa 05](../../labs/05-terraformstack-crd.md)
 
+### Valores por stack
+
+O módulo Terraform reúne código reutilizável e declara suas variáveis em `variables.tf`, com tipos, validações e valores padrão quando aplicável. Cada stack versiona seus valores no próprio manifesto `TerraformStack`, em `spec.inputs`. O manifesto pertence à configuração do destino. Por exemplo, a configuração da rede UAT pode ficar em `foundation/config/entity-a/uat/network.yaml`. O registro `environment.yaml` continua descrevendo o destino e os componentes previstos para o ambiente. [Variáveis de entrada no Terraform](https://developer.hashicorp.com/terraform/language/values/variables)
+
+Este é o formato previsto para quando o executor passar a consumir as variáveis do módulo.
+
+```yaml
+apiVersion: platform.example.io/v1alpha1
+kind: TerraformStack
+metadata:
+  name: network-uat
+  namespace: platform-system
+spec:
+  module:
+    name: aws-network
+    version: "1.0.0"
+  target:
+    entity: entity-a
+    environment: uat
+  inputs:
+    vpc_cidr: 10.42.0.0/16
+```
+
+Alterar um valor passa por PR e muda o `spec` sincronizado pelo Argo CD. O controller observa a nova `generation` e solicita outro plano para o mesmo módulo e versão. O executor valida os valores contra as entradas permitidas do módulo e gera `stack.tfvars.json` no diretório da execução. O `terraform plan` recebe esse arquivo via `-var-file`. O apply continua vinculado ao plano aprovado. Credenciais, roles e backend são resolvidos pela plataforma a partir do destino autorizado. [Arquivos de variáveis do Terraform](https://developer.hashicorp.com/terraform/language/values/variables#variable-definition-files)
+
 ## Decisão 2 — GitOps aplica a intenção; Argo Workflows executa Terraform
 
 ```text
