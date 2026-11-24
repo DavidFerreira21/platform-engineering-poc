@@ -1,6 +1,6 @@
 # ADR-0006 — TerraformStack declarativo, drift e CI/CD de Domain Applications
 
-**Estado:** decisão de arquitetura-alvo; implementação pendente · **Data original:** 21/11/2026 · **Revisão:** 21/11/2026
+**Estado:** decisão vigente com contrato inicial versionado · **Data original:** 21/11/2026 · **Revisão:** 21/11/2026
 
 ## Contexto e objetivo
 
@@ -14,7 +14,7 @@ A POC usa a **Kubernetes API como contrato técnico** e quatro camadas de owners
 
 ## Decisão 1 — TerraformStack representa a infraestrutura desejada
 
-O recurso de consumo passa a ter o nome de trabalho **`TerraformStack`**, implementado futuramente como **CRD Kubernetes próprio**, observado por um **TerraformStack Controller** no Control Plane do Hub. **Não é XRD Crossplane**.
+O recurso **`TerraformStack`** tem um CRD próprio versionado na Etapa 05. Na Etapa 06, o **TerraformStack Controller** passa a observar esse recurso no Control Plane do Hub.
 
 - O `spec` referencia **módulo aprovado e versão/revisão fixada**, entradas autorizadas e o destino lógico `Entity + Environment`; o controller resolve, em cadastro confiável, credenciais AWS, backend/state e permissões.
 - O recurso mantém o ciclo de vida da **infraestrutura desejada**; não representa apenas um `terraform apply`.
@@ -22,28 +22,9 @@ O recurso de consumo passa a ter o nome de trabalho **`TerraformStack`**, implem
 - `TerraformRun` fica **reservado como nome opcional para uma execução imutável** (ou pode ser substituído por um Argo Workflow criado pelo controller). **Não criar um segundo CRD só para representar runs antes de existir justificativa.**
 - **Entity/Environment/Domain continuam registros lógicos Git**, não CRDs criados por esta decisão.
 
-### Exemplo ilustrativo de contrato (NÃO implementado)
+### Contrato inicial
 
-```yaml
-apiVersion: platform.example.io/v1alpha1
-kind: TerraformStack
-metadata:
-  name: network-uat
-spec:
-  module:
-    name: aws-network
-    version: "1.0.0"
-  target:
-    entity: entity-a
-    environment: uat
-  inputs:
-    networkProfile: standard
-  reconciliation:
-    interval: 30m
-    policyRef: foundation-default
-```
-
-Este YAML é **intenção declarativa, não manifesto funcional**. Schema, nomes, catálogo de módulos, versionamento e parâmetros finais serão validados nas etapas do roteiro.
+A Etapa 05 publica `platform.example.io/v1alpha1` com escopo de namespace. O schema exige `spec.module.name`, `spec.module.version`, `spec.target.entity` e `spec.target.environment`. O subrecurso `/status` oferece `conditions` para o controller. O exemplo usa referências fictícias e pode ser validado com dry-run na API do Hub. Entradas de módulo, resolução de destinos e políticas de reconciliação evoluem nas etapas que passam a usá-las. [Schema](../../control-plane/terraformstack/crd/terraformstack.yaml) · [Exemplo](../../control-plane/terraformstack/demo/terraformstack.yaml) · [Guia da Etapa 05](../../labs/05-terraformstack-crd.md)
 
 ## Decisão 2 — GitOps aplica a intenção; Argo Workflows executa Terraform
 
@@ -130,6 +111,6 @@ O código, a pipeline CI/CD **e os manifests Kubernetes da aplicação de exempl
 - **Etapas 18 e 19.** Detecção de drift com status e alerta. Depois, reconciliação com Policy Engine versionado.
 - **A validar:** formato final da API, status/conditions, requeue/scheduling, política de alterações de spec durante workflows, engine de políticas, versionamento de módulo, catálogo, lock de state e aprovação segura.
 
-**Nenhum controller/CRD, remediação, workflow de infraestrutura real ou recurso AWS é implantado por este ADR.** A documentação não autoriza `apply` ou `destroy`.
+O guia da Etapa 05 descreve a instalação do CRD no Hub por GitOps. As operações AWS das etapas posteriores exigem autorização própria.
 
 [Arquitetura](../architecture.md) · [ADRs](README.md) · [Roadmap](../learning-roadmap.md)

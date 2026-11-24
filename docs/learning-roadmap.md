@@ -4,7 +4,7 @@
 
 O roteiro tem **sete fases** e **25 etapas, de 00 a 24**. Cada fase agrupa uma entrega verificável. Os guias mostram o objetivo, a decisão, como reproduzir e o que observar. [Convenção dos guias](../labs/README.md#como-ler-e-reproduzir-uma-etapa)
 
-Os guias disponíveis cobrem a **Fase 1** e o **registro de UAT** na Etapa 07. A próxima entrega é o CRD `TerraformStack` na Etapa 05.
+Os guias disponíveis cobrem a **Fase 1**, a publicação do CRD `TerraformStack` na **Etapa 05** e o registro de UAT na **Etapa 07**.
 
 ## Fase 1 — Preparação do Hub local
 
@@ -24,7 +24,7 @@ Exercitar o contrato no Control Plane e a execução simulada no Workflow Plane.
 
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
-| **05** | CRD Kubernetes `TerraformStack` via GitOps | A Application `terraformstack-crd` publica o CRD. A API aceita uma solicitação fictícia e permite inspecionar o schema e o subrecurso de status. [ADR-0006](adr/0006-terraformrun-and-application-ci.md) |
+| **05** | [CRD Kubernetes `TerraformStack` via GitOps](../labs/05-terraformstack-crd.md) | A Application `terraformstack-crd` publica o CRD. A API aceita uma solicitação fictícia e permite inspecionar o schema e o subrecurso de status. [ADR-0006](adr/0006-terraformrun-and-application-ci.md) |
 | **06** | Controller, Argo Workflows e Terraform Executor simulado | A Application `terraformstack-controller` entrega o controller e o `WorkflowTemplate`. Após sincronizar a solicitação `TerraformStack`, acompanhar a execução simulada e o status publicado pelo controller |
 | **07** | [Registro e validação de UAT](../labs/07-registro-ambientes-aws.md) | O registro de Environment vincula `entity-a/uat` à conta e à região esperadas. O acesso humano é conferido via IAM Identity Center e STS |
 | **08** | Identidade do Terraform Executor e backend de estado | O Platform Team prepara a role e inicializa o backend com autorização, state segregado e lock. O executor resolve o destino pela Foundation, renova a sessão temporária e recusa identidades ou destinos indevidos |

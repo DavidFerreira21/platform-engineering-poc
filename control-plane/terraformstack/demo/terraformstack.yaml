@@ -1,0 +1,12 @@
+apiVersion: platform.example.io/v1alpha1
+kind: TerraformStack
+metadata:
+  generateName: lab05-network-
+  namespace: platform-system
+spec:
+  module:
+    name: lab-network
+    version: "1.0.0"
+  target:
+    entity: entity-a
+    environment: uat

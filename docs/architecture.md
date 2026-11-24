@@ -20,7 +20,7 @@ A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) �
 
 ![Diagrama de arquitetura de referência com Hub, contas AWS UAT/PROD, quatro camadas e três personas](arquitetura%20Plataform.png)
 
-[**Abrir diagrama em tamanho completo**](arquitetura%20Plataform.png) · O diagrama é **arquitetura-alvo**; não confirma recursos implantados. `TerraformStack` e os mecanismos de política/drift estão propostos, e GitHub Actions de aplicações opera fora do Hub.
+[**Abrir diagrama em tamanho completo**](arquitetura%20Plataform.png) · O diagrama é **arquitetura-alvo**; não confirma recursos implantados. O contrato inicial `TerraformStack` está versionado na Etapa 05. O controller e os mecanismos de política e drift são entregas posteriores. GitHub Actions de aplicações opera fora do Hub.
 
 ### Topologia lógica (Mermaid)
 
@@ -29,7 +29,7 @@ flowchart TB
   E["Experience Layer<br/>Backstage · CLI · GitOps · AI/MCP"]
   subgraph HUB["Platform Management Cluster · kind inicial"]
     direction TB
-    CP["Control Plane<br/>Kubernetes API · Crossplane central · XRDs<br/>Admission/Policies · TerraformStack CRD/controller (propostos)"]
+    CP["Control Plane<br/>Kubernetes API · Crossplane central · XRDs<br/>Admission/Policies · TerraformStack CRD · controller proposto"]
     WF["Workflow Plane<br/>Argo CD central · Argo Workflows · Terraform Executor"]
     OB["Observability Plane<br/>OpenTelemetry · Grafana · Loki · Tempo · auditoria"]
     CP --> WF
@@ -118,7 +118,7 @@ Esses YAMLs **não são manifests Kubernetes** e não devem ser sincronizados di
 
 ### Decisões complementares da arquitetura-alvo
 
-- **Contrato Terraform (proposto):** `TerraformStack` é o CRD Kubernetes próprio do Hub que representa **infraestrutura desejada** de Foundation/Entity Core. O Argo CD central sincroniza o manifesto; o controller coordena Argo Workflows/Terraform Executor para `plan` inicial e periódico, detecção de drift, classificação por Policy Engine (**auto apply / aprovação / bloqueio**) e atualização de status. **Não executar `apply` a cada reconcile**. `TerraformRun` permanece nome opcional de uma execução isolada, não um segundo CRD obrigatório. Ver [ADR-0006](adr/0006-terraformrun-and-application-ci.md).
+- **Contrato Terraform.** `TerraformStack` é o CRD Kubernetes próprio do Hub que representa **infraestrutura desejada** de Foundation/Entity Core. O Argo CD central sincroniza o manifesto; o controller coordena Argo Workflows/Terraform Executor para `plan` inicial e periódico, detecção de drift, classificação por Policy Engine (**auto apply / aprovação / bloqueio**) e atualização de status. **Não executar `apply` a cada reconcile**. `TerraformRun` permanece nome opcional de uma execução isolada, não um segundo CRD obrigatório. Ver [ADR-0006](adr/0006-terraformrun-and-application-ci.md).
 - **Domain Applications:** as squads manterão **código, GitHub Actions e manifests Kubernetes da aplicação em repositório próprio**, separado deste monorepo e previsto para uma etapa posterior. O pipeline faz build/testes/scans e publicação, propõe atualização declarativa GitOps; **Argo CD local** em cada Management EKS faz o deploy nos EKS PCI/Non-PCI autorizados. O workflow CI existente neste monorepo só valida a POC.
 - **Management EKS:** **Operators ainda a estudar**; usar **OpenTelemetry Collector/gateway** para encaminhar telemetria à camada central, não assumir Loki instalado dentro de todos os Management EKS.
 - **Observabilidade central:** **OpenTelemetry, Grafana, Loki e Tempo**; estratégia de métricas/Prometheus, retenção e fronteiras PCI a validar no laboratório.
@@ -271,7 +271,7 @@ O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicaçã
 
 ## 10. Decisões vigentes e pontos abertos
 
-**Atualização:** TerraformStack com controller e reconciliação orientada por políticas é um contrato alvo ainda não implementado; GitHub Actions das aplicações será externo a este monorepo; OpenTelemetry/Grafana/Loki/Tempo são a stack-alvo; Operators locais ainda serão selecionados.
+**Atualização:** o CRD TerraformStack está versionado na Etapa 05. O controller e a reconciliação por políticas são entregas posteriores. GitHub Actions das aplicações opera no repositório da squad. OpenTelemetry, Grafana, Loki e Tempo compõem a stack-alvo. Os Operators locais ainda serão selecionados.
 
 **Fechado:** Domain como unidade lógica de consumo/ownership, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas (incluindo **Domain Applications**), monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência.
 

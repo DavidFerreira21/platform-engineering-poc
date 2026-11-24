@@ -9,6 +9,7 @@ O [roteiro prático](../docs/learning-roadmap.md) reúne as sete fases e o aceit
 | **02** | [Argo CD central e catálogo de add-ons](02-argocd-central.md) |
 | **03** | [Argo Workflows](03-argo-workflows.md) |
 | **04** | [Crossplane Core](04-crossplane-core.md) |
+| **05** | [API do TerraformStack via GitOps](05-terraformstack-crd.md) |
 | **07** | [Registro e validação de UAT](07-registro-ambientes-aws.md) |
 
 ## Como ler e reproduzir uma etapa

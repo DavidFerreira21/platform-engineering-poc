@@ -13,9 +13,9 @@ O **Kubernetes API Server** é a API da plataforma para produtos técnicos Kuber
 
 Crossplane **não observa diretamente Git**. O **Argo CD central sincroniza CRs de Capability e, futuramente, `TerraformStack`** com a Kubernetes API do Hub. Crossplane reconcilia exclusivamente as Capabilities AWS de seu ownership; o TerraformStack Controller coordena os Workflows de Foundation/Entity Core. Os registros lógicos Domain/Environment não são CRs e exigem resolução confiável de destino e IAM; o Domain não escolhe uma role arbitrária. O Argo CD local mantém objetos Kubernetes de aplicações nos destinos autorizados.
 
-## TerraformStack (proposta)
+## TerraformStack
 
-O Control Plane prevê **`TerraformStack` CRD + controller próprios** para expressar a **infraestrutura desejada** de Foundation/Entity Core, semelhante à experiência declarativa do Crossplane, porém provisionada por Terraform. O **Argo CD central** aplica o CR Kubernetes a partir do Git; o controller executa/verifica `terraform plan` via **Argo Workflows + Terraform Executor**, detecta drift e consulta políticas para **auto apply, aprovação ou bloqueio**. O controller atualiza condições/status, sem realizar `apply` em todo reconcile. `TerraformRun` é nome opcional para uma execução isolada, **sem segundo CRD obrigatório**.
+O Control Plane publica o CRD **`TerraformStack`** para expressar a **infraestrutura desejada** de Foundation e Entity Core. O controller entra na Etapa 06. Na arquitetura-alvo, o Argo CD central sincroniza a solicitação, e o controller coordena os planos via Argo Workflows e Terraform Executor. Drift e reconciliação por políticas entram nas Etapas 18 e 19. `TerraformRun` é o nome opcional de uma execução isolada. [Guia da Etapa 05](../labs/05-terraformstack-crd.md)
 
 **Admission e políticas.** Kyverno e OPA são tecnologias a avaliar. O CRD entra na Etapa 05, o controller simulado na Etapa 06 e a reconciliação por políticas na Etapa 19. [ADR-0006](../docs/adr/0006-terraformrun-and-application-ci.md)
 

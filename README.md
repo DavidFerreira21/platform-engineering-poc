@@ -70,7 +70,7 @@ A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership 
 
 ## 🔧 Decisões arquiteturais
 
-- **TerraformStack CRD + Controller (propostos).** O contrato declarativo descreve a infraestrutura desejada e chega à API do Hub via Argo CD central. O controller começa com execução simulada na Etapa 06 e aplica a primeira stack após aprovação humana na Etapa 09. Detecção de drift e reconciliação por políticas entram nas Etapas 18 e 19. `TerraformRun` fica como nome opcional de uma execução individual. [ADR-0006](docs/adr/0006-terraformrun-and-application-ci.md)
+- **TerraformStack.** O CRD da Etapa 05 descreve a infraestrutura desejada e chega à API do Hub via Argo CD central. O controller começa com execução simulada na Etapa 06 e aplica a primeira stack após aprovação humana na Etapa 09. Detecção de drift e reconciliação por políticas entram nas Etapas 18 e 19. `TerraformRun` fica como nome opcional de uma execução individual. [ADR-0006](docs/adr/0006-terraformrun-and-application-ci.md)
 - **Domain Applications:** código e workflows CI/CD **GitHub Actions em um repositório de aplicação de teste separado**, a integrar em etapa posterior; deploy GitOps nos EKS via Argo CD local.
 - **Management EKS:** Argo CD local, Operators **a escolher** e OpenTelemetry Collector/gateway para logs e traces; backend central com **Grafana + Loki + Tempo**. Estratégia de métricas/Prometheus em validação.
 - **Ownership:** Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications.

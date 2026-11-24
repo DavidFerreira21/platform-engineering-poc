@@ -64,6 +64,24 @@ spec:
       kind: ServiceAccount
 ---
 apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform-terraformstack-crd
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://github.com/DavidFerreira21/platform-engineering-poc.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: platform-system
+  clusterResourceWhitelist:
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+  namespaceResourceBlacklist:
+    - group: "*"
+      kind: "*"
+---
+apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
   name: hub-addons
