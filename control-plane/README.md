@@ -17,8 +17,8 @@ Crossplane **não observa diretamente Git**. O **Argo CD central sincroniza CRs 
 
 O Control Plane prevê **`TerraformStack` CRD + controller próprios** para expressar a **infraestrutura desejada** de Foundation/Entity Core, semelhante à experiência declarativa do Crossplane, porém provisionada por Terraform. O **Argo CD central** aplica o CR Kubernetes a partir do Git; o controller executa/verifica `terraform plan` via **Argo Workflows + Terraform Executor**, detecta drift e consulta políticas para **auto apply, aprovação ou bloqueio**. O controller atualiza condições/status, sem realizar `apply` em todo reconcile. `TerraformRun` é nome opcional para uma execução isolada, **sem segundo CRD obrigatório**.
 
-**Admission / Policies:** Kyverno/OPA são tecnologias a avaliar. A Etapa 07 define o CRD TerraformStack, e as Etapas 10 e 11 tratam do controller e das políticas de execução. [ADR-0006](../docs/adr/0006-terraformrun-and-application-ci.md).
+**Admission e políticas.** Kyverno e OPA são tecnologias a avaliar. O CRD entra na Etapa 05, o controller simulado na Etapa 06 e a reconciliação por políticas na Etapa 19. [ADR-0006](../docs/adr/0006-terraformrun-and-application-ci.md)
 
-A [Etapa 04](../labs/04-crossplane-core.md) instala o Crossplane Core no Hub via Argo CD e valida um XRD namespaced que compõe um ConfigMap local.
+A Etapa 04 instala o Crossplane Core no Hub via Argo CD e valida um XRD namespaced que compõe um ConfigMap local. As Capabilities AWS são exercitadas nas Etapas 14 e 15, após os clusters e a identidade do Provider AWS. [Guia da Etapa 04](../labs/04-crossplane-core.md)
 
 [← Início](../README.md) · [Arquitetura](../docs/architecture.md)

@@ -137,7 +137,7 @@ Existem **três personas**, não quatro equipes para as quatro camadas de owners
 
 **Dois tipos de Capabilities:** **Infrastructure Capabilities** (Crossplane especializado, consumido pelo DevOps Federado) e **Application Capabilities** (padrões de runtime/build/deploy/telemetria, consumidos pelos desenvolvedores; **não implicam XRD Crossplane**). Um **Golden Path / Starter Kit** combina padrões e automações para uma jornada específica. Backstage, CLI e Git são canais alternativos; Backstage não é gateway obrigatório.
 
-**Aplicação mínima da POC (preferencialmente Python + Flask):** apenas uma carga de teste. **Após criar EKS e habilitar Argo CD local (Etapa 17)**, fazer smoke test de deploy, conectividade e health check, sem depender de Developer Experience ou Starter Kit. **Após observabilidade e governança**, montar a **Developer Experience (Etapa 22)** e **por último** reutilizar o mesmo app na demonstração de Golden Path/integração end-to-end (Etapa 24), com CI/CD e telemetria. A POC não pretende desenvolver aplicação complexa ou gerador completo de templates. Infraestrutura Database/S3/Messaging permanece com DevOps Federado. Detalhes em [ADR-0007](adr/0007-personas-and-developer-experience.md).
+**Aplicação mínima da POC (preferencialmente Python + Flask).** Após provisionar EKS e configurar o Argo CD local, usar a aplicação na Etapa 12 para testar deploy, conectividade e health check. Após observabilidade e governança, preparar a Developer Experience na Etapa 22. Na Etapa 24, reutilizar a aplicação para demonstrar o Golden Path com CI/CD e telemetria. O DevOps Federado solicita as Capabilities para o Domain. [ADR-0007](adr/0007-personas-and-developer-experience.md)
 
 ## 4. Quatro camadas de ownership
 
@@ -188,9 +188,9 @@ platform-engineering-poc/
 └── tests/
 ```
 
-**Separado deste monorepo:** o repositório da aplicação de teste, previsto para a Etapa 17, pertence às **Squads de Produto (Application Team)** e inclui `src/`, `tests/`, `Dockerfile`, `.github/workflows/` e `k8s/{base,overlays/uat,overlays/prod}`. O **Argo CD local** sincroniza esses manifests diretamente do repositório da aplicação. A pasta `applications/` que aparecia na árvore anterior do monorepo deixa de ser o destino-alvo para código/manifests de aplicação.
+**Repositório da aplicação de teste.** Previsto para a Etapa 12, pertence às **Squads de Produto (Application Team)** e inclui `src/`, `tests/`, `Dockerfile`, `.github/workflows/` e `k8s/{base,overlays/uat,overlays/prod}`. O **Argo CD local** sincroniza esses manifests diretamente desse repositório.
 
-**Esta é a árvore-alvo.** A Etapa 01 cria o Hub `kind` local e a Etapa 05 registra as contas UAT e PROD na Foundation. Novos diretórios de Domain e Foundation acompanham as respectivas entregas do roteiro. Os README de infraestrutura preexistentes podem permanecer como documentação temporária até a implementação; não são fontes de configuração runtime. A [estrutura](repository-structure.md) especifica essa transição.
+**Esta é a árvore-alvo.** A Etapa 01 cria o Hub `kind` local. O roteiro usa o registro de UAT na Etapa 07 para preparar a primeira execução na AWS e o de PROD na Etapa 20 para testar isolamento. Novos diretórios de Domain e Foundation acompanham as respectivas entregas. A [estrutura](repository-structure.md) especifica essa transição.
 
 O monorepo demonstra autonomia via PR, revisão de paths e eventualmente CODEOWNERS. **CODEOWNERS sem regras de proteção não basta;** também são necessários RBAC Kubernetes, admission, IAM por conta e AppProjects Argo CD. Terraform state fica fora do Git.
 
@@ -223,11 +223,11 @@ O Bootstrap Terraform central é reutilizado por configuração de Entity/Enviro
 
 ### Evolução planejada do TerraformStack
 
-1. **11A — Deploy declarativo com aprovação:** Git → Argo CD central → `TerraformStack` → controller → Workflow → plan → aprovação humana vinculada ao plano → apply do mesmo plano → status. Na Etapa 10, começar com executor simulado.
-2. **11B — Drift Detection:** controller agenda plans periódicos e atualiza condições/status, **sem remediação nesta fase**. Distinguir drift externo de alteração declarada.
-3. **11C — Policy-Based Reconciliation:** decisão versionada e auditável (**auto apply / require approval / deny**) por recurso, atributos, Environment, criticidade e origem; apply somente de plano autorizado, com isolamento e state seguro.
+1. **Etapas 05 e 06 — Contrato e execução local.** Validar o CRD na API do Hub e exercitar Git → Argo CD central → controller → Workflow com executor simulado.
+2. **Etapas 07 a 09 — Primeira execução na AWS.** Registrar UAT, validar a identidade do executor e preparar o backend de estado. Gerar o plano da rede, obter aprovação humana vinculada ao plano e aplicar o mesmo artefato.
+3. **Etapas 18 e 19 — Drift e reconciliação por políticas.** Detectar drift numa stack aplicada e publicá-lo no status antes de habilitar qualquer remediação. Em seguida, aplicar decisões versionadas e auditáveis para auto apply autorizado, aprovação obrigatória ou bloqueio.
 
-A implementação do Policy Engine e o schema final do CRD serão validados na Etapa 07 e progressivamente nas subetapas 11A–11C. **A criação do CR Kubernetes é responsabilidade do Argo CD central**, não do Argo Workflows. O Argo Workflows é o executor do plan/apply.
+O schema inicial do CRD é validado na Etapa 05 e a implementação do Policy Engine na Etapa 19. O Argo CD central sincroniza o CR Kubernetes. Argo Workflows executa os passos de plan, aprovação e apply.
 
 ### Domain Infrastructure: Argo CD central + Crossplane
 
@@ -257,7 +257,7 @@ O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicaçã
 
 ## 8. Segurança, exclusão, drift e falhas
 
-- **AWS real:** registrar contas UAT e PROD antes de exercitar Capabilities na UAT; validar a identidade e a conta via STS, a região de destino, credenciais temporárias, IAM mínimo, orçamento/custos e aprovação explícita **a cada execução**. Validar a segregação de workloads e acessos entre UAT e PROD conforme o roteiro. A automação de criação de contas é uma etapa opcional.
+- **AWS real.** Validar o registro de UAT antes da primeira execução real e o de PROD para os testes de isolamento entre contas. Conferir identidade e conta via STS, região de destino, credenciais temporárias, IAM mínimo, orçamento e aprovação explícita **a cada execução**. A automação de criação de contas é uma extensão opcional.
 - **Isolamento:** validar negativa para tentativas de Domain A acessar Domain B ou UAT selecionar role/conta PROD. Paths Git e namespaces não equivalem a isolamento de contas AWS.
 - **Exclusão:** conta AWS **nunca** é apagada por excluir YAML; EKS só com gate e análise de dependências. Capabilities devem ter políticas de retenção/deletion testadas. Finalizer **não é aprovação humana**.
 - **Drift:** Crossplane reconcilia Capabilities continuamente enquanto o Hub estiver disponível; Terraform não reconcilia sem execução; Argo CD local continua operando aplicações se seu acesso ao Git e clusters permanecer válido.
@@ -267,7 +267,7 @@ O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicaçã
 
 **Fluxo operacional alvo.** Foundation cria ou adota contas e rede → Entity Core prepara EKS e Argo CD local → manifests de Capabilities aprovados são reconciliados por Crossplane central → workloads de Domain Applications são entregues por Argo CD local.
 
-**POC pedagógica:** preparação do Hub e dos ambientes AWS → Control Plane e contratos → Workflow Plane e execução autorizada → provisionamento e smoke test → observabilidade e operação → Experience Layer → Golden Path. O [roteiro prático](learning-roadmap.md) organiza essas fases nas Etapas 00 a 24. A UAT recebe os primeiros recursos reais, com expansão incremental de clusters após verificar identidade, rede, custo e isolamento.
+**POC pedagógica.** Preparação do Hub local → `TerraformStack` e rede UAT → clusters e smoke test → Capabilities com Crossplane → observabilidade e operação → Experience Layer → Golden Path. O [roteiro prático](learning-roadmap.md) organiza essas fases nas Etapas 00 a 24. A UAT recebe os primeiros recursos reais, com expansão incremental de clusters conforme identidade, rede, custo e isolamento forem validados.
 
 ## 10. Decisões vigentes e pontos abertos
 

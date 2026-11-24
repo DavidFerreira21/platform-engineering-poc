@@ -104,3 +104,5 @@ hub delete -f "$demo/composition.yaml" -f "$demo/xrd.yaml" -f "$demo/function.ya
 ```
 
 Mantenha a Application `crossplane-core` sincronizada para as próximas etapas. [Documentação do Crossplane](https://docs.crossplane.io/latest/guides/function-patch-and-transform/)
+
+A próxima entrega do [roteiro](../docs/learning-roadmap.md#fase-2--terraformstack-e-primeira-execução-na-aws) é o CRD `TerraformStack` na Etapa 05, com testes no Hub local.

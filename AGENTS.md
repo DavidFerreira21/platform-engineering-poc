@@ -32,12 +32,12 @@ Escrever os documentos **na voz do próprio projeto**, em português brasileiro 
 
 **Foundation** é central (conta, landing zone, rede, IAM e Terraform Bootstrap). **Entity Core** é compartilhado, federado pode solicitar mas lifecycle de EKS é governado. **Domain Infrastructure** é federada e usa Crossplane para Capabilities AWS. **Domain Applications** é responsabilidade das squads: CI/CD em repositório de aplicação de teste separado (GitHub Actions) e deploy GitOps por Argo CD local.
 
-Os YAMLs `domain.yaml` e `environment.yaml` **não são CRs**; validar e resolver destino autorizado antes de provisionar Capability. Nunca permitir que consumidor selecione role/ProviderConfig de outra conta livremente. Um recurso externo tem um único owner: Terraform para Foundation/EKS, Crossplane para Capabilities delegadas. Não criar `CapabilityClaim` genérico.
+Os YAMLs `domain.yaml` e `environment.yaml` são registros lógicos no Git. Validar o destino e a identidade autorizados antes de provisionar uma Capability e conferir o Domain para solicitações federadas. A plataforma resolve a role ou o ProviderConfig a partir do destino autorizado. Cada recurso externo tem um único reconciliador. Terraform cuida de Foundation e EKS. Crossplane cuida das Capabilities delegadas. Não criar `CapabilityClaim` genérico.
 
 ## Complemento vigente de arquitetura (21/11/2026)
 
 - **Ownership padrão:** Foundation → Entity Core Infrastructure → Domain Infrastructure → **Domain Applications**.
-- **TerraformStack CRD + Controller:** **propostos**, representam a infraestrutura desejada em Foundation/Entity Core. Argo CD central sincroniza o CR Kubernetes; controller coordena plans iniciais/periódicos via Argo Workflows/Terraform Executor, sinaliza drift em `status.conditions` e consulta Policy Engine (auto apply / aprovação / bloqueio). Não é XRD Crossplane, não executa `apply` em todo reconcile e deve manter idempotência, plan aprovado imutável e state/identidades segregados. `TerraformRun` é somente nome opcional para execução individual, sem segundo CRD obrigatório. Etapa **07** para o CRD e Etapas **10 e 11** para controller, execução e políticas.
+- **TerraformStack CRD + Controller:** **propostos**, representam a infraestrutura desejada em Foundation/Entity Core. Argo CD central sincroniza o CR Kubernetes; controller coordena plans iniciais/periódicos via Argo Workflows/Terraform Executor, sinaliza drift em `status.conditions` e consulta Policy Engine (auto apply / aprovação / bloqueio). Não é XRD Crossplane, não executa `apply` em todo reconcile e deve manter idempotência, plan aprovado imutável e state/identidades segregados. `TerraformRun` é somente nome opcional para execução individual, sem segundo CRD obrigatório. O CRD, a simulação e o primeiro apply aprovado entram nas Etapas **05, 06 e 09**. Drift e políticas entram nas Etapas **18 e 19**.
 - **CI/CD de aplicação:** GitHub Actions **e os manifests Kubernetes da aplicação** deverão ficar junto ao código **no repositório de aplicação separado, previsto para etapa posterior**. Este monorepo mantém apenas manifests da **Domain Infrastructure**, configurações de plataforma e validações das etapas. Argo CD **local** entrega workloads via GitOps.
 - **Management EKS:** Argo CD local, espaço para **Operators ainda não escolhidos**, e **OpenTelemetry Collector/gateway** de telemetria para backend central **Grafana, Loki e Tempo**. Prometheus/métricas e segregação PCI serão validados.
 - Este projeto é uma POC pessoal e **não deve usar nomes/recursos corporativos**. Documentação de arquitetura não significa execução implantada.
@@ -45,16 +45,17 @@ Os YAMLs `domain.yaml` e `environment.yaml` **não são CRs**; validar e resolve
 ## Etapas de personas e Golden Path
 
 - **Etapa 21:** simular os três owners; testar autorização de PRs por path/repo, IAM/RBAC, AppProjects e restrições de Environment.
-- **Etapa 17:** **smoke test técnico**, após EKS e Argo CD local, com app Python + Flask mínima (preferencial), manifestos e health check; sem exigência de portal, CI/CD sofisticado ou Golden Path. Integrar o repositório separado na etapa correspondente do roteiro, mediante decisão explícita de implementação.
+- **Etapa 12:** **smoke test técnico**, após EKS e Argo CD local, com app Python + Flask mínima (preferencial), manifestos e health check; sem exigência de portal, CI/CD sofisticado ou Golden Path. Integrar o repositório separado na etapa correspondente do roteiro, mediante decisão explícita de implementação.
 - **Etapa 22:** **Developer Experience** depois de Data Plane, observabilidade, segurança/governança e workflows estarem validados; experimentar contratos, catálogo e canais Backstage/CLI/Git.
 - **Etapa 24:** **último passo**, reutilizar a mesma app para demonstrar Golden Path e integração da plataforma de ponta a ponta, GitHub Actions, Argo CD local, Capabilities e telemetria. Não transformar em desenvolvimento de aplicação nem construir gerador completo.
 
 ## Sequência inicial e autenticação
 
 1. Preparar o Hub `kind` e instalar as ferramentas nas Etapas 01 a 04. A Composition de teste da Etapa 04 roda no Hub local.
-2. Registrar **UAT e PROD** na Etapa 05 em arquivos `environment.yaml` separados na Foundation, usando o modelo em `foundation/environment.example.yaml`. O operador usa IAM Identity Center.
-3. Definir os contratos e validar as identidades de workload na sequência das Etapas 06 a 09. Validar a autenticação do Crossplane em `kind` sem presumir IRSA/Pod Identity ou usar credenciais permanentes.
-4. Preparar o fluxo Terraform nas Etapas 10 e 11, aplicar a rede na 12 e validar `ObjectStorage` e **Aurora PostgreSQL** nas Etapas 13 e 14 com orçamento, IAM, rede e remoção aprovados.
+2. Validar o CRD `TerraformStack` e a execução simulada no Hub nas Etapas 05 e 06, com dados fictícios.
+3. Registrar UAT na Etapa 07 com o modelo `foundation/environment.example.yaml` e conferir o acesso humano por IAM Identity Center. Na Etapa 08, validar o destino, a identidade do executor e o backend de estado. Aplicar a rede UAT com aprovação explícita na Etapa 09. Validar PROD para o exercício de isolamento na Etapa 20.
+4. Usar o fluxo Terraform para provisionar Management EKS e EKS Non-PCI e rodar o smoke test nas Etapas 10 a 12.
+5. Validar a identidade dedicada do Provider AWS no Hub `kind` na Etapa 13, sem presumir IRSA/Pod Identity ou usar credenciais permanentes. Validar `ObjectStorage` e **Aurora PostgreSQL** nas Etapas 14 e 15 com orçamento, IAM, rede e remoção aprovados. Introduzir o contrato de Domain antes do consumo federado na Etapa 23.
 
 ## Monorepo, fases e etapas
 
