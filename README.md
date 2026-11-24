@@ -24,7 +24,7 @@ A POC representa a transportadora como **uma única Entity**, a `entity-a`, com 
 | **Estoque** | Controlar a disponibilidade de materiais de embalagem e insumos em cada centro. |
 | **Planejamento de Rotas** | Planejar as transferências entre centros e as rotas de entrega. |
 
-O exercício implementa uma fatia do **Rastreamento de Encomendas**. Um operador informa o **Código da encomenda**, clica em **Registrar recebimento** e confere o código e o horário na lista de recebimentos. A preferência é usar Python + Flask. Na **Etapa 17**, uma versão HTTP mínima valida deploy, health check e rollback. No **Golden Path da Etapa 24**, a mesma aplicação grava e consulta os recebimentos no Aurora PostgreSQL, solicitado pelo DevOps Federado como Capability. [ADR-0007](docs/adr/0007-personas-and-developer-experience.md)
+O exercício implementa uma fatia do **Rastreamento de Encomendas**. Um operador informa o **Código da encomenda**, clica em **Registrar recebimento** e confere o código e o horário na lista de recebimentos. A preferência é usar Python + Flask. Na **Etapa 12**, uma versão HTTP mínima valida deploy, health check e rollback. No **Golden Path da Etapa 24**, a mesma aplicação grava e consulta os recebimentos no Aurora PostgreSQL, solicitado pelo DevOps Federado como Capability. [ADR-0007](docs/adr/0007-personas-and-developer-experience.md)
 
 ## 🧱 Visão arquitetural
 
@@ -70,7 +70,7 @@ A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership 
 
 ## 🔧 Decisões arquiteturais
 
-- **TerraformStack CRD + Controller (propostos):** contrato declarativo de **infraestrutura desejada** no Hub, aplicado via Argo CD central. O controller evolui em **11A** (deploy ponta a ponta com `plan`, aprovação humana e `apply`), **11B** (detecção de drift sem remediação) e **11C** (reconciliação por políticas: auto apply permitido, aprovação ou bloqueio). `Synced` no Argo CD não equivale a ausência de drift AWS. `TerraformRun` fica como conceito opcional de execução individual. [ADR-0006](docs/adr/0006-terraformrun-and-application-ci.md).
+- **TerraformStack CRD + Controller (propostos).** O contrato declarativo descreve a infraestrutura desejada e chega à API do Hub via Argo CD central. O controller começa com execução simulada na Etapa 06 e aplica a primeira stack após aprovação humana na Etapa 09. Detecção de drift e reconciliação por políticas entram nas Etapas 18 e 19. `TerraformRun` fica como nome opcional de uma execução individual. [ADR-0006](docs/adr/0006-terraformrun-and-application-ci.md)
 - **Domain Applications:** código e workflows CI/CD **GitHub Actions em um repositório de aplicação de teste separado**, a integrar em etapa posterior; deploy GitOps nos EKS via Argo CD local.
 - **Management EKS:** Argo CD local, Operators **a escolher** e OpenTelemetry Collector/gateway para logs e traces; backend central com **Grafana + Loki + Tempo**. Estratégia de métricas/Prometheus em validação.
 - **Ownership:** Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications.
@@ -79,7 +79,7 @@ A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership 
 
 ## ☁️ Estratégia AWS
 
-A Fase 1 prepara o Hub `kind` e registra as contas UAT e PROD. Em seguida, a POC define os contratos, valida as identidades de workload e monta a execução autorizada. Os primeiros recursos reais ficam em UAT. Terraform aplica rede e EKS, um cluster por vez. Crossplane reconcilia `ObjectStorage` e `Database` com Amazon Aurora PostgreSQL. A automação de criação de contas é uma extensão opcional.
+A POC prepara o Hub `kind` e testa o `TerraformStack` com execução simulada. Para a primeira execução real, a equipe registra UAT, valida a identidade do executor e prepara o backend de estado. Terraform aplica a rede e, em seguida, provisiona Management EKS e EKS Non-PCI, um cluster por vez. Após o smoke test, o Crossplane reconcilia `ObjectStorage` e `Database` com Amazon Aurora PostgreSQL. O guia introduz PROD nos testes de isolamento. [Roteiro prático](docs/learning-roadmap.md)
 
 > [!IMPORTANT]
 > Executar AWS somente com conta/região verificadas via STS, IAM mínimo, custo, autorização explícita e plano de cleanup. Não publicar credenciais, kubeconfigs ou Terraform state. Aprovar a documentação **não** autoriza `apply`/`destroy`.

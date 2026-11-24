@@ -95,7 +95,7 @@ O **Golden Path / Starter Kit permanece como conceito de plataforma**: padrões 
 
 **Duas utilizações, em momentos diferentes do roadmap:**
 
-1. **Etapa 17 — smoke test técnico do Data Plane:** **depois de provisionar ao menos um EKS e configurar o Argo CD local**, usar o app mínimo em repositório separado para testar conectividade, deploy GitOps, health check, logs básicos e rollback. **Não exigir Developer Experience, Backstage, geração de Starter Kit ou pipeline sofisticada.**
+1. **Etapa 12 — smoke test técnico do Data Plane:** **depois de provisionar ao menos um EKS e configurar o Argo CD local**, usar o app mínimo em repositório separado para testar conectividade, deploy GitOps, health check, logs básicos e rollback. **Não exigir Developer Experience, Backstage, geração de Starter Kit ou pipeline sofisticada.**
 2. **Etapa 22 — Developer Experience:** **somente após** infraestrutura, workloads, observabilidade e governança terem sido validados, definir/experimentar os canais de consumo (Backstage/CLI/Git), padrões, catálogo e abstrações por persona.
 3. **Etapa 24 — Golden Path / integração final:** **última etapa**, reaproveitar o app mínimo para demonstrar onboarding via padrões leves, GitHub Actions, promoção GitOps, Argo CD local, telemetria, guardrails e consumo de Capabilities. Não transformar o lab em desenvolvimento de aplicação ou gerador complexo.
 
@@ -107,7 +107,7 @@ O repositório separado da aplicação de teste será criado ou integrado na eta
 
 - **Modelo de permissões:** CODEOWNERS/path rules nos exemplos; RBAC/admission/AppProjects/IAM efetivos para impedir mudanças fora do ownership.
 - **Integração CI → GitOps:** definir como a pipeline da aplicação atualiza os manifests versionados, aprovações e promoção entre UAT/PROD.
-- **Golden Paths:** validar o conceito **na Etapa 24, após Developer Experience na Etapa 22**, reutilizando a aplicação mínima implantada na Etapa 17. Backstage/CLI/templates e Helm/Kustomize são escolhas futuras; **não exigir um gerador completo**.
+- **Golden Paths:** validar o conceito **na Etapa 24, após Developer Experience na Etapa 22**, reutilizando a aplicação mínima implantada na Etapa 12. Backstage/CLI/templates e Helm/Kustomize são escolhas futuras; **não exigir um gerador completo**.
 - **Produto e métricas DX:** demonstrar o fluxo da plataforma e a redução da carga cognitiva com a aplicação mínima; métricas de geração de novos serviços são opcionais.
 - **Status:** estes contratos e exemplos descrevem o desenho pretendido, não repositório da aplicação já fornecido ou componentes AWS/EKS implantados.
 

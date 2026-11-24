@@ -21,7 +21,7 @@ Os registros de Domain ficam no monorepo. O DevOps Federado mantém os manifests
 
 ### Atualizações de arquitetura-alvo (a implementar)
 
-- **TerraformStack (CRD + controller):** contrato de infraestrutura desejada e drift em `control-plane/`, sincronizado via Argo CD central, evoluindo em 11A (deploy aprovado), 11B (detecção sem remediação) e 11C (reconciliação por políticas), com Argo Workflows + Terraform Executor em `workflow-plane/`. `TerraformRun` é nome opcional de execução individual, sem segundo CRD obrigatório. Não confundir com XRDs do Crossplane.
+- **TerraformStack (CRD + controller).** O contrato de infraestrutura desejada fica em `control-plane/` e é sincronizado via Argo CD central. Argo Workflows e Terraform Executor ficam em `workflow-plane/`. A Etapa 09 comprova o apply aprovado. As Etapas 18 e 19 acrescentam detecção de drift e reconciliação por políticas. `TerraformRun` é nome opcional de uma execução individual.
 - **GitHub Actions das aplicações:** será mantido **em repositório de aplicação de teste separado**, a integrar durante o lab correspondente. Este monorepo não incluirá código/CI da aplicação.
 - **Management EKS:** Argo CD local, Operators a escolher e OpenTelemetry Collector/gateway para observabilidade central (Grafana/Loki/Tempo).
 
@@ -33,7 +33,7 @@ Os registros de Domain ficam no monorepo. O DevOps Federado mantém os manifests
 
 - `platform/hub/kind-config.yaml` e `platform/hub/scripts/`: criação, inspeção e remoção **apenas do cluster local kind**.
 - [Guias das etapas](../labs/README.md) em `labs/`, começando pelo Hub local na Etapa 01.
-- `foundation/config/entity-a/{uat,prod}/environment.yaml`: registros versionados das contas UAT e PROD com IDs distintos, região, baseline de rede e clusters EKS previstos. A [Etapa 05](../labs/05-registro-ambientes-aws.md) valida os destinos via IAM Identity Center.
+- `foundation/config/entity-a/{uat,prod}/environment.yaml` contém os registros de UAT e PROD com IDs distintos, região, baseline de rede e clusters EKS previstos. O roteiro usa UAT pela primeira vez na [Etapa 07](../labs/07-registro-ambientes-aws.md). PROD entra na Etapa 20 para validar isolamento.
 
 ### Situação de migração
 
