@@ -148,38 +148,21 @@ Os laboratórios iniciais permanecem em **kind**; adicionar dependências AWS an
 7. `Synced` na API Kubernetes não implica infraestrutura AWS convergida.
 8. O desenho lógico deve poder evoluir do kind para EKS preservando os contratos.
 
-## 12. Referências
+## 12. Documentos relacionados
 
 - [Arquitetura principal](../architecture.md)
-- [Roteiro prático](../learning-roadmap.md)
+- [Roadmap](../learning-roadmap.md)
+- [TerraformStack Flow](terraformstack.md) · [GitOps Bridge Flow](gitops-bridge.md)
 - [ADR-0003 — Reconciliação e GitOps](../adr/0003-reconciliation-and-gitops.md)
-- [ADR-0006 — TerraformStack](../adr/0006-terraformrun-and-application-ci.md)
-- [ADR-0007 — Personas e Developer Experience](../adr/0007-personas-and-developer-experience.md)
-- [Etapa 02 — Argo CD central](../../labs/02-argocd-central.md)
 
-**Fluxos complementares:** [TerraformStack Flow](terraformstack.md) e [GitOps Bridge Flow](gitops-bridge.md).
+## 13. Referências externas — conceitos aplicados
 
-## 13. Referências externas — fundamentos, padrões e casos reais
+Estas fontes fundamentam **princípios específicos**; não reproduzimos integralmente a arquitetura de nenhuma delas.
 
-As referências são **fundamentos para escolhas e comparações**, não alegações de que outra empresa implementou exatamente nosso Control Plane, nossos CRDs ou a mesma divisão entre Argo central e local.
-
-### Documentação e padrões
-
-| Fonte | Conceito que fundamenta a POC |
+| Referência | Conceito aplicado na POC |
 | --- | --- |
-| [Argo CD — Cluster Bootstrapping](https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/) | Bootstrap progressivo e implantação de componentes por clusters registrados |
-| [Argo CD — ApplicationSet Cluster Generator](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-Cluster/) | Descoberta e seleção de clusters por labels/annotations |
-| [Argo CD — Matrix Generator](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-Matrix/) | Combinação declarativa entre catálogo/ambientes/destinos |
-| [AWS EKS Blueprints — Multi-Cluster Hub & Spoke](https://aws-ia.github.io/terraform-aws-eks-blueprints/patterns/gitops/gitops-multi-cluster-hub-spoke-argocd/) | Exemplo implementável de Argo CD e GitOps Bridge em topologia multicluster |
-| [AWS — GitOps model with Crossplane and Argo CD](https://aws.amazon.com/blogs/containers/gitops-model-for-provisioning-and-bootstrapping-amazon-eks-clusters-using-crossplane-and-argo-cd/) | Integração da entrega declarativa com provisionamento/reconciliação cloud |
+| [RELEX Solutions — *Where State Meets Sync*, PlatformCon 2026](https://2026.platformcon.com/sessions/where-state-meets-sync-scaling-platforms-without-the-hype) | **Separação de responsabilidades:** Terraform cuida da infraestrutura, enquanto Argo CD mantém um ciclo GitOps independente para aplicações e componentes. Foi a inspiração inicial do fluxo. |
+| [AWS EKS Blueprints — Multi-Cluster Hub & Spoke](https://aws-ia.github.io/terraform-aws-eks-blueprints/patterns/gitops/gitops-multi-cluster-hub-spoke-argocd/) | **Distribuição declarativa multicluster:** Argo CD e ApplicationSets para selecionar e instalar add-ons em destinos diferentes. A POC adapta o padrão ao ownership corporativo e aos limites entre contas. |
+| [Adobe — case CNCF sobre Argo](https://www.cncf.io/case-studies/adobe/) | **GitOps como capacidade de plataforma:** práticas padronizadas e composição de ferramentas Argo para entrega governada em escala. Não implica que a Adobe utilize nossa topologia ou o `TerraformStack`. |
 
-### Estudos de caso e experiências
-
-- [CNCF — Galaxy FinX: GitOps e Argo CD em mais de 100 clusters](https://www.cncf.io/case-studies/galaxy-finx/) — contexto real de padronização e operação multicluster; **não valida automaticamente** nossa topologia PCI.
-- [CNCF — Adobe: Flex, Argo CD e Argo Workflows](https://www.cncf.io/case-studies/adobe/) — referência à separação de componentes, governança e workflows de uma plataforma de entrega.
-- [CNCF — Swisscom: plataforma Kubernetes e GitOps](https://www.cncf.io/case-studies/swisscom/) — inspiração para padronização, políticas e controle da plataforma em múltiplos ambientes.
-- [CNCF — Meta: entrega de infraestrutura de IA com Argo CD e Kargo](https://www.cncf.io/case-studies/meta/) — caso de GitOps, configuração como código e reconciliação em grande escala; **o escopo do case não é TerraformStack**.
-- [Spotify Engineering — Supercharged Developer Portals](https://engineering.atspotify.com/2024/04/supercharged-developer-portals) — referência a ownership, padrões e Developer Experience. **Spotify é referência de camada de experiência, não evidência de uso do nosso desenho GitOps ou de ausência de portal.**
-- [Relex Solutions — palestra PlatformCon 2026, Terraform e Argo CD](https://youtu.be/CsRkYanlPCQ) — inspiração inicial para separação de lifecycle entre infraestrutura e aplicações; a adaptação à AWS, ao Crossplane e ao TerraformStack é própria desta POC.
-
-**Critério de uso:** referenciar uma prática só quando a publicação descreve efetivamente aquele mecanismo. Os detalhes da POC continuam sendo decisões arquiteturais próprias e devem ser validados nos laboratórios.
+**Nota:** os contratos, a divisão central/local e as políticas PCI desta POC são decisões próprias, a serem validadas nos laboratórios.
