@@ -10,7 +10,7 @@ Kubernetes, Terraform, Crossplane e Argo são os meios para percorrer esse camin
 2. Leia a [Arquitetura](docs/architecture.md). Use o diagrama de referência para entender a topologia, as três personas, a responsabilidade de cada plano e como Entity, Environment, Domain e Capability se relacionam.
 3. Siga o roteiro para acompanhar a construção da plataforma. Os guias mostram por que cada decisão foi tomada, como reproduzi-la e o que observar no sistema. [Roteiro prático](docs/learning-roadmap.md) · [Guias das etapas](labs/README.md)
 
-Para entender o funcionamento declarativo, consulte o [GitOps Flow](docs/flows/gitops.md) e seu [diagrama SVG](docs/flows/gitops-flow.svg).
+Para acompanhar como a arquitetura funciona, consulte os três fluxos técnicos: [GitOps Flow](docs/flows/gitops.md) ([diagrama PNG](docs/flows/gitops-flow.png)), [TerraformStack Flow](docs/flows/terraformstack.md) e [GitOps Bridge Flow](docs/flows/gitops-bridge.md). Cada documento diferencia decisões, padrões de referência e implementação atual no laboratório.
 
 Para consultar detalhes, veja a [estrutura do monorepo](docs/repository-structure.md), as [decisões arquiteturais](docs/adr/README.md) e as [orientações para agentes](AGENTS.md).
 
