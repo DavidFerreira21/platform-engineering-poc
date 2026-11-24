@@ -12,6 +12,10 @@ Registrar UAT como o primeiro destino AWS do `TerraformStack`. Confirmar a ident
 - Validar o perfil do operador via IAM Identity Center e STS. Provocar e corrigir uma divergência de região.
 - Versionar o registro por PR. A conta UAT é um pré-requisito e a consulta ao STS tem custo AWS zero.
 
+## Por que fizemos assim
+
+O primeiro contato com a AWS começa pela conferência do destino e da identidade do operador. O registro na Foundation documenta a conta e a região esperadas antes de a etapa seguinte configurar a identidade temporária do executor.
+
 ## Pré-requisitos
 
 - Ter exercitado o CRD `TerraformStack` e o Workflow com executor simulado nas Etapas 05 e 06.
@@ -59,6 +63,11 @@ bash foundation/scripts/verify-environment-identity.sh platform-poc-uat "$uat_ac
 aws configure get region --profile platform-poc-uat
 bash foundation/scripts/verify-environment-identity.sh platform-poc-uat "$uat_account" "$uat_region"
 ```
+
+## O que observar
+
+- A divergência de região encerra a tentativa antes da consulta ao STS.
+- A conferência com o perfil correto retorna `OK` e comprova o acesso humano à conta declarada. A identidade do executor é verificada na etapa seguinte.
 
 ## 3. Publicar e limpar
 

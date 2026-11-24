@@ -2,7 +2,7 @@
 
 [← Início](../README.md) · [Arquitetura](architecture.md) · [Guias das etapas](../labs/README.md) · [Fundamentos](fundamentos/README.md)
 
-O roteiro tem **sete fases** e **25 etapas, de 00 a 24**. Cada fase agrupa uma entrega verificável. Cada guia começa com **Objetivo** e **O que será feito**, seguidos de pré-requisitos, comandos, evidências, falha controlada, diagnóstico, recuperação, custo e limpeza.
+O roteiro tem **sete fases** e **25 etapas, de 00 a 24**. Cada fase agrupa uma entrega verificável. Os guias mostram o objetivo, a decisão, como reproduzir e o que observar. [Convenção dos guias](../labs/README.md#como-ler-e-reproduzir-uma-etapa)
 
 Os guias disponíveis cobrem a **Fase 1** e o **registro de UAT** na Etapa 07. A próxima entrega é o CRD `TerraformStack` na Etapa 05.
 
@@ -24,8 +24,8 @@ Exercitar o contrato no Control Plane e a execução simulada no Workflow Plane.
 
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
-| **05** | CRD Kubernetes `TerraformStack` via GitOps | O catálogo do Hub entrega o CRD a partir do Git. A API aceita um exemplo válido, rejeita um exemplo inválido e expõe o subrecurso de status. O teste usa dados fictícios e segue o [ADR-0006](adr/0006-terraformrun-and-application-ci.md) |
-| **06** | Controller, Argo Workflows e Terraform Executor simulado | Argo CD sincroniza o controller, o `WorkflowTemplate` e a solicitação `TerraformStack`. O controller cria cada Workflow e atualiza status. Sucesso, falha e reexecução segura são observados no Hub |
+| **05** | CRD Kubernetes `TerraformStack` via GitOps | A Application `terraformstack-crd` publica o CRD. A API aceita um exemplo válido, rejeita um exemplo inválido e expõe o subrecurso de status. O teste usa dados fictícios e segue o [ADR-0006](adr/0006-terraformrun-and-application-ci.md) |
+| **06** | Controller, Argo Workflows e Terraform Executor simulado | A Application `terraformstack-controller` entrega o controller e o `WorkflowTemplate`. Após sincronizar a solicitação `TerraformStack`, observar o Workflow criado pelo controller, o status, a falha e a reexecução no Hub |
 | **07** | [Registro e validação de UAT](../labs/07-registro-ambientes-aws.md) | O registro de Environment vincula `entity-a/uat` à conta e à região esperadas. O acesso humano é conferido via IAM Identity Center e STS |
 | **08** | Identidade do Terraform Executor e backend de estado | O Platform Team prepara a role e inicializa o backend com autorização, state segregado e lock. O executor resolve o destino pela Foundation, renova a sessão temporária e recusa identidades ou destinos indevidos |
 | **09** | Rede UAT via `TerraformStack` com aprovação | Argo Workflows gera o plano da rede, pausa para aprovação individual na UI, revalida e aplica o mesmo plano. Status, auditoria e sub-redes privadas verificadas |

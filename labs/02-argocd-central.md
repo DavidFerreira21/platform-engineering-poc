@@ -16,6 +16,10 @@ Configurar o Argo CD para descobrir os add-ons do Hub no Git e demonstrar como e
 
 O exercício roda no Hub local e tem custo AWS zero.
 
+## Por que fizemos assim
+
+O Argo CD é o ponto de entrada para entregar os componentes do Hub a partir do Git. O catálogo gera uma Application por componente para que cada um tenha sua revisão e seu diff. Para observar drift, usamos uma Application separada com um ConfigMap e um SHA fixo. Assim a comparação usa o mesmo manifesto antes e depois da alteração no cluster.
+
 ## Pré-requisitos
 
 - Etapa 01 concluída, com `kind`, `kubectl` e `helm` disponíveis.
@@ -24,6 +28,8 @@ O exercício roda no Hub local e tem custo AWS zero.
 - Conectividade do Hub ao GitHub e aos registries das imagens.
 
 Execute os comandos da raiz do monorepo.
+
+Se o Argo CD e o `ApplicationSet` `hub-addons` já estiverem disponíveis, use as consultas do passo 2 para observar as Applications. Para repetir a demonstração de drift, comece no passo 3.
 
 ## 1. Instalar e acessar o Argo CD
 
@@ -82,7 +88,7 @@ read -r -p 'SHA completo do commit publicado: ' lab02_sha
 bash workflow-plane/argocd/bootstrap/apply-demo.sh "$lab02_sha"
 ```
 
-O AppProject `lab02` restringe a origem ao monorepo e permite apenas ConfigMaps em `platform-system` no Hub. Na UI, abra a aplicação `lab02-gitops-demo`, selecione **Sync** e confirme em **Synchronize**. Confira `Synced`, `Healthy`, a revisão sincronizada e o valor do ConfigMap.
+O AppProject `lab02` restringe a origem ao monorepo e permite apenas ConfigMaps em `platform-system` no Hub. Na UI, abra `lab02-gitops-demo`. Confira que a revisão é o SHA informado e que o diff se limita ao ConfigMap `lab02-gitops-demo`. Se estiver `OutOfSync` e o diff corresponder ao exercício, selecione **Sync → Synchronize**.
 
 ```bash
 kubectl --context kind-platform-management -n argocd get application lab02-gitops-demo \
@@ -102,6 +108,11 @@ kubectl --context kind-platform-management -n platform-system patch configmap la
 
 Use **Refresh** na aplicação e observe `OutOfSync`. Abra **Diff** e compare o valor no cluster com o valor do Git. Execute **Sync** novamente e repita os comandos de verificação. A revisão deve continuar a mesma e o valor deve voltar a `definido-no-git`.
 
+## O que observar
+
+- As Applications `argo-workflows` e `crossplane-core` têm `hub-addons` como owner e podem ser sincronizadas separadamente.
+- Na Application de demonstração, o valor editado aparece no diff. O sync restaura `definido-no-git` usando a revisão original.
+
 ## 5. Limpar o exercício
 
 ```bash
@@ -111,6 +122,4 @@ kubectl --context kind-platform-management -n argocd delete appproject lab02 --i
 bash platform/hub/scripts/verify.sh
 ```
 
-Encerre o port-forward com Ctrl+C. Mantenha o Argo CD e o `ApplicationSet` `hub-addons` para a Etapa 03.
-
-Para desinstalar o Argo CD opcionalmente, primeiro confirme que nenhuma outra aplicação depende dele. Execute `helm --kube-context kind-platform-management -n argocd uninstall argocd`. O chart mantém os CRDs. A exclusão dos CRDs é uma operação separada e remove todas as instâncias desses tipos no cluster.
+Encerre o port-forward com Ctrl+C. Mantenha o Argo CD e o `ApplicationSet` `hub-addons` para a Etapa 03. [Operações do Hub](../platform/hub/README.md)

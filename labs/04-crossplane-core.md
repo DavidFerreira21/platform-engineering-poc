@@ -15,6 +15,10 @@ Validar a reconciliação de um recurso composto no Hub e observar como o schema
 
 O exercício roda no Hub local e tem custo AWS zero.
 
+## Por que fizemos assim
+
+O Crossplane Core é compartilhado pelas etapas. O `LabMessage` usa um XRD e uma Composition de demonstração para tornar a reconciliação visível em um ConfigMap do Hub. Assim é possível rever a validação do contrato e a reconciliação local mesmo em um Hub que já tenha outras Capabilities.
+
 ## Pré-requisitos
 
 - Argo CD central acessível, com `hub-addons` como owner da Application `crossplane-core`, e Argo Workflows verificado na Etapa 03.
@@ -26,9 +30,9 @@ hub() { kubectl --context kind-platform-management "$@"; }
 hub get namespace argocd crossplane-system platform-system
 ```
 
-## 1. Sincronizar o Crossplane Core
+## 1. Conferir o Crossplane Core
 
-Na UI do Argo CD, abra **Applications → crossplane-core**. Se estiver `OutOfSync`, selecione **Sync → Synchronize**. A Application usa o chart Crossplane `2.4.3`. Se ela estiver ausente, confira o `ApplicationSet` na Etapa 02. [Entrada do catálogo](../platform/hub/addons/catalog/crossplane-core.yaml)
+Na UI do Argo CD, abra **Applications → crossplane-core**. Se o componente já estiver saudável, confira a instalação com os comandos abaixo. Se a etapa exigir a instalação, confira a versão do chart no catálogo e inspecione o **Diff**. Sincronize a Application quando o diff corresponder à instalação esperada. Se ela estiver ausente, confira o `ApplicationSet` na Etapa 02. [Entrada do catálogo](../platform/hub/addons/catalog/crossplane-core.yaml)
 
 ```bash
 hub -n argocd get application crossplane-core -o \
@@ -38,10 +42,9 @@ hub -n crossplane-system rollout status deployment/crossplane-rbac-manager --tim
 hub wait --for=condition=Established --timeout=120s \
   crd/compositeresourcedefinitions.apiextensions.crossplane.io \
   crd/compositions.apiextensions.crossplane.io crd/functions.pkg.crossplane.io
-hub get providers.pkg.crossplane.io
 ```
 
-Confirme `Synced`, `Healthy` e a versão `2.4.3`. Num Hub dedicado a estas etapas, a lista de Providers deve estar vazia. Se o chart não sincronizar, consulte `hub -n argocd describe application crossplane-core` e confira a origem Helm a partir dos logs de `hub -n argocd logs deployment/argocd-repo-server`.
+Após sincronizar, confirme `Synced`, `Healthy` e a revisão do chart. Em um Hub existente, o exercício verifica os Deployments e os CRDs de que o `LabMessage` depende. Se o chart não sincronizar, consulte `hub -n argocd describe application crossplane-core` e confira a origem Helm nos logs de `hub -n argocd logs deployment/argocd-repo-server`.
 
 ## 2. Registrar e consumir uma API local
 
@@ -85,6 +88,11 @@ hub apply -f "$demo/xr.yaml"
 hub -n platform-system wait configmap -l lab.platform.example/exercise=lab03 \
   --for='jsonpath={.data.mensagem}=reconciliado-pelo-crossplane' --timeout=120s
 ```
+
+## O que observar
+
+- O schema rejeita a mensagem vazia e o `LabMessage` persistido mantém o valor anterior.
+- Na alteração válida, compare as condições do XR e a mensagem do ConfigMap. A reconciliação do exercício é visível no recurso composto no Hub.
 
 ## 4. Limpar o exercício
 

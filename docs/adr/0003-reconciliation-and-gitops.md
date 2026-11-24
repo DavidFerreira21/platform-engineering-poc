@@ -12,4 +12,10 @@
 
 **Consequências:** Crossplane não monitora Git, apenas a API. Credenciais IAM precisam de associação autorizada por Environment e validação de Domain. O Argo CD local pode precisar de segregação de acesso PCI. Terraform só converge quando é executado; indisponibilidade do Hub interrompe reconciliação das Capabilities centrais, não necessariamente os workloads.
 
+## Applications e sincronização no Hub
+
+O catálogo do Hub declara uma `Application` por componente que precisa ser sincronizado e verificado de forma independente. Cada recurso tem uma `Application` responsável. Argo Workflows e Crossplane Core são compartilhados pelas etapas do laboratório. As etapas locais usam sync manual para permitir a inspeção da revisão e do diff antes de aplicar a mudança.
+
+O `TerraformStack` segue essa divisão. A Application `terraformstack-crd` publica o contrato na Etapa 05, permitindo validá-lo na API antes de ligar o controller. A Application `terraformstack-controller` entrega o controller e o `WorkflowTemplate` na Etapa 06. O controller cria cada Workflow em resposta à solicitação. A pausa para aprovação do plano ocorre dentro do Workflow na Etapa 09. [ADR-0006](0006-terraformrun-and-application-ci.md)
+
 [Arquitetura](../architecture.md) · [Índice](README.md)

@@ -8,7 +8,7 @@ Kubernetes, Terraform, Crossplane e Argo são os meios para percorrer esse camin
 
 1. Leia os [Fundamentos](docs/fundamentos/README.md). As 24 aulas apresentam Engenharia de Plataforma, produto interno, self-service, Golden Paths, governança e os conceitos usados na POC.
 2. Leia a [Arquitetura](docs/architecture.md). Use o diagrama de referência para entender a topologia, as três personas, a responsabilidade de cada plano e como Entity, Environment, Domain e Capability se relacionam.
-3. Consulte o [Roteiro prático](docs/learning-roadmap.md) e execute os [guias das etapas](labs/README.md) na sequência. Cada guia começa pelo objetivo, pelo que será feito e pelos pré-requisitos.
+3. Siga o roteiro para acompanhar a construção da plataforma. Os guias mostram por que cada decisão foi tomada, como reproduzi-la e o que observar no sistema. [Roteiro prático](docs/learning-roadmap.md) · [Guias das etapas](labs/README.md)
 
 Para consultar detalhes, veja a [estrutura do monorepo](docs/repository-structure.md), as [decisões arquiteturais](docs/adr/README.md) e as [orientações para agentes](AGENTS.md).
 
