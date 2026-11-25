@@ -22,20 +22,44 @@ spec:
           properties:
             spec:
               type: object
-              required: [module, target]
+              description: Contrato declarativo de uma stack; os campos novos são API, não funções de execução já implementadas.
+              required: [target]
+              anyOf:
+                - required: [sourceRef]
+                - required: [module]
               properties:
                 module:
                   type: object
+                  description: "Compatibilidade de migração com Etapas 05/06. Preferir sourceRef em novas stacks."
                   required: [name, version]
                   properties:
                     name:
                       type: string
                       minLength: 1
-                      description: Nome lógico do módulo Terraform.
+                      description: Nome lógico legado do módulo/stack.
                     version:
                       type: string
                       minLength: 1
-                      description: Versão do módulo solicitada pela stack.
+                      description: Versão legada solicitada.
+                sourceRef:
+                  type: object
+                  description: Referência lógica a uma stack no catálogo aprovado (Git ou Registry), não URL arbitrária.
+                  required: [name, path]
+                  properties:
+                    name:
+                      type: string
+                      minLength: 1
+                      description: Nome da fonte registrada no catálogo confiável.
+                    path:
+                      type: string
+                      minLength: 1
+                      pattern: '^[a-zA-Z0-9][a-zA-Z0-9_./-]*$'
+                      description: Caminho da stack validado contra a raiz permitida da fonte, sem traversal.
+                    version:
+                      type: string
+                      minLength: 1
+                      default: latest
+                      description: Versão/tag/ref da stack. Ausente/latest só é permitido depois de resolver e fixar revisão imutável para o Workflow.
                 target:
                   type: object
                   required: [entity, environment]
@@ -48,9 +72,117 @@ spec:
                       type: string
                       minLength: 1
                       description: Identificador lógico do Environment na Entity.
+                configuration:
+                  type: object
+                  description: Revisão dos YAMLs hierárquicos da stack (global → Entity → Environment).
+                  properties:
+                    revision:
+                      type: string
+                      minLength: 1
+                      default: latest
+                      description: Revisão de configuração. Ausente/latest exige resolução para commit imutável antes de plan.
+                dependsOn:
+                  type: array
+                  description: Dependências de TerraformStacks do mesmo namespace e destino, a validar pelo controller.
+                  x-kubernetes-list-type: map
+                  x-kubernetes-list-map-keys: [name]
+                  items:
+                    type: object
+                    required: [name]
+                    properties:
+                      name:
+                        type: string
+                        minLength: 1
+                suspend:
+                  type: boolean
+                  default: false
+                  description: Interrompe novas reconciliações e checagens; não cancela apply em andamento.
+                reconciliation:
+                  type: object
+                  properties:
+                    driftCheckInterval:
+                      type: string
+                      pattern: '^([0-9]+(s|m|h))+$'
+                      description: Intervalo de verificação de drift, não de apply automático.
+                    retryPolicy:
+                      type: object
+                      properties:
+                        strategy:
+                          type: string
+                          enum: [None, Fixed, ExponentialBackoff]
+                          default: ExponentialBackoff
+                        interval:
+                          type: string
+                          pattern: '^([0-9]+(s|m|h))+$'
+                        maxInterval:
+                          type: string
+                          pattern: '^([0-9]+(s|m|h))+$'
+                        maxRetries:
+                          type: integer
+                          minimum: 0
+                lifecycle:
+                  type: object
+                  properties:
+                    destroy:
+                      type: boolean
+                      default: false
+                      description: Solicita plan -destroy explícito, governado por policy e aprovação humana.
+                    destroyResourcesOnDeletion:
+                      type: boolean
+                      default: false
+                      description: Opt-in de intenção de teardown ao excluir CR; nunca autorização implícita.
+                timeout:
+                  type: object
+                  description: Limites por etapa do executor; não expiram automaticamente aprovação suspensa.
+                  properties:
+                    plan:
+                      type: string
+                      pattern: '^([0-9]+(s|m|h))+$'
+                    apply:
+                      type: string
+                      pattern: '^([0-9]+(s|m|h))+$'
+                    verify:
+                      type: string
+                      pattern: '^([0-9]+(s|m|h))+$'
+                healthChecks:
+                  type: array
+                  description: Verificações pós-apply opcionais; tipos e motores serão implementados futuramente.
+                  x-kubernetes-list-type: map
+                  x-kubernetes-list-map-keys: [name]
+                  items:
+                    type: object
+                    required: [name, type, target]
+                    properties:
+                      name:
+                        type: string
+                        minLength: 1
+                      type:
+                        type: string
+                        enum: [TerraformOutput, KubernetesCondition]
+                      target:
+                        type: string
+                        minLength: 1
+                      expected:
+                        type: string
             status:
               type: object
               properties:
+                observedGeneration:
+                  type: integer
+                  format: int64
+                  minimum: 0
+                resolvedSource:
+                  type: object
+                  description: Versão efetiva, artefato imutável e revisão de configuração usados na execução.
+                  properties:
+                    name:
+                      type: string
+                    version:
+                      type: string
+                    digest:
+                      type: string
+                    configurationRevision:
+                      type: string
                 conditions:
                   type: array
                   x-kubernetes-list-type: map
@@ -63,7 +195,7 @@ spec:
                         type: string
                         minLength: 1
                         maxLength: 316
-                        pattern: '^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$'
+                        pattern: '^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$'
                       status:
                         type: string
                         enum: ["True", "False", "Unknown"]
