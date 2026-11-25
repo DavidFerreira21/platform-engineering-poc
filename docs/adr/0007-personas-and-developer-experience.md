@@ -83,31 +83,33 @@ Os manifests de **infraestrutura/Capability**, criados e mantidos pelo DevOps Fe
 
 O Developer pode consumir os padrões por **Backstage, CLI ou Git/Template**. **Backstage não é um gateway obrigatório** e não deve inventar API paralela aos contratos estabelecidos.
 
-## Decisão 5 — Aplicação mínima de referência, sem foco em desenvolvimento
+## Decisão 5 — Aplicação de referência e caminho de entrega
 
-A POC tem como **produto principal a plataforma**, não a aplicação. Para validar primeiro o **Data Plane** e depois integrar a **Developer Experience**, reutilizaremos uma **aplicação mínima de demonstração**, preferencialmente **Python + Flask**. Java foi apenas um exemplo de linguagem, **não uma decisão de implementação nem um requisito de Starter Kit**.
+A POC tem como produto principal **a plataforma**, não a aplicação. O cenário de **Rastreamento de Encomendas** continua intencionalmente pequeno: uma interface registra o código de uma encomenda, a API grava o recebimento e a tela consulta o histórico.
 
-A aplicação de teste deve permanecer simples: um serviço HTTP pequeno com endpoint de saúde e resposta de exemplo, testes básicos, Dockerfile e manifests Kubernetes (base/overlays para os ambientes usados). GitHub Actions e OpenTelemetry serão acrescentados **ao longo das etapas**, sem exigir que toda a jornada esteja pronta no primeiro deploy.
+A **stack escolhida** é **Python + FastAPI** para API/backend HTTP, **Jinja2 + HTML/CSS** para a interface server-side, e um contêiner entregue no EKS Non-PCI. **Não utilizar Django, Flask em paralelo, SPA JavaScript ou múltiplos serviços** sem necessidade. A API grava código/timestamp no **Aurora PostgreSQL** da Capability `Database` e um JSON de evidência no bucket **S3** da Capability `ObjectStorage`. Logs operacionais serão observados pela stack de telemetria, não pelo S3.
 
-**Não implementar arquitetura de software complexa**, funcionalidades de produto, persistência de dados própria da aplicação, múltiplos serviços, framework de negócio, cobertura sofisticada ou um catálogo multi-linguagem nesta etapa. Python/Flask é uma **preferência pragmática**; uma aplicação igualmente simples em outra linguagem pode ser usada se facilitar o laboratório.
+**CI/CD padronizado, com ownership da squad:**
+- **Application Team:** código, testes, Dockerfile, arquivo de configuração da aplicação e manifests Kubernetes (no repositório separado da squad); decide a versão e solicita a promoção.
+- **Platform Team:** template/Workflow de CI, ambiente de publicação no **Amazon ECR**, identidade IAM temporária via GitHub Actions OIDC, defaults Helm/Kustomize, políticas e Argo CD local já preparado.
+- **DevOps Federado:** solicita e evolui Capabilities AWS de domínio, **não** é intermediário obrigatório para cada deploy de nova imagem.
+- **Pipeline GitHub Actions:** testa, constrói, verifica segurança e publica uma imagem versionada por digest; propõe uma mudança no Git com o digest desejado, sem deploy imperativo por `kubectl apply`.
+- **Argo CD local:** entrega a revisão GitOps aprovada nos destinos Kubernetes autorizados. O código/manifests podem compartilhar o mesmo repositório na POC; separar repositórios é uma evolução, não requisito.
 
-O **Golden Path / Starter Kit permanece como conceito de plataforma**: padrões e automações que tornam trivial iniciar uma aplicação nova, sem exigir conhecimento de mecanismos internos. Na POC, basta demonstrar com o **app mínimo** e padrões reaproveitáveis; criar um produto completo de geração de templates, um catálogo de Starter Kits ou uma experiência de portal rica **não é objetivo imediato**.
+**Entregas em momentos diferentes do roadmap:**
 
-**Duas utilizações, em momentos diferentes do roadmap:**
+1. **Etapa 14 — smoke test técnico:** sincronizar e testar um workload HTTP temporário no EKS Non-PCI após o Argo CD local existir, sem exigir aplicação de negócio ou CI completa.
+2. **Etapas 18–21 — primeira aplicação e CI/CD:** construir a interface/API, conectar Aurora e S3, publicar imagem no ECR e efetuar deploy pelo Argo CD local. A etapa entrega **software funcional e sua esteira**, não Developer Experience final.
+3. **Etapas 28–29 — Experience Layer:** estruturar contratos, ownership, permissões e Starter Kit consumível por Git/CLI; Backstage não é obrigatório.
+4. **Etapas 30–31 — Golden Path:** DevOps Federado solicita Capabilities do Domain, e a squad reutiliza a aplicação e pipeline existentes para demonstrar o percurso completo. Não criar um segundo app nem uma segunda esteira.
 
-1. **Etapa 12 — smoke test técnico do Data Plane:** **depois de provisionar ao menos um EKS e configurar o Argo CD local**, usar o app mínimo em repositório separado para testar conectividade, deploy GitOps, health check, logs básicos e rollback. **Não exigir Developer Experience, Backstage, geração de Starter Kit ou pipeline sofisticada.**
-2. **Etapa 22 — Developer Experience:** **somente após** infraestrutura, workloads, observabilidade e governança terem sido validados, definir/experimentar os canais de consumo (Backstage/CLI/Git), padrões, catálogo e abstrações por persona.
-3. **Etapa 24 — Golden Path / integração final:** **última etapa**, reaproveitar o app mínimo para demonstrar onboarding via padrões leves, GitHub Actions, promoção GitOps, Argo CD local, telemetria, guardrails e consumo de Capabilities. Não transformar o lab em desenvolvimento de aplicação ou gerador complexo.
-
-A infraestrutura de Database, S3 e Messaging continua sob o **Federated DevOps**. A Etapa 23 exercita a solicitação das Capabilities previstas para o Domain no Golden Path antes da entrega da aplicação na Etapa 24.
-
-O repositório separado da aplicação de teste será criado ou integrado na etapa correspondente do roadmap. Esta decisão não adiciona código de aplicação ao monorepo da POC.
+Não é objetivo implementar arquitetura de software complexa, frontend sofisticado, vários serviços, catálogo multilíngue nem uma plataforma proprietária de builds. A aplicação e a sua esteira existem para validar **contratos, integração e entrega de ponta a ponta**.
 
 ## Consequências e decisões pendentes para as etapas
 
 - **Modelo de permissões:** CODEOWNERS/path rules nos exemplos; RBAC/admission/AppProjects/IAM efetivos para impedir mudanças fora do ownership.
-- **Integração CI → GitOps:** definir como a pipeline da aplicação atualiza os manifests versionados, aprovações e promoção entre UAT/PROD.
-- **Golden Paths:** validar o conceito **na Etapa 24, após Developer Experience na Etapa 22**, reutilizando a aplicação mínima implantada na Etapa 12. Backstage/CLI/templates e Helm/Kustomize são escolhas futuras; **não exigir um gerador completo**.
+- **Integração CI → GitOps:** na Etapa 21, implementar atualização versionada de digest por PR; na Etapa 31, demonstrar o fluxo como jornada da squad. Promoção real para PROD requer destino autorizado.
+- **Golden Paths:** validar na **Etapa 31, após a Experience Layer na Etapa 29**, reutilizando a aplicação e a CI/CD das Etapas 18–21. Backstage segue opcional; **não exigir um gerador completo**.
 - **Produto e métricas DX:** demonstrar o fluxo da plataforma e a redução da carga cognitiva com a aplicação mínima; métricas de geração de novos serviços são opcionais.
 - **Status:** estes contratos e exemplos descrevem o desenho pretendido, não repositório da aplicação já fornecido ou componentes AWS/EKS implantados.
 
