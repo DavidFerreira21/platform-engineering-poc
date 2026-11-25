@@ -164,7 +164,7 @@ Referências externas: [Tofu Controller API](https://flux-iac.github.io/tofu-con
 
 A execução é **event-driven e governada**; um reconcile do Kubernetes não deve gerar `terraform apply` indiscriminadamente. A implantação inicial do controller poderá simular esse fluxo sem realizar chamadas AWS.
 
-Na Etapa 09, a CI de Configuration publica uma release SemVer e propõe a promoção de `spec.configuration.version` nas stacks consumidoras. O sync dispara o plan pela nova geração. O passo OPA avalia o JSON do plano salvo e encaminha planos permitidos para aprovação humana. Uma violação ou erro encerra a execução antes do apply.
+Na Etapa 09, a configuração acompanha `main` (`latest`). O fluxo previsto registra o SHA do merge em uma anotação GitOps das stacks afetadas. O controller observa a anotação após o sync e inicia uma execução para o commit sinalizado. O passo OPA avalia o JSON do plano salvo e encaminha planos permitidos para aprovação humana. Uma violação ou erro encerra a execução antes do apply.
 
 ### 4.1 Três caminhos após Policy Evaluation
 
@@ -338,7 +338,7 @@ A publicação e distribuição dos **outputs selecionados** do Terraform, por e
 | **05** | CRD `TerraformStack`, schema e `status.conditions` disponíveis, com dry-run local |
 | **06** | Controller, WorkflowTemplate e executor **simulados** no `kind` |
 | **07–08** | Registro de UAT, identidade, backend, state e autorização |
-| **09** | Promoção de Configuration por stack, plan real de rede UAT, OPA com bloqueio ou aprovação humana e apply do plano aprovado |
+| **09** | Mudança de Configuration na `main` por stack, plan real de rede UAT, OPA com bloqueio ou aprovação humana e apply do plano aprovado |
 | **10–11** | Reutilização do fluxo para EKS Management e Non-PCI |
 | **13** | Publicação seletiva de outputs e consumo via GitOps Bridge, sem alterar a política de aprovação |
 | **24** | Drift detection, sem remediação |
