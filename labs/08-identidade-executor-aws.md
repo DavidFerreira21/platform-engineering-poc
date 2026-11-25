@@ -1,10 +1,12 @@
-# Etapa 08 — Terraform Executor, identidade AWS, state e Configuration
+# Etapa 08 — Integração AWS do executor em UAT com STS e state S3
 
 [← Etapa 07](07-registro-ambientes-aws.md) · [Roadmap](../docs/learning-roadmap.md#fase-2--terraformstack-e-primeira-execução-na-aws) · [IAM](../foundation/iam/lab08/README.md)
 
 ## Objetivo
 
-Preparar o motor para a futura stack Network: **Pod com identidade AWS temporária**, **Terraform CLI executando sob Argo Workflows**, **backend S3 remoto com lock nativo** e **módulo Configuration compartilhado** com os três níveis de precedência. Testar Terraform sem criar VPC/EKS e sem `terraform apply`.
+Validar o acesso do Pod à conta UAT e ao backend S3. O Workflow deste exercício roda diretamente uma stack de validação que lê os YAMLs de Network e EKS com Configuration e produz um plan de teste. O bootstrap pode criar o bucket de state. A rede e os clusters são provisionados em etapas posteriores.
+
+O [marco local 06B](../docs/learning-roadmap.md#etapa-06b--terraformstack-de-ponta-a-ponta-no-kind) cobre a execução iniciada pelo CR, OPA, aprovação, drift, destroy e status no `kind`. Seu guia executável está planejado.
 
 ## O que será feito
 
