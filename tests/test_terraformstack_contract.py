@@ -42,7 +42,7 @@ class TerraformStackContractTest(unittest.TestCase):
     def test_latest_defaults_are_in_schema(self):
         properties = self.schema["properties"]["spec"]["properties"]
         self.assertEqual(properties["sourceRef"]["properties"]["version"]["default"], "latest")
-        self.assertEqual(properties["configuration"]["properties"]["revision"]["default"], "latest")
+        self.assertEqual(properties["configuration"]["properties"]["version"]["default"], "latest")
         self.assertFalse(properties["lifecycle"]["properties"]["destroy"]["default"])
         self.assertFalse(properties["lifecycle"]["properties"]["destroyResourcesOnDeletion"]["default"])
 
@@ -51,18 +51,22 @@ class TerraformStackContractTest(unittest.TestCase):
         self.validator.validate(self.example(sourceRef={
             "name": "foundation-stacks", "path": "stacks/network", "version": "1.2.3",
         }))
-        self.validator.validate(self.example(configuration={"revision": "latest"}))
+        self.validator.validate(self.example(configuration={"version": "latest"}))
 
-    def test_legacy_module_still_works(self):
-        self.validator.validate({"spec": {
-            "module": {"name": "lab-network", "version": "1.0.0"},
-            "target": {"entity": "entity-a", "environment": "uat"},
-        }})
+    def test_legacy_module_is_rejected(self):
         with self.assertRaises(ValidationError):
             self.validator.validate({"spec": {
-                **self.example()["spec"],
                 "module": {"name": "lab-network", "version": "1.0.0"},
+                "target": {"entity": "entity-a", "environment": "uat"},
             }})
+        with self.assertRaises(ValidationError):
+            self.validator.validate(self.example(
+                module={"name": "lab-network", "version": "1.0.0"}
+            ))
+
+    def test_configuration_revision_is_rejected(self):
+        with self.assertRaises(ValidationError):
+            self.validator.validate(self.example(configuration={"revision": "old-sha"}))
 
     def test_rejects_unknown_source_selector_and_invalid_controls(self):
         for spec in (
@@ -88,8 +92,8 @@ class TerraformStackContractTest(unittest.TestCase):
         ))
         template = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
         names = {p["name"] for p in template["spec"]["arguments"]["parameters"]}
-        self.assertTrue({"source", "path", "module", "version", "config-revision",
-                         "entity", "environment"}.issubset(names))
+        self.assertEqual(names, {"source", "path", "version", "config-version",
+                                 "entity", "environment"})
 
     def test_controller_python_syntax(self):
         ast.parse(CONTROLLER.read_text(encoding="utf-8"))
