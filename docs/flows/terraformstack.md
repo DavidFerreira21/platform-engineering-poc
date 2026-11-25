@@ -129,7 +129,7 @@ spec:
     destroyResourcesOnDeletion: false
 ```
 
-**Regras de sourceRef:** a referência lógica é resolvida em catálogo confiável de fontes de stacks, com repositório Git/OCI e revisões permitidos; o consumidor não escolhe URL arbitrária, credenciais, módulos fora do catálogo ou caminho que escape do diretório permitido. `path` identifica a raiz da **stack completa** (por exemplo, Network ou EKS), não um único módulo Terraform. `version` é opcional: ausente ou `latest` seleciona a versão mais recente **permitida pelo catálogo**, mas o executor deverá resolvê-la uma única vez para um commit/digest imutável por Workflow. Para Git, tag/ref também deve ser resolvida a commit; para Registry, versão publicada a um artefato verificável. O CRD exige `sourceRef` e não aceita `spec.module`. A simulação da Etapa 06 usa somente `sourceRef`; a execução real ainda precisará resolver fontes Git/Registry e fixar a versão/commit antes do plan. `configuration.revision` fixa separadamente os YAMLs hierárquicos daquela execução. Ainda não está decidido se a fonte usará uma referência de catálogo interna ou um objeto Kubernetes dedicado; nenhuma integração Flux é presumida.
+**Regras de sourceRef:** a referência lógica é resolvida em catálogo confiável de fontes de stacks, com repositório Git/OCI e revisões permitidos; o consumidor não escolhe URL arbitrária, credenciais, módulos fora do catálogo ou caminho que escape do diretório permitido. `path` identifica a raiz da **stack completa** (por exemplo, Network ou EKS), não um único módulo Terraform. `version` é opcional: ausente ou `latest` seleciona a versão mais recente **permitida pelo catálogo**, mas o executor deverá resolvê-la uma única vez para um commit/digest imutável por Workflow. Para Git, tag/ref também deve ser resolvida a commit; para Registry, versão publicada a um artefato verificável. O CRD exige `sourceRef` e não aceita `spec.module`. A simulação da Etapa 06 usa somente `sourceRef`; a execução real ainda precisará resolver fontes Git/Registry e fixar a versão/commit antes do plan. `configuration.version` fixa separadamente os YAMLs hierárquicos daquela execução. Ainda não está decidido se a fonte usará uma referência de catálogo interna ou um objeto Kubernetes dedicado; nenhuma integração Flux é presumida.
 
 **Lifecycle e controles propostos:**
 
@@ -163,6 +163,8 @@ Referências externas: [Tofu Controller API](https://flux-iac.github.io/tofu-con
 7. Somente em caminho autorizado, o Workflow aplica **o mesmo plano validado/aprovado**, verifica o resultado e atualiza `TerraformStack.status`.
 
 A execução é **event-driven e governada**; um reconcile do Kubernetes não deve gerar `terraform apply` indiscriminadamente. A implantação inicial do controller poderá simular esse fluxo sem realizar chamadas AWS.
+
+Na Etapa 09, a CI de Configuration publica uma release SemVer e propõe a promoção de `spec.configuration.version` nas stacks consumidoras. O sync dispara o plan pela nova geração. O passo OPA avalia o JSON do plano salvo e encaminha planos permitidos para aprovação humana. Uma violação ou erro encerra a execução antes do apply.
 
 ### 4.1 Três caminhos após Policy Evaluation
 
@@ -336,11 +338,11 @@ A publicação e distribuição dos **outputs selecionados** do Terraform, por e
 | **05** | CRD `TerraformStack`, schema e `status.conditions` disponíveis, com dry-run local |
 | **06** | Controller, WorkflowTemplate e executor **simulados** no `kind` |
 | **07–08** | Registro de UAT, identidade, backend, state e autorização |
-| **09** | Primeiro plan/apply real de rede UAT, com aprovação humana de plano imutável |
+| **09** | Promoção de Configuration por stack, plan real de rede UAT, OPA com bloqueio ou aprovação humana e apply do plano aprovado |
 | **10–11** | Reutilização do fluxo para EKS Management e Non-PCI |
 | **13** | Publicação seletiva de outputs e consumo via GitOps Bridge, sem alterar a política de aprovação |
 | **24** | Drift detection, sem remediação |
-| **25** | Política de Auto Apply / Require Approval / Deny e correção governada |
+| **25** | OPA com Auto Apply / Require Approval / Deny e correção governada |
 | **26–27** | Testes de isolamento PCI/Non-PCI e UAT/PROD, conforme infraestrutura autorizada |
 
 A execução inicial permanece em `kind`. As etapas AWS serão realizadas somente com destino, credenciais, custos e autorização verificados. Veja o [Roadmap V2](../learning-roadmap.md) para as oito fases e a sequência consolidada.
