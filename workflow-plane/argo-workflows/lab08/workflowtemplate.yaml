@@ -6,6 +6,13 @@ metadata:
 spec:
   entrypoint: validate
   serviceAccountName: argo-workflow
+  securityContext:
+    runAsUser: 10001
+    runAsGroup: 10001
+    runAsNonRoot: true
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
   activeDeadlineSeconds: 900
   arguments:
     parameters:
@@ -42,6 +49,10 @@ spec:
             readOnly: true
           - name: work
             mountPath: /workspace
+          - name: home
+            mountPath: /home/executor
+          - name: tmp
+            mountPath: /tmp
         securityContext:
           runAsUser: 10001
           runAsNonRoot: true
@@ -54,4 +65,8 @@ spec:
           configMap:
             name: terraform-executor-aws-config
         - name: work
+          emptyDir: {}
+        - name: home
+          emptyDir: {}
+        - name: tmp
           emptyDir: {}
