@@ -24,7 +24,7 @@ O recurso **`TerraformStack`** tem um CRD próprio versionado na Etapa 05. Na Et
 
 ### Contrato inicial
 
-A Etapa 05 publica `platform.example.io/v1alpha1` com escopo de namespace. O schema exige `spec.module.name`, `spec.module.version`, `spec.target.entity` e `spec.target.environment`. O subrecurso `/status` oferece `conditions` para o controller. O exemplo usa referências fictícias e pode ser validado com dry-run na API do Hub. Entradas de módulo, resolução de destinos e políticas de reconciliação evoluem nas etapas que passam a usá-las. [Schema](../../control-plane/terraformstack/crd/terraformstack.yaml) · [Exemplo](../../control-plane/terraformstack/demo/terraformstack.yaml) · [Guia da Etapa 05](../../labs/05-terraformstack-crd.md)
+A Etapa 05 publica `platform.example.io/v1alpha1` com escopo de namespace. O schema exige `spec.target.entity/environment` e **exatamente um** de `sourceRef` (novo padrão) ou `module.name/version` (legado). `sourceRef.version` e `configuration.revision` são opcionais, com default `latest`. O subrecurso `/status` oferece `conditions` para o controller. O exemplo usa referências fictícias e pode ser validado com dry-run na API do Hub. Entradas de módulo, resolução de destinos e políticas de reconciliação evoluem nas etapas que passam a usá-las. [Schema](../../control-plane/terraformstack/crd/terraformstack.yaml) · [Exemplo](../../control-plane/terraformstack/demo/terraformstack.yaml) · [Guia da Etapa 05](../../labs/05-terraformstack-crd.md)
 
 ### Configuração por entidade e ambiente
 
@@ -97,7 +97,7 @@ O mesmo plano imutável é transportado em artefato privado entre Pods; `plan` e
 
 ### Dependências e checagem periódica configurável
 
-**Decisão de evolução da API**, inspirada em práticas de operadores Terraform/OpenTofu: prever `spec.dependsOn` para stacks dependentes e `spec.reconciliation.driftCheckInterval` para a frequência desejada de verificação. Os nomes abaixo são **proposta de contrato, não campos hoje implementados** no CRD da Etapa 05.
+**Contrato implementado no schema**, inspirado em práticas de operadores Terraform/OpenTofu: `spec.dependsOn` representa stacks dependentes e `spec.reconciliation.driftCheckInterval` expressa a frequência desejada de verificação. Os campos são aceitos pela API desde a Etapa 05; a execução ainda **não está implementada** no reconciliador de laboratório.
 
 ```yaml
 spec:
@@ -115,7 +115,7 @@ spec:
 
 [Detalhamento do fluxo e da identidade](../flows/terraformstack.md#43-executor-por-pods-do-argo-workflows-e-identidade-aws).
 
-### Contrato futuro: sourceRef e lifecycle de destruição
+### Contrato do CRD: sourceRef e lifecycle de destruição
 
 **Contrato atualizado:** manter `TerraformStack` como API genérica de stacks completas e aceitar `spec.sourceRef.name/path/version` como referência à **fonte versionada e aprovada**. `sourceRef.version` opcional (`latest` por padrão) resolve Registry ou Git a uma versão/commit imutável no executor real; `configuration.revision` também pode ser omitido para resolver `latest`, com pin antes do plan. O source é resolvido no catálogo sob controle do Platform Team e não aceita URL arbitrária/credenciais. A revisão de código da stack e a revisão de `configuration` são independentes e ficam fixadas em cada execução. O CRD v1alpha1 já valida esses campos e conserva o legado `spec.module` como alternativa; o controller da Etapa 06 aceita `sourceRef` em **simulação**, mas a resolução remota e a execução real seguem pendentes. Não dependemos do `GitRepository` de Flux.
 
@@ -193,7 +193,7 @@ O código, a pipeline CI/CD **e os manifests Kubernetes da aplicação de exempl
 - **Etapa 09.** Rede UAT aplicada com a revisão dos YAMLs selecionada na stack, state segregado, lock e aprovação humana do plano imutável.
 - **Etapas 10–11.** Validar dependência explícita das stacks de EKS em relação à rede UAT.
 - **Etapas 24 e 25.** Intervalo de drift configurável, status e alerta; depois, reconciliação com Policy Engine versionado.
-- **A validar:** schema final de `dependsOn` e `driftCheckInterval`, status/conditions, política de intervalos padrão, bootstrap de identidade no Hub kind, engine de políticas, versionamento de módulo, catálogo, lock de state e aprovação segura.
+- **A validar:** implementação de `dependsOn` e `driftCheckInterval` no controller, pin de versões Git/Registry/configuração, status/conditions, política de intervalos padrão, bootstrap de identidade no Hub kind, engine de políticas, catálogo, lock de state e aprovação segura.
 
 O guia da Etapa 05 descreve a instalação do CRD no Hub por GitOps. As operações AWS das etapas posteriores exigem autorização própria.
 
