@@ -8,8 +8,8 @@ A POC utiliza **um único repositório** para demonstrar responsabilidades que p
 
 | Caminho-alvo | Camada e gestão |
 | :--- | :--- |
-| `config/` | YAMLs de valores dos módulos Terraform, organizados por módulo, Entity e Environment. O módulo auxiliar resolve a herança a partir da Etapa 09 |
-| `foundation/modules/` + `foundation/config/<entity>/<env>/` | **Foundation** · equipe central, Terraform reutilizável |
+| `config/` | YAMLs de valores por stack (`network.yaml`, `eks.yaml` etc.), organizados em global → Entity → Environment. O módulo compartilhado `configuration` resolve a herança a partir da Etapa 08 |
+| `foundation/modules/` + `foundation/config/<entity>/<env>/` | **Foundation** · implementações de stacks `network`/`eks`, módulos Terraform internos reutilizáveis e cadastro autorizado do Environment |
 | `data-plane/<entity>/core-infrastructure/<env>/` | **Entity Core** · compartilhado por ambiente, EKS por Terraform |
 | `data-plane/<entity>/domains/<domain>/domain.yaml` | **Domain** · registro lógico único, não CRD |
 | `data-plane/<entity>/domains/<domain>/<env>/infrastructure/` | **Domain Infrastructure** · manifests de Capabilities sob gestão do DevOps Federado; Crossplane central é reconciliador |
@@ -20,7 +20,7 @@ Os registros de Domain ficam no monorepo. O DevOps Federado mantém os manifests
 
 **Environment é a conta AWS UAT/PROD inteira**, não a pasta de Core. O Core é a parte compartilhada e o Domain possui os recursos de negócio. Ambos ficam no **Data Plane**. O registro de Environment fica na Foundation por ownership central, mas descreve o destino de todos os recursos do Environment.
 
-Os valores de módulos seguem a ordem `config/<arquivo>.yaml`, `config/<entity>/<arquivo>.yaml` e `config/<entity>/<env>/<arquivo>.yaml`. O `TerraformStack` guarda a revisão da configuração usada pelo módulo auxiliar. Os registros `environment.yaml` mantêm o cadastro do destino AWS na Foundation. [Decisão sobre configuração por entidade e ambiente](adr/0006-terraformrun-and-application-ci.md#configuração-por-entidade-e-ambiente)
+Os valores de cada **stack** seguem a ordem `config/<arquivo>.yaml`, `config/<entity>/<arquivo>.yaml` e `config/<entity>/<env>/<arquivo>.yaml`. A stack usa o módulo compartilhado `configuration` para resolver precedência e flags. O `TerraformStack` guarda a revisão versionada da configuração usada no plan. Os registros `environment.yaml` mantêm o cadastro do destino AWS na Foundation. [Decisão sobre configuração por entidade e ambiente](adr/0006-terraformrun-and-application-ci.md#configuração-por-entidade-e-ambiente)
 
 ### Atualizações de arquitetura-alvo (a implementar)
 
