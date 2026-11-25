@@ -81,7 +81,7 @@ A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership 
 
 ## ☁️ Estratégia AWS
 
-A POC prepara o Hub `kind` e testa o `TerraformStack` com execução simulada. Para a primeira execução real, a equipe registra UAT, valida a identidade do executor e prepara o backend de estado. Terraform aplica a rede e, em seguida, provisiona Management EKS e EKS Non-PCI, um cluster por vez. Após o smoke test, o Crossplane reconcilia `ObjectStorage` e `Database` com Amazon Aurora PostgreSQL. O guia introduz PROD nos testes de isolamento. [Roteiro prático](docs/learning-roadmap.md)
+A POC usa um Hub `kind` descartável para desenvolver e testar o controller. Antes de provisionar os clusters das spokes, o Hub passa para EKS na conta da plataforma. Para a primeira execução real, a equipe registra UAT, valida a identidade do executor e prepara o backend de estado. Terraform aplica a rede e, em seguida, provisiona Management EKS e EKS Non-PCI, um cluster por vez. Após o smoke test, o Crossplane reconcilia `ObjectStorage` e `Database` com Amazon Aurora PostgreSQL. O guia introduz PROD nos testes de isolamento. [Roteiro prático](docs/learning-roadmap.md)
 
 > [!IMPORTANT]
 > Executar AWS somente com conta/região verificadas via STS, IAM mínimo, custo, autorização explícita e plano de cleanup. Não publicar credenciais, kubeconfigs ou Terraform state. Aprovar a documentação **não** autoriza `apply`/`destroy`.
