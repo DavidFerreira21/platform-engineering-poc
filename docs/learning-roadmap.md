@@ -1,91 +1,142 @@
-# Roteiro prático da POC
+# Roteiro prático da POC — Roadmap V2
 
-[← Início](../README.md) · [Arquitetura](architecture.md) · [Guias das etapas](../labs/README.md) · [Fundamentos](fundamentos/README.md)
+[← Início](../README.md) · [Arquitetura](architecture.md) · [Guias das etapas](../labs/README.md) · [GitOps Flow](flows/gitops.md) · [TerraformStack Flow](flows/terraformstack.md) · [GitOps Bridge Flow](flows/gitops-bridge.md)
 
-O roteiro tem **sete fases** e **25 etapas, de 00 a 24**. Cada fase agrupa uma entrega verificável. Os guias mostram o objetivo, a decisão, como reproduzir e o que observar. [Convenção dos guias](../labs/README.md#como-ler-e-reproduzir-uma-etapa)
+A POC é construída em **oito fases e 32 etapas (00–31)**. Cada etapa adiciona uma capacidade técnica, reutiliza as anteriores e termina com uma verificação objetiva. O objetivo dos guias é **construir, integrar e observar o funcionamento da plataforma**, sem tentar ensinar exaustivamente cada ferramenta.
 
-Os guias disponíveis cobrem a **Fase 1**, a publicação do CRD `TerraformStack` na **Etapa 05** e o registro de UAT na **Etapa 07**.
+Os laboratórios existentes das **Etapas 00–05 e 07** permanecem válidos. As demais entregas descrevem o escopo planejado; ainda **não foram implementadas** só por aparecerem aqui. Os guias mantêm a estrutura atual: **Objetivo → O que será feito → Por que fizemos assim → Pré-requisitos → Execução → O que observar → Limpeza (quando aplicável)**. [Convenção](../labs/README.md#como-ler-e-reproduzir-uma-etapa).
 
-## Fase 1 — Preparação do Hub local
+## Visão das oito fases
 
-Preparar o Kubernetes local e exercitar Argo CD, Argo Workflows e Crossplane no Hub `kind`, sem acesso à AWS.
+| Fase | Etapas | Marco técnico |
+| --- | --- | --- |
+| **1 — Control Plane local** | 00–04 | Hub `kind` com Argo CD, Argo Workflows e Crossplane Core operacionais |
+| **2 — TerraformStack** | 05–09 | CRD, controller, plan/aprovação/apply e primeiro recurso AWS real |
+| **3 — EKS, GitOps e Bridge** | 10–14 | Environment UAT com EKS, onboarding, addons, Argo CD local e outputs consumidos |
+| **4 — Domain Infrastructure** | 15–17 | Capabilities S3 e Aurora PostgreSQL via Crossplane |
+| **5 — Primeira aplicação e CI/CD** | 18–21 | App FastAPI, Aurora, S3, GitHub Actions, ECR e deploy GitOps |
+| **6 — Observabilidade e operação** | 22–27 | Telemetria, diagnóstico, drift, políticas e isolamento |
+| **7 — Experience Layer** | 28–29 | Personas, permissões, catálogo e Starter Kit |
+| **8 — Golden Path ponta a ponta** | 30–31 | Solicitação federada e entrega integrada da aplicação |
+
+## Fase 1 — Preparação do Control Plane local
+
+Preparar o Hub `kind` e instalar cada motor com um teste funcional pequeno. Os componentes permanecem instalados para as etapas seguintes; recursos apenas de demonstração podem ser removidos.
 
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
-| **00** | [Documentação e monorepo](repository-structure.md) | Arquitetura, decisões, estrutura e ownership alinhados |
-| **01** | [Hub kind e Traefik](../labs/01-platform-management-cluster.md) | API Kubernetes, namespaces, CoreDNS, portas e Ingress HTTP local verificados |
-| **02** | [Argo CD central e catálogo de add-ons](../labs/02-argocd-central.md) | `ApplicationSet` gera as Applications de Argo Workflows e Crossplane Core. A interface usa HTTPS pelo Traefik e a demonstração entrega um ConfigMap a partir de `main` |
-| **03** | [Argo Workflows](../labs/03-argo-workflows.md) | A Application do catálogo instala controller e CRDs. A interface HTTPS local pelo Traefik e o kubectl mostram o estado do Workflow, o Pod criado e o log do contêiner |
-| **04** | [Crossplane Core](../labs/04-crossplane-core.md) | A Application do catálogo instala o Crossplane Core. XRD e Composition de teste reconciliam um ConfigMap local |
+| **00** | [Documentação e monorepo](repository-structure.md) | Estrutura, camadas, personas e ownership definidos |
+| **01** | [Hub kind e Traefik](../labs/01-platform-management-cluster.md) | Cluster, namespaces, DNS, acesso e Ingress local verificados |
+| **02** | [Argo CD central e catálogo de add-ons](../labs/02-argocd-central.md) | ApplicationSet gera Applications a partir do Git; ConfigMap de teste sincronizado |
+| **03** | [Argo Workflows](../labs/03-argo-workflows.md) | Um Workflow executado, com Pod, resultado e logs observáveis |
+| **04** | [Crossplane Core](../labs/04-crossplane-core.md) | XRD/Composition de teste reconciliam um ConfigMap local |
 
 ## Fase 2 — TerraformStack e primeira execução na AWS
 
-Exercitar o contrato no Control Plane e a execução simulada no Workflow Plane. Em seguida, configurar UAT para aplicar a primeira stack real com aprovação humana.
+Construir o contrato declarativo e o motor de execução até **o primeiro apply AWS autorizado**, sem antecipar detecção ou remediação automática de drift.
 
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
-| **05** | [CRD Kubernetes `TerraformStack` via GitOps](../labs/05-terraformstack-crd.md) | A Application `terraformstack-crd` publica o CRD. A API aceita uma solicitação fictícia e permite inspecionar o schema e o subrecurso de status. [ADR-0006](adr/0006-terraformrun-and-application-ci.md) |
-| **06** | Controller, Argo Workflows e Terraform Executor simulado | A Application `terraformstack-controller` entrega o controller e o `WorkflowTemplate`. Após sincronizar a solicitação `TerraformStack`, acompanhar a execução simulada e o status publicado pelo controller |
-| **07** | [Registro e validação de UAT](../labs/07-registro-ambientes-aws.md) | O registro de Environment vincula `entity-a/uat` à conta e à região esperadas. O acesso humano é conferido via IAM Identity Center e STS |
-| **08** | Identidade do Terraform Executor e backend de estado | O Platform Team prepara a role e inicializa o backend com autorização, state segregado e lock. O executor resolve o destino pela Foundation, renova a sessão temporária e recusa identidades ou destinos indevidos |
-| **09** | Rede UAT via `TerraformStack` com aprovação | Argo Workflows gera o plano da rede, pausa para aprovação individual na UI, revalida e aplica o mesmo plano. Status, auditoria e sub-redes privadas verificadas |
+| **05** | [CRD Kubernetes `TerraformStack` via GitOps](../labs/05-terraformstack-crd.md) | API valida `spec` fictício e expõe `status.conditions`, sem executar Terraform. [ADR-0006](adr/0006-terraformrun-and-application-ci.md) |
+| **06** | TerraformStack Controller + WorkflowTemplate e executor simulado | CR estável e versionado cria um Workflow; execução simulada e status são observados. Validar idempotência, cancelamento e autorização por testes do controller |
+| **07** | [Registro e validação de UAT](../labs/07-registro-ambientes-aws.md) | `environment.yaml` associa `entity-a/uat` à conta/região; identidade humana verificada com Identity Center/STS |
+| **08** | Identidade temporária do executor e backend de state | Role de execução, mapping confiável, state segregado, lock e rejeição de destino indevido verificados |
+| **09** | Primeira stack real: rede UAT por TerraformStack | Argo Workflows produz plan, avalia o gate humano na UI, valida o plano imutável, aplica a VPC/rede autorizada e publica status/evidências |
 
-## Fase 3 — Provisionamento dos clusters e smoke test
+**Marco da fase:** `TerraformStack` é capaz de receber intenção via GitOps, executar Terraform com aprovação humana e produzir infraestrutura real. Terraform não aplica continuamente a cada reconcile. **Auto Apply, verificação periódica e correção de drift entram na Fase 6.**
 
-Usar o fluxo Terraform já validado para provisionar um EKS por vez em UAT. Confirmar custo, compatibilidade com Auto Mode e operadores antes da execução.
+## Fase 3 — Provisionamento de EKS, GitOps e GitOps Bridge
 
-| Etapa | Entrega | Evidência |
-| :--- | :--- | :--- |
-| **10** | Management EKS | Stack Terraform aplicada em UAT e cluster acessível com a identidade autorizada |
-| **11** | EKS Non-PCI e Argo CD local | EKS Non-PCI provisionado em UAT. Argo CD local do Management EKS sincroniza apenas os destinos autorizados |
-| **12** | Smoke test com aplicação HTTP mínima | App Python + Flask de repositório separado entregue em namespace de teste no Non-PCI, com health check e rollback verificados |
-
-## Fase 4 — Capabilities AWS com Crossplane
-
-Usar o Crossplane já instalado no Hub para validar a identidade do Provider AWS e entregar as primeiras Capabilities em UAT, sob responsabilidade do Platform Team. O consumo por uma squad entra no Golden Path.
+Usar o TerraformStack já operacional para transformar recursos AWS em um **Environment UAT gerenciado**. O registro do cluster, a autorização e a configuração por GitOps são ações independentes. Antes de registrar EKS privado, comprovar a conectividade e a identidade que o Argo CD usará; não presumir comunicação entre VPCs/contas.
 
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
-| **13** | Identidade do Provider AWS no Hub | O Provider assume uma role dedicada em UAT com credenciais temporárias. O teste confirma renovação e rejeição de identidade ou destino indevido |
-| **14** | `ObjectStorage` via Crossplane | Validar o XRD e a Composition localmente, depois reconciliar um bucket de teste em UAT e conferir prontidão, drift e política de remoção |
-| **15** | `Database` com Aurora PostgreSQL via Crossplane | Validar o XRD e a Composition, depois reconciliar um cluster Aurora em sub-redes privadas com IAM, conectividade, custo e teardown aprovados |
+| **10** | Management EKS UAT e bootstrap de gestão | TerraformStack provisiona Management EKS; acesso e registro no Argo CD central são validados; a plataforma instala o Argo CD local e a configuração-base autorizada |
+| **11** | EKS Non-PCI e onboarding | TerraformStack cria o cluster Non-PCI; automação configura identidade, permissões, registro no Argo CD apropriado e labels `entity/environment/cluster-role/compliance` |
+| **12** | Platform GitOps multicluster e perfis de add-ons | ApplicationSets do Argo CD central selecionam clusters registrados e instalam addons corporativos por perfil. Confirmar ownership único: central para addons, local para aplicações |
+| **13** | GitOps Bridge — outputs, Parameter Store e ESO | Outputs permitidos da rede/EKS são publicados na **conta UAT** com escrita controlada; ESO no **Management EKS** lê o SSM e materializa um Secret consumido localmente. Publicação não registra clusters |
+| **14** | Smoke test de Domain Application no Non-PCI | Argo CD local sincroniza um workload HTTP mínimo a partir de Git, verifica serviço/health e remove apenas o teste; os componentes de plataforma permanecem |
 
-## Fase 5 — Observabilidade e operação
+**Marco da fase:** UAT possui Management e Non-PCI operacionais, ambos sob os mecanismos GitOps autorizados. O EKS PCI será avaliado com custo e isolamento na **Etapa 26**. O [GitOps Bridge](flows/gitops-bridge.md) não requer que o ApplicationSet central leia os Secrets do Management EKS.
 
-Instrumentar a plataforma e a aplicação de teste. Diagnosticar falhas, evoluir a reconciliação do `TerraformStack` e comprovar os limites de acesso antes de expandir.
+## Fase 4 — Domain Infrastructure com Crossplane
 
-| Etapa | Entrega | Evidência |
-| :--- | :--- | :--- |
-| **16** | Coleta de logs, métricas e traces | OpenTelemetry no Data Plane e visualização central com Grafana, Loki e Tempo, correlacionando sinais da aplicação e dos controllers |
-| **17** | Diagnóstico, recuperação e custos | Usar sinais e registros das execuções para investigar ocorrências, documentar a recuperação e acompanhar os custos |
-| **18** | Detecção de drift do `TerraformStack` | Plan periódico sobre uma stack UAT já aplicada distingue alterações externas de mudanças declaradas e publica condição ou alerta, sem remediação |
-| **19** | Reconciliação do `TerraformStack` por políticas | Políticas versionadas distinguem auto apply permitido, aprovação obrigatória e bloqueio, incluindo cenários destrutivos |
-| **20** | [Registro de PROD](../labs/07-registro-ambientes-aws.md#uso-do-registro-prod-na-etapa-20) e isolamento UAT/PROD e PCI/Non-PCI | Validar PROD como destino separado antes dos testes entre contas. Testar negativas de IAM e de destinos GitOps com o que já está disponível. Validar GitOps ponta a ponta em outros clusters quando houver provisionamento autorizado |
-
-## Fase 6 — Experience Layer e Developer Experience
-
-Preparar os caminhos de consumo da plataforma para as três personas, com escopo proporcional à POC.
+Entregar as primeiras Capabilities AWS a partir de contratos Kubernetes declarativos. Os Providers reconciliam recursos no Environment autorizado, sem Terraform Workflow para cada Capability.
 
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
-| **21** | Responsabilidades e permissões por persona | Platform Team, DevOps Federado e Application Team exercitam PRs por path e repositório, IAM, RBAC, Admission, AppProjects e restrições de Environment |
-| **22** | Canais de consumo, catálogo e Starter Kit | Contratos e exemplos acessíveis às personas. Backstage, CLI e Git são canais possíveis. O Starter Kit contém apenas o necessário para a aplicação de teste |
+| **15** | Provider AWS e identidade Crossplane no Hub | Provider assume role temporária em UAT; conferir acesso correto, renovação e rejeição de destino não autorizado |
+| **16** | `ObjectStorage` via Crossplane | XRD/Composition solicitam um bucket S3 na conta UAT; verificar condições, permissões e política de remoção |
+| **17** | `Database` via Crossplane | XRD/Composition criam Aurora PostgreSQL em sub-redes autorizadas; conferir prontidão, acesso, custo e teardown planejado |
 
-## Fase 7 — Golden Path de ponta a ponta
+**Marco da fase:** `ObjectStorage` e `Database` são capacidades reais e disponíveis para a aplicação da Fase 5. O **Domain Infrastructure** é gerenciado pelo DevOps Federado no Golden Path; a primeira implantação técnica das Capabilities é conduzida pelo Platform Team.
 
-Reutilizar a aplicação da Etapa 12 para demonstrar a jornada completa de um Domain, da solicitação de infraestrutura à entrega observável.
+## Fase 5 — Primeira aplicação e esteira CI/CD
+
+Construir uma aplicação **mínima e funcional** usando a infraestrutura pronta. O cenário é **Rastreamento de Encomendas**: uma tela permite registrar o recebimento e consultar os últimos recebimentos. O código, os testes, a configuração de deployment e a pipeline CI ficam em **repositório separado, sob ownership da squad**, conforme o [ADR-0007](adr/0007-personas-and-developer-experience.md).
+
+**Stack escolhida:** **Python + FastAPI** para backend HTTP/API e **Jinja2 + HTML/CSS** para uma interface renderizada pelo servidor. Não usar Django, React ou um segundo backend nesta POC. O banco será **Aurora PostgreSQL** da Capability `Database`; a API gravará um **JSON de evidência de recebimento** no S3 da Capability `ObjectStorage`. O S3 não substitui logs operacionais.
 
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
-| **23** | Primeiro Domain e Capabilities via GitOps | Validar o contrato de Domain, o ownership e os Environments permitidos. Criar namespace e políticas no destino autorizado. DevOps Federado solicita Capabilities por PR e observa a reconciliação pelo Argo CD central e Crossplane |
-| **24** | Aplicação de Domain e validação ponta a ponta | Repositório da squad demonstra PR, GitHub Actions, imagem, promoção GitOps, Argo CD local, telemetria e rollback |
+| **18** | Aplicação de referência: FastAPI + Jinja2 | Frontend simples registra código da encomenda e lista recebimentos; API e testes locais funcionando |
+| **19** | Integração da aplicação com Capabilities | API persiste código e timestamp no Aurora, grava evidência JSON no S3 e valida leituras, IAM mínimo e conectividade; sem credenciais fixas no código |
+| **20** | CI da aplicação: GitHub Actions e Amazon ECR | Pipeline executa testes, build do contêiner, scan de segurança e push ao ECR com OIDC/credenciais temporárias; imagem identificada por digest |
+| **21** | CD GitOps: promoção e deploy no EKS Non-PCI | CI propõe atualização de digest no manifesto/overlay versionado; após revisão, Argo CD local sincroniza a nova imagem; confirmar rollout e funcionamento da tela |
 
-## Regras transversais
+**Responsabilidades:** Platform Team oferece ECR, workflow/template reutilizável, RBAC e guardrails; a squad é owner do código, da versão e do release da aplicação; DevOps Federado é owner das solicitações de Capabilities. A pipeline **não faz `kubectl apply` imperativo**. Manifests e código permanecem inicialmente no mesmo repositório da aplicação, para reduzir complexidade. O deploy pode usar Helm ou Kustomize com defaults mantidos pela plataforma; não criar agora um CRD `Application` próprio.
 
-- **Registros e contratos.** Entity, Environment e Domain são registros lógicos. As Capabilities usam XRDs Crossplane. `TerraformStack` é o CRD de Foundation e Entity Core. O controller valida a intenção e coordena Workflow, política, plano aprovado e status. [Contratos](adr/0001-platform-contracts.md) · [TerraformStack](adr/0006-terraformrun-and-application-ci.md)
-- **Segurança e custos.** Conferir identidade e conta via STS, região, IAM mínimo, custo, autorização por operação e plano de remoção. Manter credenciais e Terraform state fora do Git. Aplicar isolamento desde o primeiro acesso AWS e consolidar os testes na Etapa 20.
-- **Ownership.** Platform Team mantém Foundation e Core. DevOps Federado gerencia Domain Infrastructure. Application Team mantém código, CI e manifests Kubernetes no repositório da aplicação. O Argo CD local entrega o workload no destino autorizado. [Personas](adr/0007-personas-and-developer-experience.md)
+**Marco da fase:** uma alteração de código gera uma imagem versionada no ECR e chega ao Non-PCI via GitOps, usando Aurora e S3 reais. O objetivo aqui é implementar e validar a entrega; **a experiência self-service das três personas será demonstrada na Fase 8**, sem criar outra pipeline.
 
-## Extensões opcionais
+## Fase 6 — Observabilidade, operação e governança
 
-- **Automação de criação de contas.** Avaliar apenas se surgir necessidade de automatizar o lifecycle de contas da organização.
+Instrumentar os componentes implantados e concluir o lifecycle operacional do TerraformStack. Políticas preventivas essenciais já devem existir desde a introdução de cada componente; esta fase consolida diagnósticos e cenários mais avançados.
+
+| Etapa | Entrega | Evidência |
+| :--- | :--- | :--- |
+| **22** | Telemetria de plataforma e aplicação | OpenTelemetry Collector/gateway no Data Plane e integração com Grafana, Loki e Tempo; logs/traces correlacionados da API, dos Workflows e dos controllers |
+| **23** | Diagnóstico, recuperação e custos | Investigar uma falha controlada, recuperar a operação e conferir rastreabilidade e custos AWS |
+| **24** | Drift Detection do TerraformStack | Plan periódico detecta alteração externa em stack UAT existente, diferencia drift de nova intenção e registra condição/alerta **sem aplicar correção** |
+| **25** | Reconciliação por políticas | Policy Engine versionado decide **Auto Apply / Require Approval / Deny** para mudança ou drift; testar correção permitida, gate humano e bloqueio de ação sensível |
+| **26** | EKS PCI e isolamento PCI/Non-PCI em UAT | Provisionar EKS PCI **somente com autorização/custo aprovados**; quando existir, registrar com perfil restrito, aplicar addons autorizados e testar negações entre PCI e Non-PCI. Se não houver EKS PCI, declarar validação apenas lógica, não isolamento real |
+| **27** | Registro de PROD e isolamento por Environment | Registrar conta PROD distinta, validar identity/mapping/negações e políticas UAT/PROD. Provisionamento real em PROD depende de autorização separada; não presumir EKS PROD já criado |
+
+**Marco da fase:** plataforma observável e governada, com drift controlado e provas de isolamento compatíveis com os ambientes **efetivamente provisionados**. Os testes avançados de PCI/PROD não autorizam automaticamente novas despesas AWS.
+
+## Fase 7 — Experience Layer e Developer Experience
+
+Formalizar os canais de consumo **sem colocar Backstage ou uma REST API adicional como pré-requisito**. A Kubernetes API continua sendo o contrato técnico das Capabilities e do TerraformStack; Git, templates e ferramentas de acesso são interfaces possíveis.
+
+| Etapa | Entrega | Evidência |
+| :--- | :--- | :--- |
+| **28** | Personas, ownership e permissões | Platform Team, DevOps Federado e Application Team operam com caminhos Git, RBAC, IAM, AppProjects e políticas limitados ao seu escopo |
+| **29** | Catálogo de contratos e Starter Kit | Configuração mínima de aplicação, template de CI, padrão de deployment e instruções de consumo das Capabilities acessíveis por Git/CLI; Backstage permanece opcional |
+
+**Marco da fase:** a experiência padronizada está pronta para ser exercitada por cada persona, sem exigir que a squad mantenha addons corporativos ou módulos Terraform.
+
+## Fase 8 — Golden Path ponta a ponta
+
+Reutilizar a mesma aplicação de Rastreamento de Encomendas e a pipeline construída na Fase 5. Aqui o foco é **validar a jornada federada inteira**, não reimplementar ferramentas ou fazer outro projeto de aplicação.
+
+| Etapa | Entrega | Evidência |
+| :--- | :--- | :--- |
+| **30** | Primeiro Domain e solicitações de Capabilities via GitOps | Registrar `Domain`, ownership e Environments permitidos; DevOps Federado solicita `ObjectStorage` e `Database` por PR e acompanha condições no Crossplane central |
+| **31** | Entrega integrada da aplicação pelo Golden Path | Squad altera FastAPI, CI testa e publica imagem no ECR, PR atualiza GitOps, Argo CD local promove e aplica no Non-PCI; frontend registra e consulta recebimentos no Aurora, com evidência S3 e telemetria |
+
+**Marco da fase:** fluxo completo demonstrado com responsabilidades separadas, contratos versionados, governança, infraestrutura de domínio, CI/CD, GitOps e observabilidade.
+
+## Regras transversais da POC
+
+- **Construção incremental:** cada etapa deve **criar/integrar**, executar uma verificação objetiva e preservar as capacidades necessárias às etapas posteriores. O guia não é um curso exaustivo de cada ferramenta.
+- **Contratos e ownership:** `Entity`, `Environment` e `Domain` são registros lógicos em Git; Capabilities são XRDs/Compositions do Crossplane; `TerraformStack` é um CRD com controller próprio para Foundation/Entity Core. [ADRs](adr/README.md).
+- **Um reconciliador por recurso:** Argo CD central mantém addons corporativos e entrega CRs de infraestrutura; Crossplane reconcilia Capabilities; TerraformStack governa Terraform; Argo CD local entrega Domain Applications.
+- **CI separado de CD:** GitHub Actions testa, constrói, verifica e publica a imagem; Git registra o digest desejado; Argo CD local efetua o deploy. O workflow da aplicação pertence ao repositório da squad, não a este monorepo.
+- **Segurança na etapa de origem:** IAM/STS, RBAC, validação de destino, state/plan protegido, custos e política de deleção são requisitos das operações correspondentes — não ficam pendentes até a Fase 6.
+- **Arquitetura lógica versus implementação:** `kind` serve ao Hub inicial; EKS e integrações cross-account exigem testes reais de identidade/conectividade. UAT, PROD, PCI e Non-PCI são escopos distintos; não afirmar validação real de recursos não criados.
+- **Custos e limpeza:** Aurora, EKS e outros serviços AWS têm custo; confirmar autorização e teardown antes de provisionar. Remover um CR `TerraformStack` não implica `destroy` automático.
+
+## Evoluções opcionais
+
+Avaliar posteriormente EKS Auto Mode (sem instalar Karpenter autogerenciado sobre seu autoscaling), EKS Argo CD Capability, portal Backstage, um contrato abstrato de aplicação e automação de criação de contas. Nenhum deles é necessário para concluir a POC V2.
+
+[Arquitetura](architecture.md) · [GitOps](flows/gitops.md) · [TerraformStack](flows/terraformstack.md) · [GitOps Bridge](flows/gitops-bridge.md) · [Guia das etapas](../labs/README.md)
