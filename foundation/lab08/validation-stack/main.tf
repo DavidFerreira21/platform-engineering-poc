@@ -32,3 +32,15 @@ output "configuration_loaded" {
 output "network_cidr" {
   value = try(module.configuration.values.network.vpc.cidr, null)
 }
+
+output "network_dns_hostnames" {
+  value = try(module.configuration.values.network.vpc.dnsHostnames, null)
+}
+
+output "eks_management_enabled" {
+  value = try(module.configuration.values.eks.clusters.management, null)
+}
+
+output "eks_pci_enabled" {
+  value = try(module.configuration.values.eks.clusters.pci, null)
+}
