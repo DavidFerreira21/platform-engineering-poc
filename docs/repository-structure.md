@@ -24,7 +24,7 @@ Os valores de módulos seguem a ordem `config/<arquivo>.yaml`, `config/<entity>/
 
 ### Atualizações de arquitetura-alvo (a implementar)
 
-- **TerraformStack (CRD + controller).** O contrato de infraestrutura desejada fica em `control-plane/` e é sincronizado via Argo CD central. Argo Workflows e Terraform Executor ficam em `workflow-plane/`. A Etapa 09 comprova o apply aprovado. As Etapas 18 e 19 acrescentam detecção de drift e reconciliação por políticas. `TerraformRun` é nome opcional de uma execução individual.
+- **TerraformStack (CRD + controller).** O contrato de infraestrutura desejada fica em `control-plane/` e é sincronizado via Argo CD central. Argo Workflows e Terraform Executor ficam em `workflow-plane/`. A Etapa 09 comprova o apply aprovado. As Etapas 24 e 25 acrescentam detecção de drift e reconciliação por políticas. `TerraformRun` é nome opcional de uma execução individual.
 - **GitHub Actions das aplicações:** será mantido **em repositório de aplicação de teste separado**, a integrar durante o lab correspondente. Este monorepo não incluirá código/CI da aplicação.
 - **Management EKS:** Argo CD local, Operators a escolher e OpenTelemetry Collector/gateway para observabilidade central (Grafana/Loki/Tempo).
 
@@ -37,7 +37,7 @@ Os valores de módulos seguem a ordem `config/<arquivo>.yaml`, `config/<entity>/
 - `platform/hub/kind-config.yaml` e `platform/hub/scripts/`: criação, inspeção e remoção **apenas do cluster local kind**.
 - `platform/hub/addons/` reúne o bootstrap dos AppProjects e do `ApplicationSet`, além de uma entrada por add-on do Hub. [Guia da Etapa 02](../labs/02-argocd-central.md)
 - [Guias das etapas](../labs/README.md) em `labs/`, começando pelo Hub local na Etapa 01.
-- `foundation/config/entity-a/{uat,prod}/environment.yaml` contém os registros de UAT e PROD com IDs distintos, região, baseline de rede e clusters EKS previstos. O roteiro usa UAT pela primeira vez na [Etapa 07](../labs/07-registro-ambientes-aws.md). PROD entra na Etapa 20 para validar isolamento.
+- `foundation/config/entity-a/{uat,prod}/environment.yaml` contém os registros de UAT e PROD com IDs distintos, região, baseline de rede e clusters EKS previstos. O roteiro usa UAT pela primeira vez na [Etapa 07](../labs/07-registro-ambientes-aws.md). PROD entra na Etapa 27 para validar isolamento.
 
 ### Situação de migração
 
