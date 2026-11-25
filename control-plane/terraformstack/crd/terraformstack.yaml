@@ -62,6 +62,7 @@ spec:
                       description: Identificador lógico do Environment na Entity.
                 configuration:
                   type: object
+                  additionalProperties: false
                   description: Versão selecionada dos YAMLs hierárquicos da stack (global → Entity → Environment).
                   properties:
                     version:
