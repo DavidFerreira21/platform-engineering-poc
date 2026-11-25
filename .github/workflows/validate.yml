@@ -35,6 +35,36 @@ jobs:
           assert "uat-executor" in pod["containers"][0]["args"]
           print("Lab 08: script Python e Job de identidade válidos.")
           PY
+      - name: Instalar Terraform para validar Configuration
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.5
+      - name: Validar Terraform e smoke stack sem backend AWS
+        run: |
+          terraform fmt -check -recursive foundation/modules/configuration foundation/lab08/validation-stack
+          terraform -chdir=foundation/lab08/validation-stack init -backend=false -input=false
+          terraform -chdir=foundation/lab08/validation-stack validate -no-color
+      - name: Validar scripts e manifestos do Lab 08
+        run: |
+          python3 -m py_compile \
+            foundation/scripts/bootstrap-workflow-credentials.py \
+            foundation/scripts/prepare-state-backend.py \
+            foundation/scripts/submit-lab08-workflow.py \
+            workflow-plane/terraform-executor/verify.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import yaml
+          base = Path("workflow-plane/argo-workflows/lab08/workflowtemplate.yaml")
+          workflow = yaml.safe_load(base.read_text())
+          assert workflow["kind"] == "WorkflowTemplate"
+          pod = workflow["spec"]["templates"][0]["container"]
+          assert pod["image"] == "terraformstack-executor:lab08"
+          assert pod["envFrom"][0]["secretRef"]["name"] == "terraform-executor-bootstrap"
+          assert "AWS_CONFIG_FILE" in {x["name"] for x in pod["env"]}
+          for config in ["network", "eks"]:
+              assert yaml.safe_load(Path(f"foundation/config/{config}.yaml").read_text())
+          print("OK: componentes de Configuration e executor presentes.")
+          PY
       - name: Validar sintaxe dos scripts bash
         run: bash -n platform/hub/scripts/create.sh platform/hub/scripts/install-traefik.sh platform/hub/scripts/verify.sh platform/hub/scripts/delete.sh
       - name: Validar YAML de exemplo e kind
