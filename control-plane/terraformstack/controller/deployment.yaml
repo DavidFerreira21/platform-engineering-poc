@@ -18,9 +18,15 @@ spec:
       serviceAccountName: terraformstack-controller
       containers:
         - name: controller
-          image: terraformstack-controller:lab06-v2
+          image: terraformstack-controller:lab06-v3
           imagePullPolicy: Never
           env:
+            - name: LEADER_ELECTION_ENABLED
+              value: "false"
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
             - name: POLL_INTERVAL_SECONDS
               value: "300"
             - name: WATCH_TIMEOUT_SECONDS

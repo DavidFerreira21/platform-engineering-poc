@@ -26,6 +26,12 @@ O controller usa dois watches da API Kubernetes. O primeiro acompanha a stack de
 
 Os valores são inteiros positivos em segundos. O polling relê a stack e o Workflow da geração atual. O agendamento de novos plans para detectar drift entra na Etapa 24.
 
+### Eleição de líder opcional
+
+O Deployment usa uma réplica e `LEADER_ELECTION_ENABLED=false` por padrão. Para experimentar a troca de líder, habilite a variável no Deployment antes de aumentar o número de réplicas. Os Pods disputam a Lease `terraformstack-controller` em `platform-system`. Só o líder inicia os watches e reconcilia. A Lease dura 30 segundos, com tentativa de renovação a cada 2 segundos e prazo local de 15 segundos. Se o Pod perder o prazo de renovação, encerra o reconciliador. O sucessor relê a stack e retoma o Workflow existente. Os Workflows já criados continuam no Argo.
+
+Em um teste dedicado, use duas réplicas e um Workflow do lab em andamento. Consulte `hub -n platform-system get lease terraformstack-controller -o yaml`, identifique o Pod pelo UID em `spec.holderIdentity` e remova esse Pod. Confira a troca de titular e o resultado no status da stack. Deve existir um único Workflow para o UID e a geração observados. Volte a uma réplica antes de desabilitar a eleição.
+
 ## Pré-requisitos
 
 - Docker ativo e Hub `kind-platform-management` acessível. Executar os comandos na raiz do monorepo.
@@ -39,15 +45,15 @@ hub -n argo-workflows rollout status deployment/argo-workflows-workflow-controll
 hub -n argo-workflows get serviceaccount argo-workflow
 hub wait --for=condition=Established --timeout=90s crd/terraformstacks.platform.example.io
 
-docker build -t terraformstack-controller:lab06-v2 control-plane/terraformstack/controller
-kind load docker-image terraformstack-controller:lab06-v2 --name platform-management
+docker build -t terraformstack-controller:lab06-v3 control-plane/terraformstack/controller
+kind load docker-image terraformstack-controller:lab06-v3 --name platform-management
 
 kubectl kustomize control-plane/terraformstack/lab06 | hub apply --dry-run=server -f -
 kubectl kustomize control-plane/terraformstack/demo/lab06 | hub apply --dry-run=server -f -
 hub apply -f platform/hub/addons/bootstrap.yaml
 ```
 
-No Argo CD, abra **terraformstack-controller**. Confira a revisão `main`, o destino Hub local e o diff esperado com um Deployment, uma ServiceAccount, duas Roles, dois RoleBindings e um WorkflowTemplate. Sincronize manualmente e confirme a disponibilidade:
+No Argo CD, abra **terraformstack-controller**. Confira a revisão `main`, o destino Hub local e o diff esperado com um Deployment, uma ServiceAccount, duas Roles, dois RoleBindings, uma Lease e um WorkflowTemplate. Sincronize manualmente e confirme a disponibilidade:
 
 ```bash
 hub -n platform-system rollout status deployment/terraformstack-controller --timeout=120s
