@@ -1,12 +1,13 @@
 # Baseline da stack Network; sobrescreva apenas o necessário por Entity/Environment.
 network:
+  publishParameterStore: false
   vpc:
     enabled: true
     cidr: 10.80.0.0/16
     dnsHostnames: true
     dnsSupport: true
   nat:
-    enabled: false
+    enabled: true
   endpoints:
     s3:
       enabled: true

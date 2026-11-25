@@ -1,0 +1,6 @@
+eks:
+  clusters:
+    hub: true
+    management: false
+    nonPci: false
+    pci: false

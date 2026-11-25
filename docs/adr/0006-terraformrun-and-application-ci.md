@@ -28,10 +28,10 @@ A Etapa 05 publica `platform.example.io/v1alpha1` com escopo de namespace. O sch
 
 ### Configuração por entidade e ambiente
 
-O monorepo centraliza os valores dos módulos Terraform em `config/`. Cada módulo usa um arquivo próprio, como `network.yaml` ou `eks.yaml`. A composição vai do nível global para a entidade e depois para o ambiente. Esta é a estrutura prevista, usando `br` como entidade ilustrativa.
+O monorepo centraliza os valores dos módulos Terraform em `foundation/config/`. Cada módulo usa um arquivo próprio, como `network.yaml` ou `eks.yaml`. A composição vai do nível global para a entidade e depois para o ambiente. Esta é a estrutura prevista, usando `br` como entidade ilustrativa.
 
 ```text
-config/
+foundation/config/
 ├── network.yaml
 ├── eks.yaml
 └── br/
@@ -43,7 +43,7 @@ config/
 
 O nível mais específico prevalece. Os mapas combinam chaves nos níveis definidos pelo schema. Se `br/uat/network.yaml` sobrescrever apenas `vpc.cidr`, os outros campos de `vpc` continuam herdados. Uma lista declarada no nível mais específico substitui a lista anterior inteira. Uma chave ou um arquivo ausente mantém os valores já herdados.
 
-Exemplo de sobrescrita para `config/br/uat/network.yaml`.
+Exemplo de sobrescrita para `foundation/config/br/uat/network.yaml`.
 
 ```yaml
 vpc:
@@ -58,9 +58,9 @@ Um módulo auxiliar Terraform chamado `configuration` lê os YAMLs com `yamldeco
 
 **Outputs:** as stacks `network` e `eks` expõem saídas tipadas; a publicação de um subconjunto permitido para o Parameter Store da conta do Environment ocorre pelo **GitOps Bridge (Etapa 13)**, depois de apply e verificação. Não publicar state, plano ou segredos como output distribuído. A implementação deve verificar combinações de flags e tornar explícitas as dependências de rede/IAM, sem criar um quarto módulo obrigatório agora.
 
-O `TerraformStack` seleciona a versão da configuração em `spec.configuration.version`, campo aceito pelo CRD e utilizado na primeira stack real de rede. Após o merge de alterações em `config/`, a CI publica uma release SemVer imutável da configuração e abre um PR de promoção. Pelo tipo de stack e pela hierarquia global → entidade → ambiente, o PR atualiza `spec.configuration.version` uma vez em cada manifesto afetado. Uma alteração em `config/br/uat/network.yaml` seleciona a rede de BR/UAT. Uma alteração em `config/br/network.yaml` seleciona as redes de BR. Uma alteração em `config/network.yaml` seleciona as redes de todas as entidades consumidoras, inclusive BR e CL no exemplo. As stacks EKS continuam na versão anterior. Uma sobrescrita local pode resultar em plan sem mudanças. Após o merge e o sync dos CRs pelo Argo CD, cada nova geração inicia seu próprio plan. Para retroceder uma stack, promover nela uma release anterior e revisar o novo plano. O executor disponibiliza, no diretório de trabalho, os arquivos do commit selecionado antes de iniciar o Terraform. O `environment.yaml` registra o destino AWS, e a plataforma resolve as credenciais, as roles e o backend autorizados para esse destino.
+Na Etapa 09, o monorepo usa `main` como origem de `latest`. Os manifestos do lab omitem `configuration.version` e `sourceRef.version`. O merge de configuração seleciona as stacks consumidoras conforme arquivo e escopo de herança. A automação proposta registra no GitOps o SHA em uma anotação por stack. O controller deverá observar essa anotação além de `generation`, pois uma mudança apenas em metadados preserva a geração. Cada Workflow disparado pelo merge fixa o SHA sinalizado para carregar código e YAMLs. Na execução inicial sem sinal de merge, resolve `main` uma vez antes do plan. O apply usa o binário aprovado. Releases por componente e promoção explícita de versões ficam para a evolução do lab. O `environment.yaml` registra o destino AWS, e a plataforma resolve as credenciais, as roles e o backend autorizados para esse destino.
 
-Na Etapa 09, os testes do módulo auxiliar cobrem os três níveis de herança, a preservação dos campos vizinhos, a substituição de listas e a rejeição de valores incompatíveis com o schema. A validação do fluxo confirma que promover outra revisão muda os valores do próximo plan e preserva a versão da stack.
+Na Etapa 09, os testes do módulo auxiliar cobrem os três níveis de herança, a preservação dos campos vizinhos, a substituição de listas e a rejeição de valores incompatíveis com o schema. A validação do fluxo confirma que um commit que altera apenas o YAML muda os valores do próximo plan com a mesma imagem e o mesmo conteúdo de código Terraform.
 
 ## Decisão 2 — GitOps aplica a intenção; Argo Workflows executa Terraform
 
@@ -86,6 +86,8 @@ Backstage / CLI / pessoa → PR + validações + aprovação Git
 ### Executor Argo, identidade do destino e isolamento
 
 **Decisão:** manter o `TerraformStack Controller` próprio com **Argo Workflows** como executor/orquestrador; não substituir pelo Tofu Controller nem criar um segundo Runner Controller. O controller observa o CR, resolve o destino autorizado e cria um Workflow governado. O Argo cria **Pods efêmeros** para executar a imagem Terraform Executor nos passos de `plan`, policy, revalidação, `apply` e `verify`.
+
+O controller usa o mesmo contrato e a mesma imagem no 06B e em UAT. O catálogo e o registro de destino determinam a stack, o backend e a identidade usada pelo executor. No 06B, o provider Kubernetes usa a ServiceAccount local para materializar as entradas de Network. Na AWS, os Pods do executor obtêm a sessão temporária de origem e assumem a role autorizada do destino. A reconciliação, as decisões do Workflow e a publicação de status seguem o mesmo fluxo.
 
 Identidades **distintas e complementares**:
 
@@ -119,7 +121,7 @@ spec:
 
 **Contrato atualizado:** manter `TerraformStack` como API genérica de stacks completas e aceitar `spec.sourceRef.name/path/version` como referência à **fonte versionada e aprovada**. `sourceRef.version` opcional (`latest` por padrão) resolve Registry ou Git a uma versão/commit imutável no executor real; `configuration.version` também pode ser omitido para resolver `latest`, com pin antes do plan. O source é resolvido no catálogo sob controle do Platform Team e não aceita URL arbitrária/credenciais. A revisão de código da stack e a revisão de `configuration` são independentes e ficam fixadas em cada execução. O CRD v1alpha1 exige exclusivamente `sourceRef`; o controller da Etapa 06 usa esse contrato em **simulação**, mas a resolução remota e a execução real seguem pendentes. Não dependemos do `GitRepository` de Flux.
 
-**Dois controles de destruição já presentes no CRD, porém sem execução de destroy até a Etapa 25; ambos sujeitos ao Policy Engine e à aprovação humana:**
+**Dois controles de destruição já presentes no CRD, com execução local na Etapa 06B e validação na AWS na Etapa 25; ambos sujeitos ao Policy Engine e à aprovação humana:**
 
 - `spec.lifecycle.destroy: true`: solicita um `plan -destroy` e um `apply` **do mesmo plano aprovado**, mantendo o CR para acompanhar o resultado. Não reaproveitar aprovação de apply anterior.
 - `spec.lifecycle.destroyResourcesOnDeletion: true`: habilita a **intenção** de teardown no momento da exclusão do CR. O default é `false`; excluir YAML/CR não constitui aprovação. O controller usa finalizer, snapshot imutável de source/config/destino/state e Workflow com aprovação de identidade verificável. Quando não autorizado, bloqueia sem destruir. Uma solução separada e auditada para `orphan/retain` deverá ser estudada para falhas e CRs presos em deletion.
@@ -132,10 +134,12 @@ Outros campos já validados pelo schema: `spec.suspend`, `spec.reconciliation.re
 
 ## Decisão 3 — três etapas incrementais da POC
 
+A Etapa 06B valida primeiro o ciclo completo no `kind` com Terraform real, OPA, aprovação, destroy, drift periódico e status, usando apenas recursos locais. As Etapas 09, 24 e 25 retomam esses mecanismos no contexto AWS.
+
 ### Etapa 09 — Deploy declarativo ponta a ponta com aprovação
 
 - Aplicar `TerraformStack` pelo GitOps central (ou diretamente na API para teste local), e ver o controller iniciar Workflow/plan.
-- **Toda execução de apply exige aprovação humana explícita do plano** até a evolução prevista na Etapa 25. Auto apply só será avaliado com política versionada.
+- **Toda execução de apply na AWS exige aprovação humana explícita do plano** até a evolução prevista na Etapa 25. Auto apply só será avaliado com política versionada.
 - Validar schema, autorização, idempotência por generation/revisão, erros/retry, status e evidências. A Etapa 06 exercita o executor simulado. A Etapa 09 aplica a rede UAT com state segregado, lock, plano imutável e aprovação vinculada a hash, revisão Git e destino. O mesmo fluxo de aprovação atende às stacks de EKS.
 
 O passo de política do Workflow executa OPA com regras Rego versionadas sobre `terraform show -json` do plano salvo. No aceite, um plano permitido chega à pausa de aprovação humana e um plano com abertura de SSH para `0.0.0.0/0` termina bloqueado antes do apply. Exercitar o caso bloqueado somente até a decisão. Erro de avaliação ou decisão ausente também bloqueia. Registrar motivo, revisão da política e hash do plano, mantendo o JSON em armazenamento restrito. Após aprovação, o executor aplica o mesmo plano binário.

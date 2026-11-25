@@ -1,4 +1,7 @@
 # Perfil UAT: ativar PCI somente quando houver aprovação e orçamento.
 eks:
+  publishParameterStore: true
   clusters:
+    management: true
+    nonPci: false  # habilitar na Etapa 11
     pci: false

@@ -1,4 +1,5 @@
 # Sobrescrita de UAT: mantém network.vpc.enabled e DNS do baseline.
 network:
+  publishParameterStore: true
   vpc:
     cidr: 10.81.0.0/16

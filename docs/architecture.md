@@ -9,7 +9,7 @@
 
 A POC demonstra uma plataforma **Kubernetes-native** de governança central e consumo federado. Existem duas dimensões distintas:
 
-- **Planos:** Experience Layer, Control Plane, Workflow Plane, Observability Plane e Data Plane. Os três planos técnicos centrais coexistem no **Platform Management Cluster**, inicialmente `kind`.
+- **Planos:** Experience Layer, Control Plane, Workflow Plane, Observability Plane e Data Plane. Os três planos técnicos centrais coexistem no **Platform Management Cluster**, em `kind` durante o desenvolvimento pontual e em um Hub EKS na conta da plataforma antes de provisionar os clusters das spokes.
 - **Quatro camadas de ownership:** **Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications**. Elas classificam responsabilidade de mudança e lifecycle, **não** representam planos ou clusters adicionais.
 
 A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) é o contexto de uma conta AWS. O **Domain** é a unidade lógica de negócio, consumo, ownership e governança: possui Capabilities e aplicações em um ou mais Environments. **Capability** é o produto técnico provisionável, como `ObjectStorage`.
@@ -191,7 +191,7 @@ O Bootstrap Terraform central é reutilizado por configuração de Entity/Enviro
 2. **Etapas 07 a 09 — Primeira execução na AWS.** Registrar UAT, validar a identidade do executor e preparar o backend de estado. Gerar o plano da rede, obter aprovação humana vinculada ao plano e aplicar o mesmo artefato.
 3. **Etapas 24 e 25 — Drift e reconciliação por políticas.** Detectar drift numa stack aplicada e publicá-lo no status antes de habilitar qualquer remediação. Em seguida, aplicar decisões versionadas e auditáveis para auto apply autorizado, aprovação obrigatória ou bloqueio.
 
-O schema inicial do CRD é validado na Etapa 05 e a implementação do Policy Engine na Etapa 25. O Argo CD central sincroniza o CR Kubernetes. Argo Workflows executa os passos de plan, aprovação e apply.
+O schema inicial do CRD é validado na Etapa 05 e o Policy Engine é exercitado localmente na Etapa 06B e em AWS na Etapa 25. O Argo CD central sincroniza o CR Kubernetes. Argo Workflows executa os passos de plan, aprovação e apply.
 
 ### Domain Infrastructure: Argo CD central + Crossplane
 

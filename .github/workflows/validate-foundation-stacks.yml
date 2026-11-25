@@ -1,0 +1,26 @@
+name: Validate Foundation stacks
+on:
+  pull_request:
+    paths:
+      - 'foundation/**'
+      - '.github/workflows/validate-foundation-stacks.yml'
+permissions:
+  contents: read
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        stack: [network, eks]
+    defaults:
+      run:
+        working-directory: foundation/stacks/${{ matrix.stack }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+      - run: terraform init -backend=false
+      - run: terraform validate
+      - if: matrix.stack == 'network'
+        run: terraform test

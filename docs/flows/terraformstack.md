@@ -94,7 +94,7 @@ spec:
 - **`dependsOn`:** antes de iniciar um novo plan/apply de `eks-management-uat`, o controller verifica que `network-uat` está `Ready` para sua `observedGeneration` atual. Dependências devem ser referenciadas por nome estável, resolvidas e autorizadas; o padrão inicial limita a referência ao mesmo namespace e `Entity/Environment`. Referências ausentes, não prontas e ciclos bloqueiam a execução com condição/motivo observável. Uma mudança de dependência pode reavaliar a stack dependente, mas **não autoriza apply automático**.
 - **`driftCheckInterval`:** define a frequência desejada de **verificação**, não de aplicação. O controller agenda a próxima checagem apenas para stacks elegíveis, com agendamento persistente, dispersão (*jitter*) e deduplicação; uma checagem sobre state ocupado não inicia execução concorrente. Expor última/próxima checagem e resultado em status, sem dados sensíveis.
 - **Gatilhos distintos:** alteração declarada no Git, solicitação manual autorizada por annotation e checagem periódica. Reconcile do Kubernetes não executa Terraform indiscriminadamente.
-- **Etapas:** `dependsOn` está previsto para o provisionamento sequenciado dos EKS nas Etapas 10–11; `driftCheckInterval` entra com verificação real na Etapa 24 e continua sujeito à política da Etapa 25.
+- **Etapas:** `dependsOn` está previsto para o provisionamento sequenciado dos EKS nas Etapas 10–11; `driftCheckInterval` entra com verificação na AWS na Etapa 24 e continua sujeito à política da Etapa 25.
 
 
 ### 3.2 Evolução do contrato: sourceRef, destroy e controles operacionais
@@ -164,7 +164,7 @@ Referências externas: [Tofu Controller API](https://flux-iac.github.io/tofu-con
 
 A execução é **event-driven e governada**; um reconcile do Kubernetes não deve gerar `terraform apply` indiscriminadamente. A implantação inicial do controller poderá simular esse fluxo sem realizar chamadas AWS.
 
-Na Etapa 09, a CI de Configuration publica uma release SemVer e propõe a promoção de `spec.configuration.version` nas stacks consumidoras. O sync dispara o plan pela nova geração. O passo OPA avalia o JSON do plano salvo e encaminha planos permitidos para aprovação humana. Uma violação ou erro encerra a execução antes do apply.
+Na Etapa 09, a configuração acompanha `main` (`latest`). O fluxo previsto registra o SHA do merge em uma anotação GitOps das stacks afetadas. O controller observa a anotação após o sync e inicia uma execução para o commit sinalizado. O passo OPA avalia o JSON do plano salvo e encaminha planos permitidos para aprovação humana. Uma violação ou erro encerra a execução antes do apply.
 
 ### 4.1 Três caminhos após Policy Evaluation
 
@@ -174,7 +174,7 @@ Na Etapa 09, a CI de Configuration publica uma release SemVer e propõe a promo�
 | **Require Approval** | Mudança sensível ou política exige análise humana | Pausa no Argo Workflows → aprovação vinculada ao plano → Apply → Verify | `Ready` ou falha documentada |
 | **Deny / Block** | Operação proibida, destino inválido ou violação de política | **Não executar apply** | `Blocked` com motivo verificável |
 
-**Limite do roadmap:** até a Etapa 09, todo `apply` real exige **aprovação humana**. A decisão automática passa a ser implementada/validada somente na **Etapa 25**, com regras explícitas e testadas; o desenho mostra a **arquitetura-alvo**, não um Auto Apply já liberado.
+**Aceite na AWS:** até a Etapa 09, todo `apply` na AWS exige **aprovação humana**. A decisão automática já exercitada no kind na Etapa 06B chega à AWS na **Etapa 25**, com regras explícitas e testadas; o desenho mostra a **arquitetura-alvo**, não um Auto Apply já liberado.
 
 Exemplos ilustrativos de decisão:
 
@@ -337,8 +337,9 @@ A publicação e distribuição dos **outputs selecionados** do Terraform, por e
 | --- | --- |
 | **05** | CRD `TerraformStack`, schema e `status.conditions` disponíveis, com dry-run local |
 | **06** | Controller, WorkflowTemplate e executor **simulados** no `kind` |
+| **06B** | Ciclo completo local com Terraform real, OPA, drift, destroy e status |
 | **07–08** | Registro de UAT, identidade, backend, state e autorização |
-| **09** | Promoção de Configuration por stack, plan real de rede UAT, OPA com bloqueio ou aprovação humana e apply do plano aprovado |
+| **09** | Mudança de Configuration na `main` por stack, plan real de rede UAT, OPA com bloqueio ou aprovação humana e apply do plano aprovado |
 | **10–11** | Reutilização do fluxo para EKS Management e Non-PCI |
 | **13** | Publicação seletiva de outputs e consumo via GitOps Bridge, sem alterar a política de aprovação |
 | **24** | Drift detection, sem remediação |
