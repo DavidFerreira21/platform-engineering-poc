@@ -14,6 +14,8 @@ O [roteiro prático](../docs/learning-roadmap.md) reúne as oito fases e o aceit
 | **07** | [Registro e validação de UAT](07-registro-ambientes-aws.md) |
 | **08** | [Identidade temporária do Terraform Executor no kind](08-identidade-executor-aws.md) |
 
+**Próximo marco após o Lab 06.** A [Etapa 06B no roadmap](../docs/learning-roadmap.md#etapa-06b--terraformstack-de-ponta-a-ponta-no-kind) especifica o aceite local do TerraformStack antes dos guias AWS 07 e 08. A implementação e o guia executável do 06B estão planejados.
+
 ## Como ler e reproduzir uma etapa
 
 Os guias registram como a POC foi construída e por que cada decisão entrou naquele ponto. **Objetivo** e **O que será feito** delimitam o exercício. **Por que fizemos assim** explica a escolha. **O que observar** liga o resultado aos sinais do sistema. Os comandos reproduzem a construção e verificam o comportamento esperado. As orientações de diagnóstico ajudam a investigar problemas que apareçam durante o percurso.
