@@ -28,7 +28,7 @@ Os valores são inteiros positivos em segundos. O polling relê a stack e o Work
 
 ### Eleição de líder opcional
 
-O Deployment usa uma réplica e `LEADER_ELECTION_ENABLED=false` por padrão. Para experimentar a troca de líder, habilite a variável no Deployment antes de aumentar o número de réplicas. Os Pods disputam a Lease `terraformstack-controller` em `platform-system`. Só o líder inicia os watches e reconcilia. A Lease dura 30 segundos, com tentativa de renovação a cada 2 segundos e prazo local de 15 segundos. Se o Pod perder o prazo de renovação, encerra o reconciliador. O sucessor relê a stack e retoma o Workflow existente. Os Workflows já criados continuam no Argo.
+O Deployment usa uma réplica e `LEADER_ELECTION_ENABLED=false` por padrão. Para experimentar a troca de líder, habilite a variável no Deployment antes de aumentar o número de réplicas. O bootstrap do Hub cria a Lease `terraformstack-controller` em `platform-system`. O Argo CD exclui recursos `Lease` do sync por padrão. Os Pods disputam a Lease criada pelo bootstrap. Só o líder inicia os watches e reconcilia. A Lease dura 30 segundos, com tentativa de renovação a cada 2 segundos e prazo local de 15 segundos. Se o Pod perder o prazo de renovação, encerra o reconciliador. O sucessor relê a stack e retoma o Workflow existente. Os Workflows já criados continuam no Argo.
 
 Em um teste dedicado, use duas réplicas e um Workflow do lab em andamento. Consulte `hub -n platform-system get lease terraformstack-controller -o yaml`, identifique o Pod pelo UID em `spec.holderIdentity` e remova esse Pod. Confira a troca de titular e o resultado no status da stack. Deve existir um único Workflow para o UID e a geração observados. Volte a uma réplica antes de desabilitar a eleição.
 
@@ -53,7 +53,7 @@ kubectl kustomize control-plane/terraformstack/demo/lab06 | hub apply --dry-run=
 hub apply -f platform/hub/addons/bootstrap.yaml
 ```
 
-No Argo CD, abra **terraformstack-controller**. Confira a revisão `main`, o destino Hub local e o diff esperado com um Deployment, uma ServiceAccount, duas Roles, dois RoleBindings, uma Lease e um WorkflowTemplate. Sincronize manualmente e confirme a disponibilidade:
+No Argo CD, abra **terraformstack-controller**. Confira a revisão `main`, o destino Hub local e o diff esperado com um Deployment, uma ServiceAccount, duas Roles, dois RoleBindings e um WorkflowTemplate. Sincronize manualmente e confirme a disponibilidade:
 
 ```bash
 hub -n platform-system rollout status deployment/terraformstack-controller --timeout=120s

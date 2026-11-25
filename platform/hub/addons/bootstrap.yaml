@@ -106,8 +106,6 @@ spec:
       kind: RoleBinding
     - group: argoproj.io
       kind: WorkflowTemplate
-    - group: coordination.k8s.io
-      kind: Lease
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
@@ -124,6 +122,12 @@ spec:
   namespaceResourceWhitelist:
     - group: platform.example.io
       kind: TerraformStack
+---
+apiVersion: coordination.k8s.io/v1
+kind: Lease
+metadata:
+  name: terraformstack-controller
+  namespace: platform-system
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
