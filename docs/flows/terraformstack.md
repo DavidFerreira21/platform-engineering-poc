@@ -78,7 +78,7 @@ Os valores de módulos previstos em `config/` têm precedência **global → Ent
 
 ### 3.1 Dependências e intervalo de drift — evolução do contrato
 
-A arquitetura passa a prever dois recursos inspirados em controladores de infraestrutura existentes: **dependências explícitas entre stacks** e **intervalo configurável para verificação periódica**. Eles serão adicionados ao schema somente nas etapas de implementação correspondentes. **Não são campos disponíveis no CRD v1alpha1 da Etapa 05.**
+A arquitetura passa a prever dois recursos inspirados em controladores de infraestrutura existentes: **dependências explícitas entre stacks** e **intervalo configurável para verificação periódica**. Eles serão adicionados ao schema somente nas etapas de implementação correspondentes. **Os campos já foram adicionados ao CRD v1alpha1, mas os comportamentos continuam planejados para as etapas correspondentes.**
 
 Exemplo **conceitual**, ainda não aplicável ao CRD:
 
@@ -98,7 +98,7 @@ spec:
 
 ### 3.2 Evolução do contrato: sourceRef, destroy e controles operacionais
 
-A POC **mantém** o CRD genérico `kind: TerraformStack`, o controller próprio e Argo Workflows. As propriedades a seguir são **proposta de contrato futuro**, **não** são suportadas pelo schema v1alpha1 existente da Etapa 05. Não copiar o CRD do Tofu Controller nem criar dependência obrigatória de Flux.
+A POC **mantém** o CRD genérico `kind: TerraformStack`, o controller próprio e Argo Workflows. As propriedades a seguir são **contrato já aceito no schema v1alpha1**, porém **não são funcionalidades implementadas** no controller do laboratório 06. Não copiar o CRD do Tofu Controller nem criar dependência obrigatória de Flux.
 
 ```yaml
 apiVersion: platform.example.io/v1alpha1
@@ -112,9 +112,9 @@ spec:
   sourceRef:
     name: foundation-stacks     # fonte do catálogo aprovada
     path: stacks/network        # raiz da stack, pode compor vários módulos
-    revision: "<git-commit-sha>" # revisão imutável
+    version: "1.2.3"          # opcional; omitido significa latest
   configuration:
-    revision: "<config-commit-sha>"
+    revision: "<config-commit-sha>" # opcional; omitido significa latest
   dependsOn: []
   suspend: false
   reconciliation:
@@ -128,7 +128,7 @@ spec:
     destroyResourcesOnDeletion: false
 ```
 
-**Regras de sourceRef:** a referência lógica é resolvida em catálogo confiável de fontes de stacks, com repositório Git/OCI e revisões permitidos; o consumidor não escolhe URL arbitrária, credenciais, módulos fora do catálogo ou caminho que escape do diretório permitido. `path` identifica a raiz da **stack completa** (por exemplo, Network ou EKS), não um único módulo Terraform. `revision` deve ser imutável na execução real. O campo inicial `spec.module.name/version` continua válido na Etapa 05; a migração para `sourceRef` exige versionamento do schema e atualização do controller/exemplos, **sem remover campos já aceitos inadvertidamente**. `configuration.revision` fixa separadamente os YAMLs hierárquicos daquela execução. Ainda não está decidido se a fonte usará uma referência de catálogo interna ou um objeto Kubernetes dedicado; nenhuma integração Flux é presumida.
+**Regras de sourceRef:** a referência lógica é resolvida em catálogo confiável de fontes de stacks, com repositório Git/OCI e revisões permitidos; o consumidor não escolhe URL arbitrária, credenciais, módulos fora do catálogo ou caminho que escape do diretório permitido. `path` identifica a raiz da **stack completa** (por exemplo, Network ou EKS), não um único módulo Terraform. `version` é opcional: ausente ou `latest` seleciona a versão mais recente **permitida pelo catálogo**, mas o executor deverá resolvê-la uma única vez para um commit/digest imutável por Workflow. Para Git, tag/ref também deve ser resolvida a commit; para Registry, versão publicada a um artefato verificável. O formato legado `spec.module.name/version` continua aceito pelo CRD como alternativa a `sourceRef`, **nunca simultaneamente**. A simulação da Etapa 06 aceita ambos; a execução real ainda precisará resolver fontes Git/Registry e fixar a versão/commit antes do plan. `configuration.revision` fixa separadamente os YAMLs hierárquicos daquela execução. Ainda não está decidido se a fonte usará uma referência de catálogo interna ou um objeto Kubernetes dedicado; nenhuma integração Flux é presumida.
 
 **Lifecycle e controles propostos:**
 
@@ -147,7 +147,7 @@ spec:
 
 **Campos que não exporemos inicialmente:** seleção livre de `serviceAccountName`, AWS Role ARN, backend, `forceUnlock`, `targets` e credenciais no manifesto. São poderes de execução ou operações de recuperação sensíveis; permanecem na configuração administrada da plataforma e em operações privilegiadas, nunca como bypass de política. Variáveis e feature flags vêm preferencialmente do módulo Configuration e de sua revisão aprovada.
 
-**Sequência:** documentar o contrato agora; prototipar leitura e validação de referências/suspensão no controller das Etapas 06–09 conforme necessário; utilizar `sourceRef` imutável nas stacks Network/EKS; construir o fluxo real de `plan -destroy`, finalizer, autorização, tratamento de dependências e recuperação na **Etapa 25**, junto ao motor de políticas. `driftCheckInterval` real permanece na **Etapa 24**. Para usar destroy em cleanup de laboratório antes da Etapa 25, recorrer a procedimento **manual e explicitamente autorizado**, fora da reconciliação automática do CR.
+**Sequência:** o schema e o simulador da Etapa 06 já aceitam a referência e a suspensão, sem resolução real de versões nem execução AWS; utilizar `sourceRef` imutável nas stacks Network/EKS; construir o fluxo real de `plan -destroy`, finalizer, autorização, tratamento de dependências e recuperação na **Etapa 25**, junto ao motor de políticas. `driftCheckInterval` real permanece na **Etapa 24**. Para usar destroy em cleanup de laboratório antes da Etapa 25, recorrer a procedimento **manual e explicitamente autorizado**, fora da reconciliação automática do CR.
 
 Referências externas: [Tofu Controller API](https://flux-iac.github.io/tofu-controller/References/terraform/) · [Destroy on deletion](https://flux-iac.github.io/tofu-controller/use-tf-controller/provision-resources-and-destroy-them-when-terraform-object-gets-deleted/).
 
