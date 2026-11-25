@@ -41,7 +41,7 @@ jobs:
           terraform_version: 1.13.5
       - name: Validar Terraform e smoke stack sem backend AWS
         run: |
-          terraform fmt -check -recursive foundation/modules/configuration foundation/lab08/validation-stack
+          terraform fmt -diff -check -recursive foundation/modules/configuration foundation/lab08/validation-stack
           terraform -chdir=foundation/lab08/validation-stack init -backend=false -input=false
           terraform -chdir=foundation/lab08/validation-stack validate -no-color
       - name: Validar scripts e manifestos do Lab 08
