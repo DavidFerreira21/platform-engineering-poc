@@ -111,7 +111,7 @@ spec:
 - `driftCheckInterval`: o controller agenda um `plan` de verificação idempotente, com `lastCheckAt` / `nextCheckAt`, jitter, deduplicação e proteção contra execuções concorrentes no mesmo state. **Intervalo é para detectar, não para corrigir automaticamente**; Etapa 24 detecta e relata, Etapa 25 aplica as políticas vigentes.
 - Reconcile por evento Git, retry explícito por annotation e checagem agendada são gatilhos diferentes. Não tratar toda notificação Kubernetes como ordem de executar Terraform.
 
-**Fases da implementação:** Etapa 06 exercita resolução de dependências e criação de Workflow **simulados**; Etapa 08 implementa a identidade AWS; Etapa 09 prova a execução real com aprovação; Etapas 10–11 usam `dependsOn` em rede → EKS; Etapa 24 ativa intervalo de drift.
+**Fases da implementação:** Etapa 06 exercita a criação idempotente de Workflow e a atualização do status com **execução simulada**; Etapa 08 implementa a identidade AWS; Etapa 09 prova a execução real com aprovação; Etapas 10–11 usam `dependsOn` em rede → EKS; Etapa 24 ativa intervalo de drift.
 
 [Detalhamento do fluxo e da identidade](../flows/terraformstack.md#43-executor-por-pods-do-argo-workflows-e-identidade-aws).
 
@@ -173,7 +173,7 @@ O código, a pipeline CI/CD **e os manifests Kubernetes da aplicação de exempl
 ## Faseamento e pendências
 
 - **Etapa 05.** A Application `terraformstack-crd` entrega o CRD pelo catálogo do Hub. A API Kubernetes valida exemplos com dados fictícios.
-- **Etapa 06.** A Application `terraformstack-controller` entrega o controller e o `WorkflowTemplate`. Com ambos disponíveis, o Argo CD sincroniza a solicitação de exemplo e o controller cria Workflow simulado, validando dependências, concorrência e status. [Divisão das Applications](0003-reconciliation-and-gitops.md#applications-e-sincronização-no-hub)
+- **Etapa 06.** A Application `terraformstack-controller` entrega o controller e o `WorkflowTemplate`. A Application `terraformstack-demo` sincroniza a solicitação de exemplo após a instalação do controller. O controller cria um Workflow simulado por geração e publica o resultado no status. [Guia da Etapa 06](../../labs/06-terraformstack-controller.md) [Divisão das Applications](0003-reconciliation-and-gitops.md#applications-e-sincronização-no-hub)
 - **Etapas 07 e 08.** Registro de UAT, identidade temporária do executor (incluindo bootstrap seguro no Hub kind), resolução de STS cross-account e inicialização autorizada do backend de estado.
 - **Etapa 09.** Rede UAT aplicada com a revisão dos YAMLs selecionada na stack, state segregado, lock e aprovação humana do plano imutável.
 - **Etapas 10–11.** Validar dependência explícita das stacks de EKS em relação à rede UAT.

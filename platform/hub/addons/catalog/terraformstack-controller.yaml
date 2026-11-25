@@ -1,0 +1,7 @@
+name: terraformstack-controller
+project: platform-terraformstack-controller
+namespace: platform-system
+source:
+  repoURL: https://github.com/DavidFerreira21/platform-engineering-poc.git
+  targetRevision: main
+  path: control-plane/terraformstack/lab06

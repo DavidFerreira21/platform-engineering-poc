@@ -10,6 +10,7 @@ O [roteiro prático](../docs/learning-roadmap.md) reúne as oito fases e o aceit
 | **03** | [Argo Workflows](03-argo-workflows.md) |
 | **04** | [Crossplane Core](04-crossplane-core.md) |
 | **05** | [API do TerraformStack via GitOps](05-terraformstack-crd.md) |
+| **06** | [Controller do TerraformStack e executor simulado](06-terraformstack-controller.md) |
 | **07** | [Registro e validação de UAT](07-registro-ambientes-aws.md) |
 
 ## Como ler e reproduzir uma etapa

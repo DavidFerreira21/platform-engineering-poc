@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: terraformstack-plan-simulado
+  namespace: argo-workflows
+spec:
+  entrypoint: plan-simulado
+  serviceAccountName: argo-workflow
+  activeDeadlineSeconds: 180
+  arguments:
+    parameters:
+      - name: module
+      - name: version
+      - name: entity
+      - name: environment
+  templates:
+    - name: plan-simulado
+      container:
+        image: docker.io/library/busybox:1.37.0
+        command: [echo]
+        args:
+          - "lab06-plan-simulado: módulo={{workflow.parameters.module}} versão={{workflow.parameters.version}} destino={{workflow.parameters.entity}}/{{workflow.parameters.environment}}"

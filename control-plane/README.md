@@ -15,7 +15,7 @@ Crossplane **não observa diretamente Git**. O **Argo CD central sincroniza CRs 
 
 ## TerraformStack
 
-O Control Plane publica o CRD **`TerraformStack`** para expressar a **infraestrutura desejada** de Foundation e Entity Core. O controller entra na Etapa 06. Na arquitetura-alvo, o Argo CD central sincroniza a solicitação, e o controller coordena os planos via Argo Workflows e Terraform Executor. Drift e reconciliação por políticas entram nas Etapas 18 e 19. `TerraformRun` é o nome opcional de uma execução isolada. [Guia da Etapa 05](../labs/05-terraformstack-crd.md)
+O Control Plane publica o CRD **`TerraformStack`** para expressar a **infraestrutura desejada** de Foundation e Entity Core. A [Etapa 06](../labs/06-terraformstack-controller.md) exercita o controller com execução simulada. Na arquitetura-alvo, o Argo CD central sincroniza a solicitação, e o controller coordena os planos via Argo Workflows e Terraform Executor. Drift e reconciliação por políticas entram nas Etapas 18 e 19. `TerraformRun` é o nome opcional de uma execução isolada. [Guia da Etapa 05](../labs/05-terraformstack-crd.md)
 
 **Admission e políticas.** Kyverno e OPA são tecnologias a avaliar. O CRD entra na Etapa 05, o controller simulado na Etapa 06 e a reconciliação por políticas na Etapa 19. [ADR-0006](../docs/adr/0006-terraformrun-and-application-ci.md)
 
