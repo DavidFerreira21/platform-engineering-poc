@@ -14,7 +14,7 @@ Publicar o contrato `TerraformStack` no Hub e observar como a API Kubernetes val
 
 ## Por que fizemos assim
 
-Publicamos o contrato em uma Application própria para inspecionar o que a API aceita antes de conectar um executor. O `spec` descreve o módulo e o destino lógico. O `/status` é a interface que o controller usará para registrar o que aconteceu com a solicitação. O dry-run permite revisitar a etapa quando o controller já estiver ativo. [ADR-0006](../docs/adr/0006-terraformrun-and-application-ci.md)
+Publicamos o contrato em uma Application própria para inspecionar o que a API aceita antes de conectar um executor. O `spec` descreve uma **stack** pela referência `sourceRef` e o destino lógico. A API também aceita o formato legado `module`, mas **não os dois no mesmo CR**. O `/status` é a interface que o controller usará para registrar o que aconteceu com a solicitação. O dry-run permite revisitar a etapa quando o controller já estiver ativo. [ADR-0006](../docs/adr/0006-terraformrun-and-application-ci.md)
 
 ## Pré-requisitos
 
@@ -55,9 +55,9 @@ hub create --dry-run=server --validate=strict \
   -f control-plane/terraformstack/demo/terraformstack.yaml -o yaml
 ```
 
-A descoberta da API lista `terraformstacks` e `terraformstacks/status`. A última saída mostra o exemplo aceito pela API. O módulo `lab-network` e o destino `entity-a/uat` são dados do exercício. A resolução dos destinos AWS entra mais adiante no roteiro. [Schema do CRD](../control-plane/terraformstack/crd/terraformstack.yaml) · [Solicitação de exemplo](../control-plane/terraformstack/demo/terraformstack.yaml)
+A descoberta da API lista `terraformstacks` e `terraformstacks/status`. A última saída mostra o exemplo aceito pela API. A fonte fictícia `foundation-stacks`, o path `stacks/lab-network` e o destino `entity-a/uat` são dados do exercício. A ausência de `sourceRef.version` e de `configuration.revision` representa `latest` no contrato; **o dry-run não resolve nenhuma versão no Registry/Git e não provisiona recursos**. A resolução dos destinos AWS entra mais adiante no roteiro. [Schema do CRD](../control-plane/terraformstack/crd/terraformstack.yaml) · [Solicitação de exemplo](../control-plane/terraformstack/demo/terraformstack.yaml)
 
-Na Etapa 09, os módulos Terraform passam a receber valores dos YAMLs em `config/`. Um módulo auxiliar resolve a herança entre padrão global, entidade e ambiente. O `TerraformStack` seleciona a revisão desses arquivos em `spec.configuration.revision`. [Decisão sobre configuração por entidade e ambiente](../docs/adr/0006-terraformrun-and-application-ci.md#configuração-por-entidade-e-ambiente)
+Nas Etapas 08–09, as stacks Terraform passam a receber valores dos YAMLs em `config/`. O módulo auxiliar Configuration resolve a herança entre padrão global, entidade e ambiente. O `TerraformStack` seleciona a revisão desses arquivos em `spec.configuration.revision`. [Decisão sobre configuração por entidade e ambiente](../docs/adr/0006-terraformrun-and-application-ci.md#configuração-por-entidade-e-ambiente)
 
 ## O que observar
 
