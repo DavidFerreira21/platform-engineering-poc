@@ -10,6 +10,8 @@ from kubernetes import client, config, watch
 from kubernetes.client.exceptions import ApiException
 from urllib3.exceptions import HTTPError
 
+from leadership import Leadership
+
 STACK = ("platform.example.io", "v1alpha1", "platform-system", "terraformstacks")
 WORKFLOW = ("argoproj.io", "v1alpha1", "argo-workflows", "workflows")
 STACK_NAME = "lab06-network"
@@ -21,7 +23,7 @@ EXERCISE_LABEL = "lab.platform.example/exercise"
 TIMEOUT = 10
 
 
-def update_condition(api, stack, state, reason, message):
+def update_condition(api, stack, state, reason, message, check_leadership):
     metadata = stack["metadata"]
     conditions = stack.get("status", {}).get("conditions", [])
     previous = next((condition for condition in conditions if condition["type"] == CONDITION), {})
@@ -40,6 +42,7 @@ def update_condition(api, stack, state, reason, message):
         return
 
     # O resourceVersion impede que uma resposta atrasada atualize outra geração.
+    check_leadership()
     api.patch_namespaced_custom_object_status(
         *STACK,
         STACK_NAME,
@@ -79,7 +82,7 @@ def workflow_for(stack):
     }
 
 
-def reconcile(api):
+def reconcile(api, check_leadership):
     try:
         stack = api.get_namespaced_custom_object(*STACK, STACK_NAME, _request_timeout=TIMEOUT)
     except ApiException as error:
@@ -102,9 +105,10 @@ def reconcile(api):
             for item in stack.get("status", {}).get("conditions", [])
         )
         if previously_observed:
-            update_condition(api, stack, "False", "WorkflowMissing", f"Workflow {name} removido.")
+            update_condition(api, stack, "False", "WorkflowMissing", f"Workflow {name} removido.", check_leadership)
             return
         # Se outra instância criou o Workflow entre GET e POST, o próximo ciclo o encontra.
+        check_leadership()
         workflow = api.create_namespaced_custom_object(*WORKFLOW, desired, _request_timeout=TIMEOUT)
         logging.info("Workflow %s criado em %s", name, WORKFLOW[2])
 
@@ -113,7 +117,9 @@ def reconcile(api):
     if any(labels.get(key) != value for key, value in expected_labels.items()) or (
         workflow["spec"].get("workflowTemplateRef") != desired["spec"]["workflowTemplateRef"]
     ):
-        update_condition(api, stack, "False", "WorkflowMismatch", f"Workflow {name} sem a correlação esperada.")
+        update_condition(
+            api, stack, "False", "WorkflowMismatch", f"Workflow {name} sem a correlação esperada.", check_leadership
+        )
         return
 
     phase = workflow.get("status", {}).get("phase") or "Pending"
@@ -122,7 +128,7 @@ def reconcile(api):
         "Failed": ("False", "WorkflowFailed"),
         "Error": ("False", "WorkflowError"),
     }.get(phase, ("Unknown", "WorkflowInProgress"))
-    update_condition(api, stack, state, reason, f"Workflow {name} em fase {phase}.")
+    update_condition(api, stack, state, reason, f"Workflow {name} em fase {phase}.", check_leadership)
 
 
 def interval(name, default):
@@ -171,6 +177,22 @@ def observe(api, resource, selector, wake, timeout, retry, revision=None):
             stream.stop()
 
 
+def lease_guard(wake):
+    enabled = os.getenv("LEADER_ELECTION_ENABLED", "false").lower()
+    if enabled not in {"true", "false"}:
+        raise ValueError("LEADER_ELECTION_ENABLED precisa ser true ou false")
+    if enabled == "false":
+        return lambda: None
+
+    lease_config = client.Configuration.get_default_copy()
+    lease_config.retries = 0
+    lease_api = client.CoordinationV1Api(client.ApiClient(lease_config))
+    leadership = Leadership(lease_api, STACK[2], os.environ["POD_UID"])
+    leadership.acquire()
+    Thread(target=leadership.renew, args=(wake,), daemon=True).start()
+    return leadership.check
+
+
 def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     poll_interval = interval("POLL_INTERVAL_SECONDS", "300")
@@ -179,6 +201,7 @@ def main():
     config.load_incluster_config()
     api = client.CustomObjectsApi()
     wake = Event()
+    check_leadership = lease_guard(wake)
     Thread(target=observe, args=(
         api, STACK, {"field_selector": f"metadata.name={STACK_NAME}"},
         wake, watch_timeout, watch_retry, stack_revision,
@@ -191,7 +214,8 @@ def main():
     while True:
         wake.clear()
         try:
-            reconcile(api)
+            check_leadership()
+            reconcile(api, check_leadership)
         except (ApiException, HTTPError) as error:
             logging.warning("Reconciliação será repetida: %s", getattr(error, "status", type(error).__name__))
         wake.wait(poll_interval)
