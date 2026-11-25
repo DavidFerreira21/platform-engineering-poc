@@ -20,6 +20,21 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check PyYAML jsonschema
           python3 -m unittest discover -s tests -p 'test_terraformstack_contract.py'
+      - name: Validar bootstrap STS e Job do Lab 08
+        run: |
+          python3 -m py_compile foundation/scripts/bootstrap-workflow-credentials.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import yaml
+          job = yaml.safe_load(Path("foundation/iam/lab08/verify-uat-executor-job.yaml").read_text())
+          assert job["kind"] == "Job"
+          assert job["metadata"]["namespace"] == "argo-workflows"
+          pod = job["spec"]["template"]["spec"]
+          assert pod["containers"][0]["envFrom"][0]["secretRef"]["name"] == "terraform-executor-bootstrap"
+          assert pod["volumes"][0]["configMap"]["name"] == "terraform-executor-aws-config"
+          assert "uat-executor" in pod["containers"][0]["args"]
+          print("Lab 08: script Python e Job de identidade válidos.")
+          PY
       - name: Validar sintaxe dos scripts bash
         run: bash -n platform/hub/scripts/create.sh platform/hub/scripts/install-traefik.sh platform/hub/scripts/verify.sh platform/hub/scripts/delete.sh
       - name: Validar YAML de exemplo e kind
