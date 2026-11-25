@@ -87,6 +87,8 @@ Backstage / CLI / pessoa → PR + validações + aprovação Git
 
 **Decisão:** manter o `TerraformStack Controller` próprio com **Argo Workflows** como executor/orquestrador; não substituir pelo Tofu Controller nem criar um segundo Runner Controller. O controller observa o CR, resolve o destino autorizado e cria um Workflow governado. O Argo cria **Pods efêmeros** para executar a imagem Terraform Executor nos passos de `plan`, policy, revalidação, `apply` e `verify`.
 
+O controller usa o mesmo contrato e a mesma imagem no 06B e em UAT. O catálogo e o registro de destino determinam a stack, o backend e a identidade usada pelo executor. No 06B, o provider Kubernetes usa a ServiceAccount local para materializar as entradas de Network. Na AWS, os Pods do executor obtêm a sessão temporária de origem e assumem a role autorizada do destino. A reconciliação, as decisões do Workflow e a publicação de status seguem o mesmo fluxo.
+
 Identidades **distintas e complementares**:
 
 - **Kubernetes:** o controller tem RBAC apenas para suas operações de controle; os Pods do Workflow usam uma `serviceAccountName` de executor reservada e protegida contra uso por Workflows arbitrários.
