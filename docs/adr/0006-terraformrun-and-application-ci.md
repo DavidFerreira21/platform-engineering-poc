@@ -28,10 +28,10 @@ A Etapa 05 publica `platform.example.io/v1alpha1` com escopo de namespace. O sch
 
 ### Configuração por entidade e ambiente
 
-O monorepo centraliza os valores dos módulos Terraform em `config/`. Cada módulo usa um arquivo próprio, como `network.yaml` ou `eks.yaml`. A composição vai do nível global para a entidade e depois para o ambiente. Esta é a estrutura prevista, usando `br` como entidade ilustrativa.
+O monorepo centraliza os valores dos módulos Terraform em `foundation/config/`. Cada módulo usa um arquivo próprio, como `network.yaml` ou `eks.yaml`. A composição vai do nível global para a entidade e depois para o ambiente. Esta é a estrutura prevista, usando `br` como entidade ilustrativa.
 
 ```text
-config/
+foundation/config/
 ├── network.yaml
 ├── eks.yaml
 └── br/
@@ -43,7 +43,7 @@ config/
 
 O nível mais específico prevalece. Os mapas combinam chaves nos níveis definidos pelo schema. Se `br/uat/network.yaml` sobrescrever apenas `vpc.cidr`, os outros campos de `vpc` continuam herdados. Uma lista declarada no nível mais específico substitui a lista anterior inteira. Uma chave ou um arquivo ausente mantém os valores já herdados.
 
-Exemplo de sobrescrita para `config/br/uat/network.yaml`.
+Exemplo de sobrescrita para `foundation/config/br/uat/network.yaml`.
 
 ```yaml
 vpc:
@@ -58,9 +58,9 @@ Um módulo auxiliar Terraform chamado `configuration` lê os YAMLs com `yamldeco
 
 **Outputs:** as stacks `network` e `eks` expõem saídas tipadas; a publicação de um subconjunto permitido para o Parameter Store da conta do Environment ocorre pelo **GitOps Bridge (Etapa 13)**, depois de apply e verificação. Não publicar state, plano ou segredos como output distribuído. A implementação deve verificar combinações de flags e tornar explícitas as dependências de rede/IAM, sem criar um quarto módulo obrigatório agora.
 
-O `TerraformStack` seleciona a versão da configuração em `spec.configuration.version`, campo aceito pelo CRD e utilizado na primeira stack real de rede. Após o merge de alterações em `config/`, a CI publica uma release SemVer imutável da configuração e abre um PR de promoção. Pelo tipo de stack e pela hierarquia global → entidade → ambiente, o PR atualiza `spec.configuration.version` uma vez em cada manifesto afetado. Uma alteração em `config/br/uat/network.yaml` seleciona a rede de BR/UAT. Uma alteração em `config/br/network.yaml` seleciona as redes de BR. Uma alteração em `config/network.yaml` seleciona as redes de todas as entidades consumidoras, inclusive BR e CL no exemplo. As stacks EKS continuam na versão anterior. Uma sobrescrita local pode resultar em plan sem mudanças. Após o merge e o sync dos CRs pelo Argo CD, cada nova geração inicia seu próprio plan. Para retroceder uma stack, promover nela uma release anterior e revisar o novo plano. O executor disponibiliza, no diretório de trabalho, os arquivos do commit selecionado antes de iniciar o Terraform. O `environment.yaml` registra o destino AWS, e a plataforma resolve as credenciais, as roles e o backend autorizados para esse destino.
+Na Etapa 09, o monorepo usa `main` como origem de `latest`. Os manifestos do lab omitem `configuration.version` e `sourceRef.version`. O merge de configuração seleciona as stacks consumidoras conforme arquivo e escopo de herança. A automação proposta registra no GitOps o SHA em uma anotação por stack. O controller deverá observar essa anotação além de `generation`, pois uma mudança apenas em metadados preserva a geração. Cada Workflow disparado pelo merge fixa o SHA sinalizado para carregar código e YAMLs. Na execução inicial sem sinal de merge, resolve `main` uma vez antes do plan. O apply usa o binário aprovado. Releases por componente e promoção explícita de versões ficam para a evolução do lab. O `environment.yaml` registra o destino AWS, e a plataforma resolve as credenciais, as roles e o backend autorizados para esse destino.
 
-Na Etapa 09, os testes do módulo auxiliar cobrem os três níveis de herança, a preservação dos campos vizinhos, a substituição de listas e a rejeição de valores incompatíveis com o schema. A validação do fluxo confirma que promover outra revisão muda os valores do próximo plan e preserva a versão da stack.
+Na Etapa 09, os testes do módulo auxiliar cobrem os três níveis de herança, a preservação dos campos vizinhos, a substituição de listas e a rejeição de valores incompatíveis com o schema. A validação do fluxo confirma que um commit que altera apenas o YAML muda os valores do próximo plan com a mesma imagem e o mesmo conteúdo de código Terraform.
 
 ## Decisão 2 — GitOps aplica a intenção; Argo Workflows executa Terraform
 
