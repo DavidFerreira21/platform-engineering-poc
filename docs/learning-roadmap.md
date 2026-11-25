@@ -86,6 +86,8 @@ Construir uma aplicação **mínima e funcional** usando a infraestrutura pronta
 
 **Responsabilidades:** Platform Team oferece ECR, workflow/template reutilizável, RBAC e guardrails; a squad é owner do código, da versão e do release da aplicação; DevOps Federado é owner das solicitações de Capabilities. A pipeline **não faz `kubectl apply` imperativo**. Manifests e código permanecem inicialmente no mesmo repositório da aplicação, para reduzir complexidade. O deploy pode usar Helm ou Kustomize com defaults mantidos pela plataforma; não criar agora um CRD `Application` próprio.
 
+**Decisão técnica ainda aberta para a Etapa 20:** escolher se o repositório ECR ficará na conta de plataforma ou na conta do Environment. O critério é permitir publicação autorizada por OIDC e pull da mesma imagem pelo EKS Non-PCI; se for cross-account, validar IAM e repository policy antes do deploy. Não decidir isso implicitamente pelo desenho do fluxo.
+
 **Marco da fase:** uma alteração de código gera uma imagem versionada no ECR e chega ao Non-PCI via GitOps, usando Aurora e S3 reais. O objetivo aqui é implementar e validar a entrega; **a experiência self-service das três personas será demonstrada na Fase 8**, sem criar outra pipeline.
 
 ## Fase 6 — Observabilidade, operação e governança
