@@ -93,7 +93,7 @@ spec:
 - **`dependsOn`:** antes de iniciar um novo plan/apply de `eks-management-uat`, o controller verifica que `network-uat` está `Ready` para sua `observedGeneration` atual. Dependências devem ser referenciadas por nome estável, resolvidas e autorizadas; o padrão inicial limita a referência ao mesmo namespace e `Entity/Environment`. Referências ausentes, não prontas e ciclos bloqueiam a execução com condição/motivo observável. Uma mudança de dependência pode reavaliar a stack dependente, mas **não autoriza apply automático**.
 - **`driftCheckInterval`:** define a frequência desejada de **verificação**, não de aplicação. O controller agenda a próxima checagem apenas para stacks elegíveis, com agendamento persistente, dispersão (*jitter*) e deduplicação; uma checagem sobre state ocupado não inicia execução concorrente. Expor última/próxima checagem e resultado em status, sem dados sensíveis.
 - **Gatilhos distintos:** alteração declarada no Git, solicitação manual autorizada por annotation e checagem periódica. Reconcile do Kubernetes não executa Terraform indiscriminadamente.
-- **Etapas:** `dependsOn` entra no teste do controller simulado da Etapa 06 e no provisionamento sequenciado dos EKS nas Etapas 10–11; `driftCheckInterval` entra com verificação real na Etapa 24 e continua sujeito à política da Etapa 25.
+- **Etapas:** `dependsOn` está previsto para o provisionamento sequenciado dos EKS nas Etapas 10–11; `driftCheckInterval` entra com verificação real na Etapa 24 e continua sujeito à política da Etapa 25.
 
 
 ## 4. Fluxo A — provisionamento e mudança desejada

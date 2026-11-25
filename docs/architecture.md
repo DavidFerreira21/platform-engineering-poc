@@ -22,7 +22,7 @@ A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) �
 
 ![Diagrama de arquitetura de referência com Hub, contas AWS UAT/PROD, quatro camadas e três personas](arquitetura%20Plataform.png)
 
-[**Abrir diagrama em tamanho completo**](arquitetura%20Plataform.png) · O diagrama é **arquitetura-alvo**; não confirma recursos implantados. O contrato inicial `TerraformStack` está versionado na Etapa 05. O controller e os mecanismos de política e drift são entregas posteriores. GitHub Actions de aplicações opera fora do Hub.
+[**Abrir diagrama em tamanho completo**](arquitetura%20Plataform.png) · O diagrama é **arquitetura-alvo**; não confirma recursos implantados. O contrato inicial `TerraformStack` está versionado na Etapa 05. O controller simulado está disponível na [Etapa 06](../labs/06-terraformstack-controller.md). Os mecanismos de política e drift entram em etapas posteriores. GitHub Actions de aplicações opera fora do Hub.
 
 
 
@@ -235,7 +235,7 @@ O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicaçã
 
 ## 10. Decisões vigentes e pontos abertos
 
-**Atualização:** o CRD TerraformStack está versionado na Etapa 05. O controller e a reconciliação por políticas são entregas posteriores. GitHub Actions das aplicações opera no repositório da squad. OpenTelemetry, Grafana, Loki e Tempo compõem a stack-alvo. Os Operators locais ainda serão selecionados.
+**Atualização:** o CRD TerraformStack está versionado na Etapa 05. A Etapa 06 exercita o controller com execução simulada. A reconciliação por políticas entra em etapa posterior. GitHub Actions das aplicações opera no repositório da squad. OpenTelemetry, Grafana, Loki e Tempo compõem a stack-alvo. Os Operators locais ainda serão selecionados.
 
 **Fechado:** Domain como unidade lógica de consumo/ownership, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas (incluindo **Domain Applications**), monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência.
 
