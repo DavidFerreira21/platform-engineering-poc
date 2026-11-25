@@ -1,6 +1,5 @@
 locals {
-  # A hierarquia segue a profundidade do diretório: global < Entity < Environment.
-  # Apenas arquivos opcionais ausentes herdam valores. YAML inválido falha no plan.
+  # Precedência: global < Entity < Environment. YAML inválido falha explicitamente.
   paths = [
     "${var.config_root}/${var.stack}.yaml",
     "${var.config_root}/${var.entity}/${var.stack}.yaml",
@@ -11,34 +10,71 @@ locals {
   entity_values = fileexists(local.paths[1]) ? yamldecode(file(local.paths[1])) : {}
   env_values    = fileexists(local.paths[2]) ? yamldecode(file(local.paths[2])) : {}
 
-  # O contrato define três camadas de mesclagem em mapas. Para cada chave de
-  # nível superior, submapas são mesclados até o terceiro nível. Listas e
-  # valores escalares são substituídos pelo último nível declarado.
-  top_keys = toset(concat(keys(local.global_values), keys(local.entity_values), keys(local.env_values)))
-  merged = {
-    for top in local.top_keys : top => merge(
-      try(local.global_values[top], {}),
-      try(local.entity_values[top], {}),
-      try(local.env_values[top], {}),
-      {
-        for nested in toset(concat(
-          keys(try(local.global_values[top], {})),
-          keys(try(local.entity_values[top], {})),
-          keys(try(local.env_values[top], {}))
-          )) : nested => (
-          can(keys(try(local.global_values[top][nested], {}))) &&
-          can(keys(try(local.entity_values[top][nested], {}))) &&
-          can(keys(try(local.env_values[top][nested], {})))
-          ) ? merge(
-          try(local.global_values[top][nested], {}),
-          try(local.entity_values[top][nested], {}),
-          try(local.env_values[top][nested], {})
-          ) : coalesce(
-          try(local.env_values[top][nested], null),
-          try(local.entity_values[top][nested], null),
-          try(local.global_values[top][nested], null)
-        )
-      }
-    )
+  # Typed nested merges para os contratos conhecidos. Evitam que coerção de
+  # map/ternary transforme flags booleanas em strings (true -> "true").
+  network = merge(
+    try(local.global_values.network, {}),
+    try(local.entity_values.network, {}),
+    try(local.env_values.network, {}),
+    {
+      vpc = merge(
+        try(local.global_values.network.vpc, {}),
+        try(local.entity_values.network.vpc, {}),
+        try(local.env_values.network.vpc, {})
+      )
+      nat = merge(
+        try(local.global_values.network.nat, {}),
+        try(local.entity_values.network.nat, {}),
+        try(local.env_values.network.nat, {})
+      )
+      endpoints = merge(
+        try(local.global_values.network.endpoints, {}),
+        try(local.entity_values.network.endpoints, {}),
+        try(local.env_values.network.endpoints, {}),
+        {
+          s3 = merge(
+            try(local.global_values.network.endpoints.s3, {}),
+            try(local.entity_values.network.endpoints.s3, {}),
+            try(local.env_values.network.endpoints.s3, {})
+          )
+          ecr = merge(
+            try(local.global_values.network.endpoints.ecr, {}),
+            try(local.entity_values.network.endpoints.ecr, {}),
+            try(local.env_values.network.endpoints.ecr, {})
+          )
+        }
+      )
+    }
+  )
+
+  eks = merge(
+    try(local.global_values.eks, {}),
+    try(local.entity_values.eks, {}),
+    try(local.env_values.eks, {}),
+    {
+      clusters = merge(
+        try(local.global_values.eks.clusters, {}),
+        try(local.entity_values.eks.clusters, {}),
+        try(local.env_values.eks.clusters, {})
+      )
+      addons = merge(
+        try(local.global_values.eks.addons, {}),
+        try(local.entity_values.eks.addons, {}),
+        try(local.env_values.eks.addons, {})
+      )
+      networking = merge(
+        try(local.global_values.eks.networking, {}),
+        try(local.entity_values.eks.networking, {}),
+        try(local.env_values.eks.networking, {})
+      )
+    }
+  )
+
+  # Outras stacks podem introduzir seus próprios contratos de composição sem
+  # modificar TerraformStack; o fallback é merge superficial, explícito.
+  configurations = {
+    network = { network = local.network }
+    eks     = { eks = local.eks }
   }
+  merged = try(local.configurations[var.stack], merge(local.global_values, local.entity_values, local.env_values))
 }
