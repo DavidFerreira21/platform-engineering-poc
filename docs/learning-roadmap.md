@@ -68,7 +68,7 @@ O aceite exige observar essas transições pela API da stack e conferir o efeito
 
 **Marco da fase:** `TerraformStack` é capaz de receber intenção via GitOps, executar Terraform com aprovação humana e produzir infraestrutura real. Terraform não aplica continuamente a cada reconcile. **Auto Apply, verificação periódica e correção de drift entram na Fase 6.**
 
-**Bootstrap do Hub EKS antes da rede UAT da Etapa 09.** Preparar rede, identidade e backend da conta de plataforma. Uma raiz Terraform de bootstrap externa ao controller chama o módulo EKS compartilhado com o perfil Hub. Instalar CRDs, controller, Argo CD, Argo Workflows e Crossplane a partir do Git. Validar o fluxo local no novo Hub e a identidade AWS do executor. A partir daqui o Hub EKS conduz a rede UAT e as stacks das spokes. Na Etapa 10, a raiz Terraform de UAT reutiliza o mesmo módulo EKS com entradas, credenciais e state próprios.
+**Bootstrap do Hub EKS antes da rede UAT da Etapa 09.** Preparar em conjunto os módulos Configuration, Network e EKS. As [raízes Terraform](../foundation/stacks/README.md) reutilizam os módulos no Hub e nas spokes, com flags por destino e publicação opcional de outputs no Parameter Store após verify. Preparar rede, identidade e backend da conta de plataforma. Uma raiz Terraform de bootstrap externa ao controller chama o módulo EKS compartilhado com o perfil Hub. Instalar CRDs, controller, Argo CD, Argo Workflows e Crossplane a partir do Git. Validar o fluxo local no novo Hub e a identidade AWS do executor. A partir daqui o Hub EKS conduz a rede UAT e as stacks das spokes. Na Etapa 10, a raiz Terraform de UAT reutiliza o mesmo módulo EKS com entradas, credenciais e state próprios.
 
 ## Fase 3 — Provisionamento de EKS, GitOps e GitOps Bridge
 

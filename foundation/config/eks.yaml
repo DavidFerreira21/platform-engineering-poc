@@ -1,5 +1,6 @@
 # Baseline de referência da stack EKS; valores não criam clusters no Lab 08.
 eks:
+  publishParameterStore: false
   clusters:
     management: true
     nonPci: true
