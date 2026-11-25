@@ -12,7 +12,7 @@ spec:
     entity: entity-a
     environment: uat
   configuration:
-    revision: latest
+    version: latest
   dependsOn: []
   suspend: false
   reconciliation:
