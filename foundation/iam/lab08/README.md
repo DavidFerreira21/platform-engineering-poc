@@ -5,10 +5,10 @@ Este diretório contém o **desenho de IAM** da Etapa 08. Nenhuma role é criada
 ## Papéis separados
 
 1. **Identidade humana:** acesso com IAM Identity Center ao perfil `platform-poc-uat`. Usado apenas no computador para assumir uma role inicial temporária.
-2. **Role de bootstrap na conta de plataforma:** exemplo `PlatformPocTerraformBootstrap`. Trust policy limitada ao principal/role de SSO autorizado; permissões **somente `sts:AssumeRole`** para a role UAT aprovada. Não conceder permissões diretamente de EC2/EKS a essa role.
+2. **Role de bootstrap na conta de plataforma (ou na própria UAT quando a POC possui apenas uma conta AWS):** exemplo `PlatformPocTerraformBootstrap`. Trust policy limitada ao principal/role de SSO autorizado; permissões **somente `sts:AssumeRole`** para a role UAT aprovada. Não conceder permissões diretamente de EC2/EKS a essa role.
 3. **Role de execução na conta UAT:** exemplo `PlatformPocTerraformExecution`. Trust policy permite que a role de bootstrap (ARN exato) seja assumida. A role de execução contém apenas as permissões necessárias às stacks e backend aprovados, a detalhar antes do primeiro apply.
 
-> A conta de plataforma **não** precisa ser igual à UAT. Não colocar nomes de contas ou ARNs como entradas livres do `TerraformStack`: o controller deverá resolver `Entity + Environment` a partir do registro confiável. Na Etapa 08, os ARNs são parâmetros de bootstrap operacional, não parte do CR.
+> A conta de plataforma **pode ser igual à UAT** na POC pessoal, desde que as duas roles sejam distintas e o privilégio de bootstrap continue restrito a `sts:AssumeRole`. Não colocar nomes de contas ou ARNs como entradas livres do `TerraformStack`: o controller deverá resolver `Entity + Environment` a partir do registro confiável. Na Etapa 08, os ARNs são parâmetros de bootstrap operacional, não parte do CR.
 
 ### Exemplo de política de permissão da role de bootstrap (ajustar placeholders)
 
