@@ -1,10 +1,10 @@
 # Etapa 07 — Registro e validação de UAT
 
-[← Roteiro da Fase 2](../docs/learning-roadmap.md#fase-2--terraformstack-e-primeira-execução-na-aws) · [Guias das etapas](README.md) · [Etapa 08 →](08-identidade-executor-aws.md)
+[← Etapa 06B no roadmap](../docs/learning-roadmap.md#etapa-06b--terraformstack-de-ponta-a-ponta-no-kind) · [Guias das etapas](README.md) · [Etapa 08 →](08-identidade-executor-aws.md)
 
 ## Objetivo
 
-Registrar UAT como o primeiro destino AWS do `TerraformStack`. Confirmar a identidade do operador na conta declarada para `entity-a/uat` e conferir a região do perfil.
+A trilha AWS começa aqui, após o marco local 06B previsto no roteiro. Registrar UAT como o primeiro destino AWS do `TerraformStack`. Confirmar a identidade do operador na conta declarada para `entity-a/uat` e conferir a região do perfil.
 
 ## O que será feito
 
