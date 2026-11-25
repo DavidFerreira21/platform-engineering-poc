@@ -30,8 +30,10 @@ def main():
     # O diretório de trabalho é read-only na imagem; -chdir não grava fontes.
     # Copiar para emptyDir pertencente ao UID não privilegiado.
     import shutil
-    shutil.copytree(SOURCE, "/workspace/stack", dirs_exist_ok=True)
-    cwd = "/workspace/stack"
+    shutil.copytree("/opt/foundation/modules/configuration", "/workspace/foundation/modules/configuration", dirs_exist_ok=True)
+    shutil.copytree("/opt/foundation/config", "/workspace/foundation/config", dirs_exist_ok=True)
+    shutil.copytree(SOURCE, "/workspace/foundation/lab08/validation-stack", dirs_exist_ok=True)
+    cwd = "/workspace/foundation/lab08/validation-stack"
     env = dict(os.environ, AWS_PROFILE="uat-executor",
                AWS_DEFAULT_REGION=args.region, AWS_REGION=args.region,
                TF_IN_AUTOMATION="true", AWS_EC2_METADATA_DISABLED="true")
@@ -47,7 +49,7 @@ def main():
     backend = [
         "terraform", "init", "-input=false", "-reconfigure", "-no-color",
         f"-backend-config=bucket={args.bucket}",
-        f"-backend-config=key=platform/entity-a/{args.environment}/lab08/validation.tfstate",
+        f"-backend-config=key=platform/{args.entity}/{args.environment}/lab08/validation.tfstate",
         f"-backend-config=region={args.region}",
         "-backend-config=use_lockfile=true",
         "-backend-config=encrypt=true",
