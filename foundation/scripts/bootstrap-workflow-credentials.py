@@ -6,7 +6,6 @@ Requer uma role de origem na conta da plataforma e role de destino em UAT já cr
 """
 import argparse
 import base64
-import datetime as dt
 import json
 import os
 import re
@@ -93,7 +92,9 @@ def prepare(args):
 
     # Sem acesso à role de bootstrap via SSO a operação falha sem criar Secret.
     human = aws(["sts", "get-caller-identity", "--profile", args.profile, "--region", args.region])
-    print(f"Identidade humana autenticada: {human['Arn']}")
+    if human['Account'] != args.uat_account:
+        raise RuntimeError("O profile SSO não está autenticado na conta UAT esperada; valide a Etapa 07")
+    print(f"Identidade humana autenticada na UAT: {human['Arn']}")
     source = assume(args.bootstrap_role_arn, "platform-poc-bootstrap",
                     env={**os.environ, "AWS_PROFILE": args.profile})
     source_env = credentials_env(source, args.region)
