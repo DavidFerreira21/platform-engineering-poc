@@ -44,6 +44,29 @@ jobs:
           terraform fmt -diff -check -recursive foundation/modules/configuration foundation/lab08/validation-stack
           terraform -chdir=foundation/lab08/validation-stack init -backend=false -input=false
           terraform -chdir=foundation/lab08/validation-stack validate -no-color
+      - name: Exercitar hierarquia Configuration no terraform plan local
+        run: |
+          for stack in network eks; do
+            terraform -chdir=foundation/lab08/validation-stack plan \
+              -input=false -no-color -lock=false \
+              -var=entity=entity-a -var=environment=uat \
+              -var="stack=$stack" -out="/tmp/lab08-$stack.tfplan"
+            terraform -chdir=foundation/lab08/validation-stack show -json \
+              "/tmp/lab08-$stack.tfplan" > "/tmp/lab08-$stack.json"
+          done
+          python3 - <<'PY'
+          import json
+          def outputs(stack):
+              with open(f"/tmp/lab08-{stack}.json") as source:
+                  return {k: v["value"] for k, v in json.load(source)["planned_values"]["outputs"].items()}
+          network = outputs("network")
+          eks = outputs("eks")
+          assert network["network_cidr"] == "10.81.0.0/16", network
+          assert network["network_dns_hostnames"] is True, network
+          assert eks["eks_management_enabled"] is True, eks
+          assert eks["eks_pci_enabled"] is False, eks
+          print("Configuration: precedence Global → Entity → Environment verificada.")
+          PY
       - name: Validar scripts e manifestos do Lab 08
         run: |
           python3 -m py_compile \
