@@ -55,6 +55,8 @@ Construir o contrato declarativo, o executor e as **primeiras stacks de infraest
 
 **Marco da fase:** `TerraformStack` é capaz de receber intenção via GitOps, executar Terraform com aprovação humana e produzir infraestrutura real. Terraform não aplica continuamente a cada reconcile. **Auto Apply, verificação periódica e correção de drift entram na Fase 6.**
 
+**Transição do Hub para EKS.** Usamos `kind` como ambiente descartável de desenvolvimento do controller e de testes pontuais. Antes do provisionamento contínuo e dos clusters de UAT, criar o Hub EKS na conta de plataforma por bootstrap externo, publicar a imagem do controller e instalar os componentes centrais a partir do Git. Repetir no EKS o teste do CR até o Workflow e o status da stack. Validar a identidade do executor com STS no destino esperado. Transferir a reconciliação para o Hub EKS antes de habilitar as stacks reais. O Management EKS de UAT é uma spoke criada depois pelo Hub. O teste de expiração do bootstrap local durante a noite fica fora do aceite do controller.
+
 ## Fase 3 — Provisionamento de EKS, GitOps e GitOps Bridge
 
 Usar o TerraformStack já operacional e construir a **stack EKS completa e reutilizável**, que compõe os módulos internos necessários para os clusters e os pré-requisitos AWS de addons, consumindo `eks.yaml` via Configuration. Feature flags controlam quais componentes do baseline são habilitados ou desabilitados, sem exigir stacks distintas por tipo de cluster. A instalação dos operadores Kubernetes permanece em GitOps. O registro do cluster, a autorização e a configuração por GitOps são ações independentes. Antes de registrar EKS privado, comprovar a conectividade e a identidade que o Argo CD usará; não presumir comunicação entre VPCs/contas.
