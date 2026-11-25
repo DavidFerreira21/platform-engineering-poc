@@ -1,0 +1,14 @@
+# Baseline da stack Network; sobrescreva apenas o necessário por Entity/Environment.
+network:
+  vpc:
+    enabled: true
+    cidr: 10.80.0.0/16
+    dnsHostnames: true
+    dnsSupport: true
+  nat:
+    enabled: false
+  endpoints:
+    s3:
+      enabled: true
+    ecr:
+      enabled: false
