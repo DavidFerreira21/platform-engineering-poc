@@ -1,0 +1,4 @@
+# Perfil UAT: ativar PCI somente quando houver aprovação e orçamento.
+eks:
+  clusters:
+    pci: false
