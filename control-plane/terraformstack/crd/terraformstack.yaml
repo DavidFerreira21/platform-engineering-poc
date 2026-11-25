@@ -23,24 +23,9 @@ spec:
             spec:
               type: object
               description: Contrato declarativo de uma stack; os campos novos são API, não funções de execução já implementadas.
-              required: [target]
-              oneOf:
-                - required: [sourceRef]
-                - required: [module]
+              required: [target, sourceRef]
+              additionalProperties: false
               properties:
-                module:
-                  type: object
-                  description: "Compatibilidade de migração com Etapas 05/06. Preferir sourceRef em novas stacks."
-                  required: [name, version]
-                  properties:
-                    name:
-                      type: string
-                      minLength: 1
-                      description: Nome lógico legado do módulo/stack.
-                    version:
-                      type: string
-                      minLength: 1
-                      description: Versão legada solicitada.
                 sourceRef:
                   type: object
                   description: Referência lógica a uma stack no catálogo aprovado (Git ou Registry), não URL arbitrária.
@@ -77,13 +62,13 @@ spec:
                       description: Identificador lógico do Environment na Entity.
                 configuration:
                   type: object
-                  description: Revisão dos YAMLs hierárquicos da stack (global → Entity → Environment).
+                  description: Versão selecionada dos YAMLs hierárquicos da stack (global → Entity → Environment).
                   properties:
-                    revision:
+                    version:
                       type: string
                       minLength: 1
                       default: latest
-                      description: Revisão de configuração. Ausente/latest exige resolução para commit imutável antes de plan.
+                      description: Versão da configuração. Ausente/latest exige resolução para commit imutável antes de plan.
                 dependsOn:
                   type: array
                   description: Dependências de TerraformStacks do mesmo namespace e destino, a validar pelo controller.
@@ -176,7 +161,7 @@ spec:
                   minimum: 0
                 resolvedSource:
                   type: object
-                  description: Versão efetiva, artefato imutável e revisão de configuração usados na execução.
+                  description: Versões efetivas e artefatos imutáveis usados na execução.
                   properties:
                     name:
                       type: string
@@ -184,7 +169,7 @@ spec:
                       type: string
                     digest:
                       type: string
-                    configurationRevision:
+                    configurationVersion:
                       type: string
                 conditions:
                   type: array
