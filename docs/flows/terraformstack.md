@@ -35,7 +35,7 @@ Há **dois gatilhos operacionais**: (a) criar/alterar a intenção por Git; (b) 
 
 | Componente | Responsabilidade |
 | --- | --- |
-| **Git / PR** | Definir versão do módulo, configuração e destino lógico aprovados; manter auditoria de alterações desejadas |
+| **Git / PR** | Definir a versão da stack (`sourceRef.version`), versão da configuração e destino lógico aprovados; manter auditoria de alterações desejadas |
 | **Argo CD central** | Entregar o **CR** `TerraformStack` do Git à API Kubernetes do Hub; não executar Terraform |
 | **Kubernetes API** | Validar o objeto segundo o CRD e disponibilizar `spec` e `status` |
 | **TerraformStack Controller** | Observar mudanças, resolver o destino autorizado, evitar concorrência, coordenar execuções e atualizar status |
@@ -71,7 +71,7 @@ spec:
     environment: uat
 ```
 
-O CRD atual também oferece `configuration.revision` e os controles declarativos adicionais. O executor real será estendido nas etapas correspondentes para **resolver e fixar** versão de source/config, identidade e backend, e executar o lifecycle governado. **O exemplo acima não implica execução AWS** enquanto o controller e as dependências não estiverem implementados.
+O CRD atual também oferece `configuration.version` e os controles declarativos adicionais. O executor real será estendido nas etapas correspondentes para **resolver e fixar** versão de source/config, identidade e backend, e executar o lifecycle governado. **O exemplo acima não implica execução AWS** enquanto o controller e as dependências não estiverem implementados.
 
 Os valores de módulos previstos em `config/` têm precedência **global → Entity → Environment**. O destino AWS real é resolvido a partir de `foundation/config/<entity>/<env>/environment.yaml`; Git e Terraform state não devem conter credenciais.
 
@@ -115,7 +115,7 @@ spec:
     path: stacks/network        # raiz da stack, pode compor vários módulos
     version: "1.2.3"          # opcional; omitido significa latest
   configuration:
-    revision: "<config-commit-sha>" # opcional; omitido significa latest
+    version: "1.2.3"       # opcional; omitido significa latest
   dependsOn: []
   suspend: false
   reconciliation:
@@ -129,7 +129,7 @@ spec:
     destroyResourcesOnDeletion: false
 ```
 
-**Regras de sourceRef:** a referência lógica é resolvida em catálogo confiável de fontes de stacks, com repositório Git/OCI e revisões permitidos; o consumidor não escolhe URL arbitrária, credenciais, módulos fora do catálogo ou caminho que escape do diretório permitido. `path` identifica a raiz da **stack completa** (por exemplo, Network ou EKS), não um único módulo Terraform. `version` é opcional: ausente ou `latest` seleciona a versão mais recente **permitida pelo catálogo**, mas o executor deverá resolvê-la uma única vez para um commit/digest imutável por Workflow. Para Git, tag/ref também deve ser resolvida a commit; para Registry, versão publicada a um artefato verificável. O formato legado `spec.module.name/version` continua aceito pelo CRD como alternativa a `sourceRef`, **nunca simultaneamente**. A simulação da Etapa 06 aceita ambos; a execução real ainda precisará resolver fontes Git/Registry e fixar a versão/commit antes do plan. `configuration.revision` fixa separadamente os YAMLs hierárquicos daquela execução. Ainda não está decidido se a fonte usará uma referência de catálogo interna ou um objeto Kubernetes dedicado; nenhuma integração Flux é presumida.
+**Regras de sourceRef:** a referência lógica é resolvida em catálogo confiável de fontes de stacks, com repositório Git/OCI e revisões permitidos; o consumidor não escolhe URL arbitrária, credenciais, módulos fora do catálogo ou caminho que escape do diretório permitido. `path` identifica a raiz da **stack completa** (por exemplo, Network ou EKS), não um único módulo Terraform. `version` é opcional: ausente ou `latest` seleciona a versão mais recente **permitida pelo catálogo**, mas o executor deverá resolvê-la uma única vez para um commit/digest imutável por Workflow. Para Git, tag/ref também deve ser resolvida a commit; para Registry, versão publicada a um artefato verificável. O CRD exige `sourceRef` e não aceita `spec.module`. A simulação da Etapa 06 usa somente `sourceRef`; a execução real ainda precisará resolver fontes Git/Registry e fixar a versão/commit antes do plan. `configuration.revision` fixa separadamente os YAMLs hierárquicos daquela execução. Ainda não está decidido se a fonte usará uma referência de catálogo interna ou um objeto Kubernetes dedicado; nenhuma integração Flux é presumida.
 
 **Lifecycle e controles propostos:**
 
