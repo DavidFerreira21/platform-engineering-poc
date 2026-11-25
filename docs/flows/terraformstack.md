@@ -62,15 +62,16 @@ metadata:
   name: network-uat
   namespace: platform-system
 spec:
-  module:
-    name: lab-network
+  sourceRef:
+    name: foundation-stacks
+    path: stacks/lab-network
     version: "1.0.0"
   target:
     entity: entity-a
     environment: uat
 ```
 
-O contrato será estendido nas etapas correspondentes para selecionar a revisão dos YAMLs de configuração (`spec.configuration.revision`), resolver identidade, backend e módulo aprovado, e relatar o lifecycle. **O exemplo acima não implica execução AWS** enquanto o controller e as dependências não estiverem implementados.
+O CRD atual também oferece `configuration.revision` e os controles declarativos adicionais. O executor real será estendido nas etapas correspondentes para **resolver e fixar** versão de source/config, identidade e backend, e executar o lifecycle governado. **O exemplo acima não implica execução AWS** enquanto o controller e as dependências não estiverem implementados.
 
 Os valores de módulos previstos em `config/` têm precedência **global → Entity → Environment**. O destino AWS real é resolvido a partir de `foundation/config/<entity>/<env>/environment.yaml`; Git e Terraform state não devem conter credenciais.
 
@@ -229,7 +230,7 @@ Documentação técnica: [Argo Workflows — Workflow/ServiceAccount](https://ar
 - **Rejeitado por aprovador:** registrar a decisão e encerrar sem apply; não classificar como violação da policy.
 - **Bloqueado por política:** registrar regra e motivo, encerrar sem apply.
 - **Erro, cancelamento ou perda de validade:** não reutilizar plano nem aprovação em outra execução; registrar condição e evidência.
-- **Deleção/destroy:** o contrato futuro terá `spec.lifecycle.destroy` e `spec.lifecycle.destroyResourcesOnDeletion` (default `false`); **ambos** exigem política, plan imutável e aprovação humana. Excluir o CR do Git **não é aprovação para destruir infraestrutura**. Ver [seção 3.2](#32-evolução-do-contrato-sourceref-destroy-e-controles-operacionais).
+- **Deleção/destroy:** o contrato atual já contém `spec.lifecycle.destroy` e `spec.lifecycle.destroyResourcesOnDeletion` (default `false`); **ambos** exigem política, plan imutável e aprovação humana. Excluir o CR do Git **não é aprovação para destruir infraestrutura**. Ver [seção 3.2](#32-evolução-do-contrato-sourceref-destroy-e-controles-operacionais).
 
 ## 5. Fluxo B — drift detection
 
