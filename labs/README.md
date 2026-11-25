@@ -12,6 +12,7 @@ O [roteiro prático](../docs/learning-roadmap.md) reúne as oito fases e o aceit
 | **05** | [API do TerraformStack via GitOps](05-terraformstack-crd.md) |
 | **06** | [Controller do TerraformStack e executor simulado](06-terraformstack-controller.md) |
 | **07** | [Registro e validação de UAT](07-registro-ambientes-aws.md) |
+| **08** | [Identidade temporária do Terraform Executor no kind](08-identidade-executor-aws.md) |
 
 ## Como ler e reproduzir uma etapa
 
