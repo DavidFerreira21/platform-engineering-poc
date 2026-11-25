@@ -2,9 +2,9 @@
 
 [← Início](../README.md) · [Arquitetura](architecture.md) · [Guias das etapas](../labs/README.md) · [GitOps Flow](flows/gitops.md) · [TerraformStack Flow](flows/terraformstack.md) · [GitOps Bridge Flow](flows/gitops-bridge.md)
 
-A POC é construída em **oito fases e 32 etapas (00–31)**. Cada etapa adiciona uma capacidade técnica, reutiliza as anteriores e termina com uma verificação objetiva. O objetivo dos guias é **construir, integrar e observar o funcionamento da plataforma**, sem tentar ensinar exaustivamente cada ferramenta.
+A POC é construída em **oito fases e 32 etapas numeradas (00–31), com o marco intermediário 06B**. Cada etapa adiciona uma capacidade técnica, reutiliza as anteriores e termina com uma verificação objetiva. O objetivo dos guias é **construir, integrar e observar o funcionamento da plataforma**, sem tentar ensinar exaustivamente cada ferramenta.
 
-Os laboratórios existentes das **Etapas 00–08** estão documentados. A Etapa 08 prepara e testa **identidade AWS temporária, bucket S3 para state, executor em Argo Workflows e módulo Configuration**, sem `terraform apply` nem stack Network real. Requer permissões AWS e execução supervisionada; não representa recursos já implantados. As demais entregas descrevem o escopo planejado; ainda **não foram implementadas** só por aparecerem aqui. Os guias mantêm a estrutura atual: **Objetivo → O que será feito → Por que fizemos assim → Pré-requisitos → Execução → O que observar → Limpeza (quando aplicável)**. [Convenção](../labs/README.md#como-ler-e-reproduzir-uma-etapa).
+Há guias para as etapas numeradas de 00 a 08. Entre 06 e 07, o marco local **06B** tem critérios de aceite definidos abaixo e aguarda implementação e guia executável. A Etapa 08 prepara e testa **identidade AWS temporária, bucket S3 para state, executor em Argo Workflows e módulo Configuration**, sem `terraform apply` nem stack Network real. Requer permissões AWS e execução supervisionada; não representa recursos já implantados. As demais entregas descrevem o escopo planejado; ainda **não foram implementadas** só por aparecerem aqui. Os guias mantêm a estrutura atual: **Objetivo → O que será feito → Por que fizemos assim → Pré-requisitos → Execução → O que observar → Limpeza (quando aplicável)**. [Convenção](../labs/README.md#como-ler-e-reproduzir-uma-etapa).
 
 ## Visão das oito fases
 
@@ -33,7 +33,7 @@ Preparar o Hub `kind` e instalar cada motor com um teste funcional pequeno. Os c
 
 ## Fase 2 — TerraformStack e primeira execução na AWS
 
-Construir o contrato declarativo, o executor e as **primeiras stacks de infraestrutura** até o primeiro apply AWS autorizado, sem antecipar remediação de drift. **Network** e **EKS** são stacks completas: cada uma compõe quantos módulos Terraform e recursos forem necessários para entregar uma capacidade da spoke. **Configuration** é o módulo auxiliar compartilhado que resolve os valores de cada stack; não é uma terceira stack provisionável.
+Construir o contrato declarativo, o executor e as **primeiras stacks de infraestrutura** até o primeiro apply AWS autorizado, com drift exercitado primeiro no ambiente local. **Network** e **EKS** são stacks completas: cada uma compõe quantos módulos Terraform e recursos forem necessários para entregar uma capacidade da spoke. **Configuration** é o módulo auxiliar compartilhado que resolve os valores de cada stack; não é uma terceira stack provisionável.
 
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
@@ -41,7 +41,7 @@ Construir o contrato declarativo, o executor e as **primeiras stacks de infraest
 | **06** | [Controller do TerraformStack e executor simulado](../labs/06-terraformstack-controller.md) | Sincronizar CR com `sourceRef`, acompanhar Workflow simulado e status por geração; `suspend` bloqueia novas simulações. O controller ainda não resolve Registry/Git, dependências, drift ou destroy |
 | **06B** | TerraformStack completo no `kind` | Validar o ciclo local descrito abaixo antes de registrar contas ou provisionar EKS |
 | **07** | [Registro e validação de UAT](../labs/07-registro-ambientes-aws.md) | `environment.yaml` associa `entity-a/uat` à conta/região; perfil humano SSO e STS validados sem Secrets no Kubernetes |
-| **08** | [Terraform Executor, state S3 e Configuration](../labs/08-identidade-executor-aws.md) | Executar bootstrap SSO → STS → Pod; criar bucket S3 com locking nativo autorizado; carregar imagem Terraform Executor, validar YAMLs Network/EKS com Configuration e executar `init/validate/plan` sem `apply`. O executor ainda não é acionado pelo controller real |
+| **08** | [Integração AWS do executor em UAT com STS e state S3](../labs/08-identidade-executor-aws.md) | Executar bootstrap SSO → STS → Pod; criar bucket S3 com locking nativo autorizado; carregar imagem Terraform Executor, validar YAMLs Network/EKS com Configuration e executar `init/validate/plan` sem `apply`. Neste exercício, o Workflow é submetido diretamente |
 | **09** | Stack `network` e primeira execução real em UAT | Construir a **stack Network** completa, composta pelos módulos necessários de VPC, subnets, rotas e requisitos da spoke, com feature flags; consumir `network.yaml` via Configuration e identificar fonte aprovada por `sourceRef.name/path/version`, resolvendo `latest` para artefato imutável antes do plan. TerraformStack/Workflow executa plan, aprovação, apply e verify do plano aprovado e publica outputs da rede |
 
 ### Etapa 06B — TerraformStack de ponta a ponta no kind
