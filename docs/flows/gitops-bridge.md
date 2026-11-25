@@ -176,7 +176,7 @@ Objetivo: demonstrar o conceito produtor → distribuição → consumidor, sem 
 
 ### Integração AWS — quando o roadmap chegar ao destino
 
-A evolução exige conta UAT autorizada, TerraformStack real, role de publicação, Parameter Store, cluster consumidor, ESO, RBAC e verificações. A escolha da etapa exata de implantação será feita **na revisão consolidada do roadmap**, após a documentação dos três fluxos.
+A evolução exige conta UAT autorizada, TerraformStack real, role de publicação, Parameter Store, Management EKS consumidor, ESO, RBAC e verificações. O [Roadmap V2](../learning-roadmap.md) prevê a integração AWS na **Etapa 13**, após o provisionamento e onboarding dos clusters das Etapas 10–12.
 
 Não antecipar contas, clusters ou custos AWS apenas para validar o desenho.
 
@@ -211,4 +211,4 @@ O fluxo proposto adapta o padrão GitOps Bridge ao contexto de **contas AWS sepa
 - [ADR-0006 — TerraformStack, status, aprovação e drift](../adr/0006-terraformrun-and-application-ci.md)
 - [Roadmap](../learning-roadmap.md)
 
-**Próxima atividade:** revisar em conjunto as 25 etapas e decidir onde entram o publisher de outputs, ESO, simulação local e validação AWS real. A documentação não altera o roadmap nem provisiona infraestrutura.
+**Sequência aprovada:** o [Roadmap V2](../learning-roadmap.md) coloca a publicação seletiva no SSM e o ESO do Management EKS na **Etapa 13**. A simulação local é opcional; a validação real exige identidade AWS e cluster autorizados. A documentação não provisiona infraestrutura.
