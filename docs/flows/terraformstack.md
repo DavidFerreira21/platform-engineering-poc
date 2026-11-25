@@ -96,7 +96,7 @@ A execução é **event-driven e governada**; um reconcile do Kubernetes não de
 | **Require Approval** | Mudança sensível ou política exige análise humana | Pausa no Argo Workflows → aprovação vinculada ao plano → Apply → Verify | `Ready` ou falha documentada |
 | **Deny / Block** | Operação proibida, destino inválido ou violação de política | **Não executar apply** | `Blocked` com motivo verificável |
 
-**Limite do roadmap:** até a Etapa 09, todo `apply` real exige **aprovação humana**. A decisão automática passa a ser implementada/validada somente na **Etapa 19**, com regras explícitas e testadas; o desenho mostra a **arquitetura-alvo**, não um Auto Apply já liberado.
+**Limite do roadmap:** até a Etapa 09, todo `apply` real exige **aprovação humana**. A decisão automática passa a ser implementada/validada somente na **Etapa 25**, com regras explícitas e testadas; o desenho mostra a **arquitetura-alvo**, não um Auto Apply já liberado.
 
 Exemplos ilustrativos de decisão:
 
@@ -135,11 +135,11 @@ Depois da conclusão do provisionamento, o `TerraformStack` permanece ativo como
 4. **Sem drift:** mantém `Ready` e registra data e evidência da última checagem.
 5. **Com drift:** registra `DriftDetected`, o resumo não sensível da diferença e a referência do plan.
 
-A **Etapa 18 é somente detecção e alerta**. Não se corrige automaticamente drift nessa etapa.
+A **Etapa 24 é somente detecção e alerta**. Não se corrige automaticamente drift nessa etapa.
 
 ## 6. Fluxo C — drift reconciliation
 
-A Etapa 19 acrescenta decisão e remediação governadas por política:
+A Etapa 25 acrescenta decisão e remediação governadas por política:
 
 ```text
 DriftDetected
@@ -228,14 +228,15 @@ A publicação e distribuição dos **outputs selecionados** do Terraform, por e
 | --- | --- |
 | **05** | CRD `TerraformStack`, schema e `status.conditions` disponíveis, com dry-run local |
 | **06** | Controller, WorkflowTemplate e executor **simulados** no `kind` |
-| **07–08** | Registro de UAT, validação de identidade, backend, state e autorização |
+| **07–08** | Registro de UAT, identidade, backend, state e autorização |
 | **09** | Primeiro plan/apply real de rede UAT, com aprovação humana de plano imutável |
-| **10–11** | Reutilização do fluxo para EKS Management e Non-PCI, um cluster por vez |
-| **18** | Drift detection, sem remediação |
-| **19** | Política de Auto Apply / Require Approval / Deny e correção governada |
-| **20** | Testes de isolamento UAT/PROD e PCI/Non-PCI |
+| **10–11** | Reutilização do fluxo para EKS Management e Non-PCI |
+| **13** | Publicação seletiva de outputs e consumo via GitOps Bridge, sem alterar a política de aprovação |
+| **24** | Drift detection, sem remediação |
+| **25** | Política de Auto Apply / Require Approval / Deny e correção governada |
+| **26–27** | Testes de isolamento PCI/Non-PCI e UAT/PROD, conforme infraestrutura autorizada |
 
-A execução inicial permanece em `kind`. As etapas AWS serão realizadas somente com destino, credenciais, custos e autorização verificados. O roadmap só será revisado em conjunto depois de documentarmos os três fluxos arquiteturais.
+A execução inicial permanece em `kind`. As etapas AWS serão realizadas somente com destino, credenciais, custos e autorização verificados. Veja o [Roadmap V2](../learning-roadmap.md) para as oito fases e a sequência consolidada.
 
 ## 12. Documentos relacionados
 
