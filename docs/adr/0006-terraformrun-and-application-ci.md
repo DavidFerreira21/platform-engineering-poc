@@ -16,7 +16,7 @@ A POC usa a **Kubernetes API como contrato técnico** e quatro camadas de owners
 
 O recurso **`TerraformStack`** tem um CRD próprio versionado na Etapa 05. Na Etapa 06, o **TerraformStack Controller** passa a observar esse recurso no Control Plane do Hub.
 
-- O `spec` referencia **módulo aprovado e versão fixada**, o destino lógico `Entity + Environment` e, a partir da Etapa 09, a revisão dos YAMLs de configuração. O controller resolve credenciais AWS, backend, state e permissões a partir do cadastro autorizado.
+- O `spec` referencia **stack aprovada por `sourceRef` e sua versão**, o destino lógico `Entity + Environment` e a versão dos YAMLs de configuração. O controller resolve credenciais AWS, backend, state e permissões a partir do cadastro autorizado.
 - O recurso mantém o ciclo de vida da **infraestrutura desejada**; não representa apenas um `terraform apply`.
 - O `status` expõe condições, última verificação, revisão observada, resumo do último plan, classificação, referência de workflow, estado de aprovação e divergência detectada. Não guardar segredos nem todo o plan em `status`.
 - `TerraformRun` fica **reservado como nome opcional para uma execução imutável** (ou pode ser substituído por um Argo Workflow criado pelo controller). **Não criar um segundo CRD só para representar runs antes de existir justificativa.**
@@ -24,7 +24,7 @@ O recurso **`TerraformStack`** tem um CRD próprio versionado na Etapa 05. Na Et
 
 ### Contrato inicial
 
-A Etapa 05 publica `platform.example.io/v1alpha1` com escopo de namespace. O schema exige `spec.target.entity/environment` e **exatamente um** de `sourceRef` (novo padrão) ou `module.name/version` (legado). `sourceRef.version` e `configuration.revision` são opcionais, com default `latest`. O subrecurso `/status` oferece `conditions` para o controller. O exemplo usa referências fictícias e pode ser validado com dry-run na API do Hub. Entradas de módulo, resolução de destinos e políticas de reconciliação evoluem nas etapas que passam a usá-las. [Schema](../../control-plane/terraformstack/crd/terraformstack.yaml) · [Exemplo](../../control-plane/terraformstack/demo/terraformstack.yaml) · [Guia da Etapa 05](../../labs/05-terraformstack-crd.md)
+A Etapa 05 publica `platform.example.io/v1alpha1` com escopo de namespace. O schema exige `spec.target.entity/environment` e `spec.sourceRef.name/path`. `sourceRef.version` e `configuration.version` são opcionais, com default `latest`. `spec.module` não é aceito. O subrecurso `/status` oferece `conditions` para o controller. O exemplo usa referências fictícias e pode ser validado com dry-run na API do Hub. Resolução de fontes Git/Registry, destinos e políticas de reconciliação evoluem nas etapas que passam a usá-las. [Schema](../../control-plane/terraformstack/crd/terraformstack.yaml) · [Exemplo](../../control-plane/terraformstack/demo/terraformstack.yaml) · [Guia da Etapa 05](../../labs/05-terraformstack-crd.md)
 
 ### Configuração por entidade e ambiente
 
@@ -58,9 +58,9 @@ Um módulo auxiliar Terraform chamado `configuration` lê os YAMLs com `yamldeco
 
 **Outputs:** as stacks `network` e `eks` expõem saídas tipadas; a publicação de um subconjunto permitido para o Parameter Store da conta do Environment ocorre pelo **GitOps Bridge (Etapa 13)**, depois de apply e verificação. Não publicar state, plano ou segredos como output distribuído. A implementação deve verificar combinações de flags e tornar explícitas as dependências de rede/IAM, sem criar um quarto módulo obrigatório agora.
 
-O `TerraformStack` seleciona a revisão da configuração em `spec.configuration.revision`, campo que entra junto da primeira stack real de rede. O primeiro PR publica os YAMLs em `main`. Um segundo PR promove o commit da configuração no manifesto da stack. Após o sync, o controller observa a nova `generation` e solicita um novo plan com a mesma versão do módulo. O executor disponibiliza, no diretório de trabalho, os arquivos do commit selecionado antes de iniciar o Terraform. O `environment.yaml` registra o destino AWS, e a plataforma resolve as credenciais, as roles e o backend autorizados para esse destino.
+O `TerraformStack` seleciona a versão da configuração em `spec.configuration.version`, campo aceito pelo CRD e utilizado na primeira stack real de rede. O primeiro PR publica os YAMLs em `main`. Um segundo PR promove o commit da configuração no manifesto da stack. Após o sync, o controller observa a nova `generation` e solicita um novo plan com a mesma versão do módulo. O executor disponibiliza, no diretório de trabalho, os arquivos do commit selecionado antes de iniciar o Terraform. O `environment.yaml` registra o destino AWS, e a plataforma resolve as credenciais, as roles e o backend autorizados para esse destino.
 
-Na Etapa 09, os testes do módulo auxiliar cobrem os três níveis de herança, a preservação dos campos vizinhos, a substituição de listas e a rejeição de valores incompatíveis com o schema. A validação do fluxo confirma que promover outra revisão muda os valores do próximo plan e preserva a versão do módulo.
+Na Etapa 09, os testes do módulo auxiliar cobrem os três níveis de herança, a preservação dos campos vizinhos, a substituição de listas e a rejeição de valores incompatíveis com o schema. A validação do fluxo confirma que promover outra revisão muda os valores do próximo plan e preserva a versão da stack.
 
 ## Decisão 2 — GitOps aplica a intenção; Argo Workflows executa Terraform
 
@@ -117,7 +117,7 @@ spec:
 
 ### Contrato do CRD: sourceRef e lifecycle de destruição
 
-**Contrato atualizado:** manter `TerraformStack` como API genérica de stacks completas e aceitar `spec.sourceRef.name/path/version` como referência à **fonte versionada e aprovada**. `sourceRef.version` opcional (`latest` por padrão) resolve Registry ou Git a uma versão/commit imutável no executor real; `configuration.revision` também pode ser omitido para resolver `latest`, com pin antes do plan. O source é resolvido no catálogo sob controle do Platform Team e não aceita URL arbitrária/credenciais. A revisão de código da stack e a revisão de `configuration` são independentes e ficam fixadas em cada execução. O CRD v1alpha1 já valida esses campos e conserva o legado `spec.module` como alternativa; o controller da Etapa 06 aceita `sourceRef` em **simulação**, mas a resolução remota e a execução real seguem pendentes. Não dependemos do `GitRepository` de Flux.
+**Contrato atualizado:** manter `TerraformStack` como API genérica de stacks completas e aceitar `spec.sourceRef.name/path/version` como referência à **fonte versionada e aprovada**. `sourceRef.version` opcional (`latest` por padrão) resolve Registry ou Git a uma versão/commit imutável no executor real; `configuration.version` também pode ser omitido para resolver `latest`, com pin antes do plan. O source é resolvido no catálogo sob controle do Platform Team e não aceita URL arbitrária/credenciais. A revisão de código da stack e a revisão de `configuration` são independentes e ficam fixadas em cada execução. O CRD v1alpha1 exige exclusivamente `sourceRef`; o controller da Etapa 06 usa esse contrato em **simulação**, mas a resolução remota e a execução real seguem pendentes. Não dependemos do `GitRepository` de Flux.
 
 **Dois controles de destruição já presentes no CRD, porém sem execução de destroy até a Etapa 25; ambos sujeitos ao Policy Engine e à aprovação humana:**
 
@@ -144,7 +144,7 @@ Outros campos já validados pelo schema: `spec.suspend`, `spec.reconciliation.re
 
 **Implementação prevista (sem código ou infraestrutura criados por este ADR):**
 
-1. O `TerraformStack Controller` dispara um Workflow com identificação imutável da stack, `metadata.generation`, revisão Git da solicitação, revisão dos YAMLs de configuração, módulo, versão e destino autorizado. O backend protege as operações Terraform com lock quando necessário, **sem manter o lock retido durante uma aprovação pendente**.
+1. O `TerraformStack Controller` dispara um Workflow com identificação imutável da stack, `metadata.generation`, revisão Git da solicitação, versão da configuração, versão resolvida da stack e destino autorizado. O backend protege as operações Terraform com lock quando necessário, **sem manter o lock retido durante uma aprovação pendente**.
 2. O executor gera `terraform plan -out` com a configuração da revisão selecionada. Persiste o plano binário **em armazenamento privado e com prazo de validade**, associado ao hash SHA-256, ao state/serial, à revisão de configuração e à identidade do destino. Expõe apenas metadados não sensíveis para consulta.
 3. O passo de aprovação da UI usa um template `suspend: {}`, **sem `duration` que retome automaticamente**. Acesso ao Argo Server deve usar autenticação individual e autorização restrita a aprovadores, com trilha auditável de quem retomou o Workflow. Um simples `resume` não é autorização suficiente sem essa identidade verificável.
 4. Após o `resume`, um passo independente valida a identidade e a autorização do aprovador, o vínculo da decisão ao Workflow e ao hash do plano, as revisões da solicitação e da configuração, a `generation`, a validade do artefato, o state/lock efetivo no momento do apply e o destino. Qualquer falha, expiração ou mudança nesses vínculos **bloqueia o apply** e exige novo plan e nova aprovação.
