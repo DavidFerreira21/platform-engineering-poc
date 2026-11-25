@@ -26,9 +26,9 @@ locals {
           keys(try(local.entity_values[top], {})),
           keys(try(local.env_values[top], {}))
         )) : nested => (
-          can(tomap(try(local.global_values[top][nested], {}))) &&
-          can(tomap(try(local.entity_values[top][nested], {}))) &&
-          can(tomap(try(local.env_values[top][nested], {})))
+          can(keys(try(local.global_values[top][nested], {}))) &&
+          can(keys(try(local.entity_values[top][nested], {}))) &&
+          can(keys(try(local.env_values[top][nested], {})))
         ) ? merge(
           try(local.global_values[top][nested], {}),
           try(local.entity_values[top][nested], {}),
