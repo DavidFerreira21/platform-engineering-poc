@@ -55,9 +55,28 @@ def update_condition(api, stack, state, reason, message, check_leadership):
 
 
 def workflow_for(stack):
+    """Cria somente o Workflow simulado; source/version não são resolvidos neste lab."""
     metadata = stack["metadata"]
     spec = stack["spec"]
     uid, generation = metadata["uid"], metadata["generation"]
+    source = spec.get("sourceRef")
+    legacy = spec.get("module")
+    if bool(source) == bool(legacy):
+        raise ValueError("Informar exatamente um de spec.sourceRef ou spec.module")
+    if source:
+        source_name = source["name"]
+        path = source["path"]
+        parts = path.split("/")
+        if any(part in {"", ".", ".."} for part in parts) or path.startswith("/"):
+            raise ValueError("sourceRef.path deve ser um caminho relativo permitido")
+        module = parts[-1]
+        version = source.get("version") or "latest"
+    else:
+        source_name = "legacy-module"
+        path = legacy["name"]
+        module = legacy["name"]
+        version = legacy["version"]
+    config_revision = spec.get("configuration", {}).get("revision") or "latest"
     return {
         "apiVersion": "argoproj.io/v1alpha1",
         "kind": "Workflow",
@@ -73,8 +92,11 @@ def workflow_for(stack):
         "spec": {
             "workflowTemplateRef": {"name": TEMPLATE_NAME},
             "arguments": {"parameters": [
-                {"name": "module", "value": spec["module"]["name"]},
-                {"name": "version", "value": spec["module"]["version"]},
+                {"name": "source", "value": source_name},
+                {"name": "path", "value": path},
+                {"name": "module", "value": module},
+                {"name": "version", "value": version},
+                {"name": "config-revision", "value": config_revision},
                 {"name": "entity", "value": spec["target"]["entity"]},
                 {"name": "environment", "value": spec["target"]["environment"]},
             ]},
@@ -90,9 +112,32 @@ def reconcile(api, check_leadership):
             return
         raise
     if stack["metadata"].get("deletionTimestamp"):
+        # Lab06 não possui finalizer nem executor de destroy; nunca executar teardown.
         return
 
-    desired = workflow_for(stack)
+    spec = stack["spec"]
+    if spec.get("lifecycle", {}).get("destroy"):
+        update_condition(api, stack, "False", "DestroyNotImplemented",
+                         "Destroy exige plan, policy e aprovação; indisponível no simulador.", check_leadership)
+        return
+    if spec.get("lifecycle", {}).get("destroyResourcesOnDeletion"):
+        update_condition(api, stack, "False", "DeletionGuardNotImplemented",
+                         "Não excluir a stack com essa flag: finalizer e destroy não foram implementados.", check_leadership)
+        return
+    if spec.get("suspend", False):
+        update_condition(api, stack, "Unknown", "Suspended",
+                         "Novas execuções simuladas estão suspensas.", check_leadership)
+        return
+    if spec.get("dependsOn"):
+        update_condition(api, stack, "Unknown", "DependenciesNotImplemented",
+                         "dependsOn será resolvido na implementação do controller; sem Workflow simulado.", check_leadership)
+        return
+
+    try:
+        desired = workflow_for(stack)
+    except (ValueError, KeyError) as error:
+        update_condition(api, stack, "False", "InvalidStackSource", str(error), check_leadership)
+        return
     name = desired["metadata"]["name"]
     try:
         workflow = api.get_namespaced_custom_object(*WORKFLOW, name, _request_timeout=TIMEOUT)
