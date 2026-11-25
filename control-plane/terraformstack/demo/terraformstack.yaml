@@ -11,8 +11,7 @@ spec:
   target:
     entity: entity-a
     environment: uat
-  configuration:
-    # version: "1.2.3"  # opcional, default latest
+  configuration: {}  # version opcional, default latest
   suspend: false
   lifecycle:
     destroy: false
