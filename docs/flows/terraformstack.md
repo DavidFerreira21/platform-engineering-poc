@@ -96,6 +96,61 @@ spec:
 - **Etapas:** `dependsOn` está previsto para o provisionamento sequenciado dos EKS nas Etapas 10–11; `driftCheckInterval` entra com verificação real na Etapa 24 e continua sujeito à política da Etapa 25.
 
 
+### 3.2 Evolução do contrato: sourceRef, destroy e controles operacionais
+
+A POC **mantém** o CRD genérico `kind: TerraformStack`, o controller próprio e Argo Workflows. As propriedades a seguir são **proposta de contrato futuro**, **não** são suportadas pelo schema v1alpha1 existente da Etapa 05. Não copiar o CRD do Tofu Controller nem criar dependência obrigatória de Flux.
+
+```yaml
+apiVersion: platform.example.io/v1alpha1
+kind: TerraformStack
+metadata:
+  name: network-uat
+spec:
+  target:
+    entity: entity-a
+    environment: uat
+  sourceRef:
+    name: foundation-stacks     # fonte do catálogo aprovada
+    path: stacks/network        # raiz da stack, pode compor vários módulos
+    revision: "<git-commit-sha>" # revisão imutável
+  configuration:
+    revision: "<config-commit-sha>"
+  dependsOn: []
+  suspend: false
+  reconciliation:
+    driftCheckInterval: 6h
+    retryPolicy:
+      strategy: ExponentialBackoff
+      interval: 5m
+      maxInterval: 1h
+  lifecycle:
+    destroy: false
+    destroyResourcesOnDeletion: false
+```
+
+**Regras de sourceRef:** a referência lógica é resolvida em catálogo confiável de fontes de stacks, com repositório Git/OCI e revisões permitidos; o consumidor não escolhe URL arbitrária, credenciais, módulos fora do catálogo ou caminho que escape do diretório permitido. `path` identifica a raiz da **stack completa** (por exemplo, Network ou EKS), não um único módulo Terraform. `revision` deve ser imutável na execução real. O campo inicial `spec.module.name/version` continua válido na Etapa 05; a migração para `sourceRef` exige versionamento do schema e atualização do controller/exemplos, **sem remover campos já aceitos inadvertidamente**. `configuration.revision` fixa separadamente os YAMLs hierárquicos daquela execução. Ainda não está decidido se a fonte usará uma referência de catálogo interna ou um objeto Kubernetes dedicado; nenhuma integração Flux é presumida.
+
+**Lifecycle e controles propostos:**
+
+| Campo | Significado | Garantia |
+| --- | --- | --- |
+| `spec.lifecycle.destroy` | Intenção explícita de destruir recursos gerenciados pela stack **sem exigir a exclusão imediata do CR** | Gera `plan -destroy -out`, decisão de política, aprovação humana obrigatória e apply do mesmo plano; o status registra progresso/resultado |
+| `spec.lifecycle.destroyResourcesOnDeletion` | Intenção de executar cleanup ao excluir o CR | **Default `false`**. Se `true`, um finalizer pode coordenar destroy **apenas quando autorizado pela política e por um fluxo de aprovação verificável**. A exclusão do Git/CR **não constitui aprovação** |
+| `spec.suspend` | Pausar agendamento de **novas** execuções e drift checks | Não interrompe um apply já iniciado nem revoga autorizações já concedidas; alterações e retomada devem ser auditadas |
+| `spec.reconciliation.retryPolicy` | Frequência e estratégia de retries após **falhas operacionais** | Retry não reaplica um plano vencido, não reaproveita aprovação, não ignora `Denied` ou rejeição humana |
+| `spec.reconciliation.driftCheckInterval` | Frequência de `plan` para drift | **Não** é frequência de apply nem autoriza remediação automática |
+| `healthChecks` (futuro) | Verificação de readiness de outputs/recursos após o apply | Não substituir checks operacionais básicos do próprio Workflow |
+
+**Destroy na exclusão é um caso distinto de `destroy: true`.** Se o recurso já está em `deletionTimestamp`, a configuração/approval não deve depender de editar novamente o `spec` desse objeto. O controller precisa preservar um snapshot imutável da solicitação de remoção, origem, estado, referências de source/config, destino e plano; a aprovação ocorre em mecanismo auditável separado (Argo Workflows UI, com confirmação de identidade e autorização). O finalizer impede a remoção enquanto houver teardown autorizado em curso. Um `Deny`, perda de dependência, source/state inacessível ou ausência de aprovação **bloqueia** o destroy e exige intervenção operacional autorizada; não remover automaticamente o finalizer como atalho nem executar destroy sem gate. Para evitar CRs permanentemente presos, uma eventual operação de **orphan/retain** deve ter política e auditoria próprias. Não são garantias que o Tofu Controller ofereça automaticamente: são exigências **do nosso** controller.
+
+**Proteção de dependências:** antes de destruir Network, impedir a operação se houver EKS ou outra stack dependente ativa e não descomissionada. Exigir plano de desativação em ordem reversa, mantendo locks de state separados e referências válidas até o final. No destroy explícito, manter o CR/status até concluir e permitir retry autorizado ou recuperação de falha; nova intenção de criação deve ser tratada por um ciclo controlado.
+
+**Campos que não exporemos inicialmente:** seleção livre de `serviceAccountName`, AWS Role ARN, backend, `forceUnlock`, `targets` e credenciais no manifesto. São poderes de execução ou operações de recuperação sensíveis; permanecem na configuração administrada da plataforma e em operações privilegiadas, nunca como bypass de política. Variáveis e feature flags vêm preferencialmente do módulo Configuration e de sua revisão aprovada.
+
+**Sequência:** documentar o contrato agora; prototipar leitura e validação de referências/suspensão no controller das Etapas 06–09 conforme necessário; utilizar `sourceRef` imutável nas stacks Network/EKS; construir o fluxo real de `plan -destroy`, finalizer, autorização, tratamento de dependências e recuperação na **Etapa 25**, junto ao motor de políticas. `driftCheckInterval` real permanece na **Etapa 24**. Para usar destroy em cleanup de laboratório antes da Etapa 25, recorrer a procedimento **manual e explicitamente autorizado**, fora da reconciliação automática do CR.
+
+Referências externas: [Tofu Controller API](https://flux-iac.github.io/tofu-controller/References/terraform/) · [Destroy on deletion](https://flux-iac.github.io/tofu-controller/use-tf-controller/provision-resources-and-destroy-them-when-terraform-object-gets-deleted/).
+
 ## 4. Fluxo A — provisionamento e mudança desejada
 
 1. O Platform Team ou um solicitante autorizado altera o manifesto `TerraformStack` e, quando aplicável, a configuração versionada, submetendo PR.
@@ -174,7 +229,7 @@ Documentação técnica: [Argo Workflows — Workflow/ServiceAccount](https://ar
 - **Rejeitado por aprovador:** registrar a decisão e encerrar sem apply; não classificar como violação da policy.
 - **Bloqueado por política:** registrar regra e motivo, encerrar sem apply.
 - **Erro, cancelamento ou perda de validade:** não reutilizar plano nem aprovação em outra execução; registrar condição e evidência.
-- **Deleção/destroy:** remover o CR do Git **não dispara destroy automaticamente**; operações destrutivas exigem fluxo e autorização próprios.
+- **Deleção/destroy:** o contrato futuro terá `spec.lifecycle.destroy` e `spec.lifecycle.destroyResourcesOnDeletion` (default `false`); **ambos** exigem política, plan imutável e aprovação humana. Excluir o CR do Git **não é aprovação para destruir infraestrutura**. Ver [seção 3.2](#32-evolução-do-contrato-sourceref-destroy-e-controles-operacionais).
 
 ## 5. Fluxo B — drift detection
 
