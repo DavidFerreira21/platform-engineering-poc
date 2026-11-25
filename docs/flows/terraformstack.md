@@ -76,6 +76,26 @@ Os valores de módulos previstos em `config/` têm precedência **global → Ent
 
 `TerraformRun` fica reservado como eventual nome de uma execução individual. Por enquanto, um Argo Workflow é suficiente para representar cada execução: **não criar um segundo CRD sem necessidade**.
 
+### 3.1 Dependências e intervalo de drift — evolução do contrato
+
+A arquitetura passa a prever dois recursos inspirados em controladores de infraestrutura existentes: **dependências explícitas entre stacks** e **intervalo configurável para verificação periódica**. Eles serão adicionados ao schema somente nas etapas de implementação correspondentes. **Não são campos disponíveis no CRD v1alpha1 da Etapa 05.**
+
+Exemplo **conceitual**, ainda não aplicável ao CRD:
+
+```yaml
+spec:
+  dependsOn:
+    - name: network-uat
+  reconciliation:
+    driftCheckInterval: 6h
+```
+
+- **`dependsOn`:** antes de iniciar um novo plan/apply de `eks-management-uat`, o controller verifica que `network-uat` está `Ready` para sua `observedGeneration` atual. Dependências devem ser referenciadas por nome estável, resolvidas e autorizadas; o padrão inicial limita a referência ao mesmo namespace e `Entity/Environment`. Referências ausentes, não prontas e ciclos bloqueiam a execução com condição/motivo observável. Uma mudança de dependência pode reavaliar a stack dependente, mas **não autoriza apply automático**.
+- **`driftCheckInterval`:** define a frequência desejada de **verificação**, não de aplicação. O controller agenda a próxima checagem apenas para stacks elegíveis, com agendamento persistente, dispersão (*jitter*) e deduplicação; uma checagem sobre state ocupado não inicia execução concorrente. Expor última/próxima checagem e resultado em status, sem dados sensíveis.
+- **Gatilhos distintos:** alteração declarada no Git, solicitação manual autorizada por annotation e checagem periódica. Reconcile do Kubernetes não executa Terraform indiscriminadamente.
+- **Etapas:** `dependsOn` entra no teste do controller simulado da Etapa 06 e no provisionamento sequenciado dos EKS nas Etapas 10–11; `driftCheckInterval` entra com verificação real na Etapa 24 e continua sujeito à política da Etapa 25.
+
+
 ## 4. Fluxo A — provisionamento e mudança desejada
 
 1. O Platform Team ou um solicitante autorizado altera o manifesto `TerraformStack` e, quando aplicável, a configuração versionada, submetendo PR.
@@ -116,7 +136,38 @@ Após o `resume`, um passo separado valida a autorização, os vínculos e o est
 
 **Aprovação humana pode permanecer pendente sem um timer de expiração do Workflow; isso não implica que um plano antigo ou inválido possa ser aplicado.** A revalidação e a política de validade do artefato continuam obrigatórias.
 
-### 4.3 Resultados e falhas
+### 4.3 Executor por Pods do Argo Workflows e identidade AWS
+
+**Não criar outro Runner Controller.** O TerraformStack Controller inicia um `Workflow` a partir de um `WorkflowTemplate` governado; Argo Workflows cria Pods efêmeros para passos como `plan`, avaliação de política, revalidação, `apply` e verificação. Uma imagem **Terraform Executor** contém a CLI e os utilitários necessários. O Argo coordena execução e artefatos, mas **não resolve sozinho as permissões AWS**.
+
+```text
+TerraformStack (entity-a/uat)
+  → Controller: módulo, dependências, destino autorizado e geração
+  → Argo Workflow (ServiceAccount Kubernetes restrita)
+      → Pod: plan        → identidade temporária UAT → plan imutável
+      → Pod: policy      → Auto Apply / Require Approval / Deny
+      → suspend          → decisão humana, se exigida
+      → Pod: revalidate  → plano/aprovação/state/destino/generation
+      → Pod: apply       → nova identidade temporária UAT → aplicar o MESMO plano
+      → Pod: verify      → status e evidências
+      → publisher        → outputs permitidos (GitOps Bridge, Etapa 13)
+```
+
+O `serviceAccountName` do Workflow define a **identidade Kubernetes dos Pods**, e não a role AWS de destino. É necessário separar três responsabilidades:
+
+1. **Controller:** possui RBAC para criar/acompanhar Workflows, não credenciais de alteração da conta de destino.
+2. **Workflow/Executor:** usa Kubernetes ServiceAccount reservada, limites de namespace/admission e uma identidade AWS inicial autorizada. Em um futuro **Control Plane EKS**, EKS Pod Identity (ou IRSA) poderá fornecer uma role da conta da plataforma.
+3. **Conta do Environment:** o executor resolve `Entity + Environment` no registro confiável e assume via STS somente a role permitida na conta de destino, validando `GetCallerIdentity`, região, backend, escopo da sessão e trust policy. O CR **não informa role ARN arbitrário**. Em EKS, Pod Identity cross-account pode realizar o encadeamento de roles.
+
+**Importante para o laboratório:** o Hub inicial é `kind`, portanto **não dispõe de EKS Pod Identity**. A Etapa 08 deverá selecionar e validar o mecanismo de credenciais temporárias para a execução local; não embutir access keys persistentes em YAML, imagens, logs ou Secrets permanentes.
+
+O `plan` e o `apply` podem rodar em **Pods separados**. O binário de plan permanece em storage privado, íntegro e com referência auditável. Durante `suspend` não se deve manter uma sessão STS, Pod executor ou lock de state **indefinidamente**: o passo de apply obtém nova sessão, verifica artefato, aprovação, destino, configuração e state atual, adquire lock conforme o backend e aborta caso o plano esteja obsoleto/inválido. O lock de Terraform protege cada operação, não é uma reserva permanente durante a aprovação.
+
+**Segurança do motor:** a ServiceAccount de execução não pode ser utilizável por usuários ou Workflows arbitrários para contornar o gate; limitar quem cria Workflows/Pods e quem seleciona templates/ServiceAccounts, além de aplicar RBAC e admission. Se futuramente exigirmos identidade Kubernetes diferente por fase, isso será explicitado na implementação, não presumido apenas por haver Steps.
+
+Documentação técnica: [Argo Workflows — Workflow/ServiceAccount](https://argo-workflows.readthedocs.io/en/latest/fields/) · [Amazon EKS — Pod Identity com Target Role](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-assign-target-role.html).
+
+### 4.4 Resultados e falhas
 
 - **Plan sem diferenças:** registrar `NoChanges` e encerrar a verificação, sem apply desnecessário.
 - **Aprovado:** aplicar exatamente o plano autorizado, verificar e atualizar status.
