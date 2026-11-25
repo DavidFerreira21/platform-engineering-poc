@@ -34,6 +34,8 @@ def main():
     shutil.copytree("/opt/foundation/config", "/workspace/foundation/config", dirs_exist_ok=True)
     shutil.copytree(SOURCE, "/workspace/foundation/lab08/validation-stack", dirs_exist_ok=True)
     cwd = "/workspace/foundation/lab08/validation-stack"
+    # Backend é configuração da plataforma, não da stack ou do seu sourceRef.
+    Path(cwd, "backend.tf").write_text('terraform {\n  backend "s3" {}\n}\n')
     env = dict(os.environ, AWS_PROFILE="uat-executor",
                AWS_DEFAULT_REGION=args.region, AWS_REGION=args.region,
                TF_IN_AUTOMATION="true", AWS_EC2_METADATA_DISABLED="true")
