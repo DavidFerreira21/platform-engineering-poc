@@ -1,54 +1,114 @@
-# Etapa 08 — Credenciais temporárias do Terraform Executor (kind → UAT)
+# Etapa 08 — Terraform Executor, identidade AWS, state e Configuration
 
-[← Etapa 07](07-registro-ambientes-aws.md) · [Roadmap](../docs/learning-roadmap.md#fase-2--terraformstack-e-primeira-execução-na-aws) · [IAM do Lab 08](../foundation/iam/lab08/README.md)
+[← Etapa 07](07-registro-ambientes-aws.md) · [Roadmap](../docs/learning-roadmap.md#fase-2--terraformstack-e-primeira-execução-na-aws) · [IAM](../foundation/iam/lab08/README.md)
 
 ## Objetivo
 
-Comprovar que **um Pod no Hub kind** obtém identidade AWS temporária de bootstrap e assume **somente a role autorizada da conta UAT**, sem access keys permanentes ou segredos no Git. Este é o laboratório de identidade; a stack Network, o state S3 e o `terraform apply` real ficam para a continuação desta fase.
+Preparar o motor para a futura stack Network: **Pod com identidade AWS temporária**, **Terraform CLI executando sob Argo Workflows**, **backend S3 remoto com lock nativo** e **módulo Configuration compartilhado** com os três níveis de precedência. Testar Terraform sem criar VPC/EKS e sem `terraform apply`.
 
 ## O que será feito
 
-- Reutilizar o login IAM Identity Center validado na [Etapa 07](07-registro-ambientes-aws.md).
-- Com duas roles previamente autorizadas (bootstrap na conta de plataforma e execução em UAT), verificar o encadeamento STS.
-- Criar **Secret temporário** e ConfigMap exclusivamente no namespace `argo-workflows` do Hub `kind`.
-- Rodar Job de teste no Pod com `aws --profile uat-executor sts get-caller-identity` e depois limpar.
-- Preparar as entradas do executor real, **sem criar state nem provisionar AWS nesta etapa**.
+1. Confirmar a conta UAT via IAM Identity Center (Lab 07) e roles de bootstrap/execução autorizadas.
+2. Criar/configurar o bucket S3 de state com criptografia SSE-S3, versionamento, Block Public Access e **`use_lockfile = true`**.
+3. Executar `Configuration` com `foundation/config/network.yaml`, `foundation/config/eks.yaml` e overrides de Entity/Environment.
+4. Construir e carregar a imagem do Terraform Executor no `kind`.
+5. Preparar STS temporário, executar um Job de identidade e um **Argo Workflow** com `terraform init`, `validate` e `plan` de uma stack **sem recursos de infraestrutura**.
+6. Remover Pods/Workflows/Secret após o teste; **preservar o bucket de state** para o Lab 09.
 
 ## Por que fizemos assim
 
-No Hub local ainda não existe EKS Pod Identity; a sessão de IAM Identity Center fica no computador. O script assume uma **role intermediária com permissão mínima** e compartilha com o Pod apenas essa sessão STS efêmera. Dentro do Pod, AWS CLI usa um profile com `credential_source = Environment` para assumir a **role de UAT**. É o mesmo limite de confiança que pretendemos preservar quando o Hub usar EKS Pod Identity.
+O Hub `kind` não dispõe de EKS Pod Identity. Para a POC supervisionada, IAM Identity Center fornece a sessão humana, que assume uma role de bootstrap autorizada. O Pod recebe **temporariamente** as credenciais dessa role por Kubernetes Secret e usa STS para assumir a role de execução da UAT.
 
-**Isto não é autenticação autônoma:** a credencial de origem expira, Kubernetes Secret exige RBAC/admission e o operador precisará renovar o bootstrap. O Secret **não** deve ficar em cluster compartilhado ou exposto a Workflows arbitrários.
+O state é segregado por Entity/Environment/stack no S3. O locking nativo `use_lockfile=true` evita introduzir uma tabela DynamoDB apenas para state locking (Terraform 1.10+). O S3 precisa estar disponível **antes** do primeiro init com backend remoto.
+
+Configuration lê os YAMLs por hierarquia: valores globais → Entity → Environment, com sobrescrita de valores mais específicos. O executor prepara a estrutura e verifica sem provisionar networking — isso pertence à Etapa 09.
+
+**Atenção:** o script de bootstrap não cria IAM roles, e o script de bucket só cria recursos após `--execute`. Se a credencial STS expirar enquanto um Workflow aguarda aprovação em etapas futuras, outro bootstrap será necessário. Não há renovação automática.
 
 ## Pré-requisitos
 
-- Etapa 07 concluída: IAM Identity Center e `platform-poc-uat` validados por STS, conta/região do registro UAT confirmadas.
-- Hub `kind-platform-management` recriado e `argo-workflows` instalado; `kubectl config current-context` deve ser `kind-platform-management`. O script recusa outros contextos.
-- AWS CLI v2, `kubectl`, Docker e Python 3 disponíveis localmente.
-- Duas roles **já criadas por administrador autorizado**, com trust e políticas mínimas descritas em [IAM do laboratório](../foundation/iam/lab08/README.md). A role de bootstrap deve conseguir `sts:AssumeRole` somente na role UAT; a role UAT tem permissões da etapa futura, a conceder somente quando necessárias.
-- Testar num cluster local isolado, com acesso administrativo somente do operador. Nada sensível em commits.
+- Mac/PC com `docker`, `kind`, `kubectl`, Python 3, AWS CLI v2 e `terraform >=1.10` para testes locais opcionais.
+- Repositório atualizado e Hub criado pelas Etapas 01–06, com namespace `argo-workflows` e Argo Workflows operacionais.
+- IAM Identity Center `platform-poc-uat` validado na Etapa 07.
+- Duas roles autorizadas: **Bootstrap** (somente STS para UAT) e **Execution UAT** (STS/S3 backend); veja [IAM e policies](../foundation/iam/lab08/README.md).
+- Permissão SSO para criar/configurar o bucket S3. Isso provoca **custos de armazenamento/operações S3**, ainda que o lab não crie VPC, EKS ou EC2.
 
-## 1. Autenticar e conferir UAT
+## 1. Conferir destino e infraestrutura local
+
+Na raiz do repositório:
 
 ```bash
+git pull --ff-only
 aws sso login --profile platform-poc-uat
-read -r -p 'Account ID de UAT no environment.yaml: ' uat_account
-read -r -p 'Region de UAT no environment.yaml: ' uat_region
+read -r -p 'Account ID UAT: ' uat_account
+read -r -p 'Region UAT (ex.: us-east-1): ' uat_region
 bash foundation/scripts/verify-environment-identity.sh \
   platform-poc-uat "$uat_account" "$uat_region"
+
 kubectl config current-context
-kubectl --context kind-platform-management get ns argo-workflows
+kubectl --context kind-platform-management -n argo-workflows get deployments
 ```
 
-A etapa não cria a role de UAT, não altera permission sets e não muda o cadastro do Environment.
+O script valida conta e região contra o que você informou. **Confira antes o registro versionado** em [`foundation/config/entity-a/uat/environment.yaml`](../foundation/config/entity-a/uat/environment.yaml). Não use IDs/roles de outros ambientes.
 
-## 2. Preparar uma sessão temporária para o Pod
+## 2. Criar e verificar o backend remoto de state
 
-Defina **apenas os ARNs**, nunca access keys. O script verifica o perfil, assume a role de bootstrap por STS e testa a role UAT **antes** de criar o Secret. Se já houver Secret anterior, é necessário limpar primeiro.
+Escolha um nome S3 globalmente único, por exemplo com prefixo `terraform-state-poc-` e sufixo do número da conta UAT. **O bucket tem custo e permanece para os labs seguintes.**
 
 ```bash
-read -r -p 'ARN da role de bootstrap na conta da plataforma: ' bootstrap_role
-read -r -p 'ARN da role de execução na conta UAT: ' uat_role
+read -r -p 'Bucket S3 exclusivo para state: ' state_bucket
+
+# Preview, sem criação.
+python3 foundation/scripts/prepare-state-backend.py \
+  --profile platform-poc-uat \
+  --account "$uat_account" --region "$uat_region" \
+  --bucket "$state_bucket"
+
+# Somente após revisar e autorizar o bucket.
+python3 foundation/scripts/prepare-state-backend.py \
+  --profile platform-poc-uat \
+  --account "$uat_account" --region "$uat_region" \
+  --bucket "$state_bucket" --execute
+```
+
+O script verifica conta/região, habilita **S3 Block Public Access, SSE-S3 e versionamento**. Não gera/commita credenciais. Em `us-east-1`, cria bucket sem `LocationConstraint`. Uma colisão de nome ou erro de permissão aborta a operação; não contorne permissões.
+
+A **role de execução UAT** precisa de S3 List/Get/Put e `DeleteObject` **restrito ao `.tflock`**, de acordo com o prefixo utilizado. O prefixo da verificação é `platform/entity-a/uat/lab08/`. A stack real da Etapa 09 terá sua própria key. [Política orientativa](../foundation/iam/lab08/README.md#permissões-para-backend-s3).
+
+## 3. Validar Configuration (sem AWS)
+
+A stack de teste está em [`foundation/lab08/validation-stack/`](../foundation/lab08/validation-stack/main.tf), usando [Configuration](../foundation/modules/configuration/main.tf). Dados de referência: `network.yaml` e `eks.yaml`; Environment UAT sobrescreve campos específicos sem descartar outras opções.
+
+Opcionalmente, no computador:
+
+```bash
+terraform -chdir=foundation/lab08/validation-stack init -backend=false
+terraform -chdir=foundation/lab08/validation-stack validate
+```
+
+O teste local não faz `terraform apply`. O Workflow testará também o backend real.
+
+## 4. Construir e carregar a imagem do Terraform Executor
+
+```bash
+docker build \
+  -f workflow-plane/terraform-executor/Dockerfile \
+  -t terraformstack-executor:lab08 .
+
+kind load docker-image terraformstack-executor:lab08 \
+  --name platform-management
+
+kubectl --context kind-platform-management -n argo-workflows \
+  apply -f workflow-plane/argo-workflows/lab08/workflowtemplate.yaml
+```
+
+A imagem contém Terraform, AWS CLI, o módulo Configuration e a stack de **validação**. Não contém credenciais. A imagem é local à POC e precisa ser reconstruída para novos valores de YAML ou código. A imagem de produção será evoluída para obter artefatos `sourceRef` versionados; isso **não está implementado** nesta etapa.
+
+## 5. Preparar credenciais temporárias
+
+```bash
+read -r -p 'Role ARN Bootstrap (pode estar na UAT): ' bootstrap_role
+read -r -p 'Role ARN Execution UAT: ' uat_role
 
 python3 foundation/scripts/bootstrap-workflow-credentials.py prepare \
   --profile platform-poc-uat \
@@ -58,41 +118,77 @@ python3 foundation/scripts/bootstrap-workflow-credentials.py prepare \
   --target-role-arn "$uat_role"
 ```
 
-A saída mostra **somente ARNs/contas e expiração**; nunca imprima ou faça `kubectl get secret -o yaml`. O Secret `terraform-executor-bootstrap` contém **apenas credenciais de origem temporárias**, não as credenciais finais de UAT. O ConfigMap `terraform-executor-aws-config` contém role de destino e configuração do profile. O script usa `kubectl create`, **não** `kubectl apply`, para não inserir credenciais no annotation `last-applied-configuration`.
+O script testa o encadeamento STS **antes** de criar o Secret de credenciais temporárias e o ConfigMap de configuração do profile; recusa substituir objetos já existentes. O Secret fica em `argo-workflows`. **Não faça `kubectl get secret -o yaml` nem `kubectl describe pod` contendo env para compartilhar com terceiros.**
 
-Se falhar com `AccessDenied`, conferir **ambos** os lados do STS: a role de origem precisa permitir `sts:AssumeRole` e a trust policy do destino precisa confiar na origem. Não afrouxar a trust policy para conseguir passar no Lab.
+Se ocorrer `AccessDenied`, revise trust policy e permissões STS das roles sem ampliá-las genericamente.
 
-## 3. Comprovar a identidade do Pod
+## 6. Testar STS dentro de um Pod
 
 ```bash
 kubectl --context kind-platform-management -n argo-workflows create \
   -f foundation/iam/lab08/verify-uat-executor-job.yaml
 
 kubectl --context kind-platform-management -n argo-workflows wait \
-  --for=condition=complete --timeout=180s job/terraform-executor-identity-check
+  --for=condition=complete --timeout=180s \
+  job/terraform-executor-identity-check
 
 kubectl --context kind-platform-management -n argo-workflows logs \
   job/terraform-executor-identity-check
 ```
 
-Compare `Account` com o ID de UAT. O campo `Arn` deve representar a role **de execução UAT**, e **não** a role SSO humana ou a de bootstrap. Este Job só chama STS; não executa Terraform. Se houver erro, confira `kubectl describe job` e `kubectl logs`; não exiba variáveis de ambiente ou credenciais.
+O `Account` retornado precisa ser **exatamente** o UAT. Não avance se a role não corresponder ao destino.
+
+## 7. Executar a validação pelo Argo Workflows
+
+```bash
+python3 foundation/scripts/submit-lab08-workflow.py \
+  --bucket "$state_bucket" \
+  --account "$uat_account" \
+  --region "$uat_region" --stack network
+```
+
+O comando imprime o nome do Workflow gerado. Acompanhe pela Argo Workflows UI da Etapa 03 ou por:
+
+```bash
+kubectl --context kind-platform-management -n argo-workflows \
+  get workflows -o wide
+
+kubectl --context kind-platform-management -n argo-workflows \
+  logs -l workflows.argoproj.io/workflow -c main --tail=100
+```
+
+O container verifica o `GetCallerIdentity` para UAT e realiza `terraform init` no bucket/state key separados, `terraform validate` e **`terraform plan` sem aplicar**. Na saída, conferir `configuration_loaded = true` e o CIDR de UAT `10.81.0.0/16`. Repetir com `--stack eks` para comprovar leitura de outro YAML.
+
+**Limitação:** o workflow não executa o controller `TerraformStack` real e não materializa `sourceRef` do Git/Registry. Também não incorpora aprovação humana neste teste: a aprovação do plano imutável é implementada no Lab 09. Não confundir este smoke test do executor com o motor completo.
 
 ## O que observar
 
-- Perfil SSO humano acessa a conta UAT prevista na Foundation.
-- Role de bootstrap consegue **somente** assumir a role de execução UAT permitida.
-- Pod no Hub obtém role da UAT sem access keys fixas e sem URL/role arbitrária no `TerraformStack.spec`.
-- Sessão expira; não há renovação automática. Para a Etapa 09, cada `plan` e `apply` deverá receber uma sessão válida, inclusive após o `suspend` de aprovação; um Secret expirado deve causar falha fechada.
+- A identidade humana SSO, a role temporária de bootstrap e a role de execução UAT são distintas.
+- Pod consegue ler state no S3 autorizado usando role UAT e locking nativo, sem credenciais permanentes.
+- A estrutura `Global → Entity → Environment` conserva valores vizinhos no override do `network.vpc.cidr`.
+- O Argo Workflow termina `Succeeded` após `init/validate/plan`. Nenhum `terraform apply` ou provisionamento de VPC/EKS ocorre.
+- O Secret de bootstrap tem expiração curta e **não** é renovado pela plataforma.
 
-## 4. Limpeza obrigatória
+## 8. Limpeza
 
 ```bash
-kubectl --context kind-platform-management -n argo-workflows delete \
-  job terraform-executor-identity-check --ignore-not-found
+kubectl --context kind-platform-management -n argo-workflows \
+  delete job terraform-executor-identity-check --ignore-not-found
+
+kubectl --context kind-platform-management -n argo-workflows \
+  delete workflows -l workflows.argoproj.io/workflow-template=lab08-terraform-executor-check \
+  --ignore-not-found
+
+kubectl --context kind-platform-management -n argo-workflows \
+  delete -f workflow-plane/argo-workflows/lab08/workflowtemplate.yaml \
+  --ignore-not-found
+
 python3 foundation/scripts/bootstrap-workflow-credentials.py cleanup
-unset bootstrap_role uat_role uat_account uat_region
+unset bootstrap_role uat_role uat_account uat_region state_bucket
 ```
 
-Limpar o Secret **antes de compartilhar o cluster ou terminar a sessão do Lab**. Não versionar Secret, token, cache SSO, arquivos AWS locais nem outputs sensíveis. O state/backend AWS permanece para implementação separada e expressamente autorizada da Etapa 08–09.
+Se não houver label do WorkflowTemplate na versão do Argo utilizada, remova **somente os Workflows `lab08-terraform-check-*`** identificados na lista; não execute deleção genérica de todos os Workflows.
 
-[Próxima etapa: Stack Network e primeiro plan/apply AWS](../docs/learning-roadmap.md#fase-2--terraformstack-e-primeira-execução-na-aws)
+**Não excluir o bucket S3 de state durante a limpeza.** A Etapa 09 utilizará state separado por stack, na mesma estrutura protegida.
+
+[Próximo passo — Etapa 09: Stack Network](../docs/learning-roadmap.md#fase-2--terraformstack-e-primeira-execução-na-aws)
