@@ -1,0 +1,36 @@
+name: Validate Lab 08 Terraform Executor Image
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "workflow-plane/terraform-executor/**"
+      - "foundation/modules/configuration/**"
+      - "foundation/config/**"
+      - "foundation/lab08/**"
+      - ".github/workflows/validate-lab08-executor.yml"
+  pull_request:
+    paths:
+      - "workflow-plane/terraform-executor/**"
+      - "foundation/modules/configuration/**"
+      - "foundation/config/**"
+      - "foundation/lab08/**"
+      - ".github/workflows/validate-lab08-executor.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  executor-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image without AWS credentials
+        run: docker build -f workflow-plane/terraform-executor/Dockerfile -t terraformstack-executor:lab08 .
+      - name: Verify Terraform and AWS CLI binaries
+        run: |
+          docker run --rm --entrypoint terraform terraformstack-executor:lab08 version
+          docker run --rm --entrypoint aws terraformstack-executor:lab08 --version
+          docker run --rm terraformstack-executor:lab08 --help
