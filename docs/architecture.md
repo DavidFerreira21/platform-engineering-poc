@@ -191,7 +191,7 @@ O Bootstrap Terraform central é reutilizado por configuração de Entity/Enviro
 2. **Etapas 07 a 09 — Primeira execução na AWS.** Registrar UAT, validar a identidade do executor e preparar o backend de estado. Gerar o plano da rede, obter aprovação humana vinculada ao plano e aplicar o mesmo artefato.
 3. **Etapas 24 e 25 — Drift e reconciliação por políticas.** Detectar drift numa stack aplicada e publicá-lo no status antes de habilitar qualquer remediação. Em seguida, aplicar decisões versionadas e auditáveis para auto apply autorizado, aprovação obrigatória ou bloqueio.
 
-O schema inicial do CRD é validado na Etapa 05 e a implementação do Policy Engine na Etapa 25. O Argo CD central sincroniza o CR Kubernetes. Argo Workflows executa os passos de plan, aprovação e apply.
+O schema inicial do CRD é validado na Etapa 05 e o Policy Engine é exercitado localmente na Etapa 06B e em AWS na Etapa 25. O Argo CD central sincroniza o CR Kubernetes. Argo Workflows executa os passos de plan, aprovação e apply.
 
 ### Domain Infrastructure: Argo CD central + Crossplane
 
