@@ -1,0 +1,11 @@
+# Baseline de referência da stack EKS; valores não criam clusters no Lab 08.
+eks:
+  clusters:
+    management: true
+    nonPci: true
+    pci: false
+  addons:
+    karpenterPrerequisites: false
+    externalSecretsPrerequisites: true
+  networking:
+    privateEndpoint: true
