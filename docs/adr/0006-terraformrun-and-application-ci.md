@@ -58,7 +58,7 @@ Um módulo auxiliar Terraform chamado `configuration` lê os YAMLs com `yamldeco
 
 **Outputs:** as stacks `network` e `eks` expõem saídas tipadas; a publicação de um subconjunto permitido para o Parameter Store da conta do Environment ocorre pelo **GitOps Bridge (Etapa 13)**, depois de apply e verificação. Não publicar state, plano ou segredos como output distribuído. A implementação deve verificar combinações de flags e tornar explícitas as dependências de rede/IAM, sem criar um quarto módulo obrigatório agora.
 
-O `TerraformStack` seleciona a versão da configuração em `spec.configuration.version`, campo aceito pelo CRD e utilizado na primeira stack real de rede. O primeiro PR publica os YAMLs em `main`. Um segundo PR promove o commit da configuração no manifesto da stack. Após o sync, o controller observa a nova `generation` e solicita um novo plan com a mesma versão do módulo. O executor disponibiliza, no diretório de trabalho, os arquivos do commit selecionado antes de iniciar o Terraform. O `environment.yaml` registra o destino AWS, e a plataforma resolve as credenciais, as roles e o backend autorizados para esse destino.
+O `TerraformStack` seleciona a versão da configuração em `spec.configuration.version`, campo aceito pelo CRD e utilizado na primeira stack real de rede. Após o merge de alterações em `config/`, a CI publica uma release SemVer imutável da configuração e abre um PR de promoção. Pelo tipo de stack e pela hierarquia global → entidade → ambiente, o PR atualiza `spec.configuration.version` uma vez em cada manifesto afetado. Uma alteração em `config/br/uat/network.yaml` seleciona a rede de BR/UAT. Uma alteração em `config/br/network.yaml` seleciona as redes de BR. Uma alteração em `config/network.yaml` seleciona as redes de todas as entidades consumidoras, inclusive BR e CL no exemplo. As stacks EKS continuam na versão anterior. Uma sobrescrita local pode resultar em plan sem mudanças. Após o merge e o sync dos CRs pelo Argo CD, cada nova geração inicia seu próprio plan. Para retroceder uma stack, promover nela uma release anterior e revisar o novo plano. O executor disponibiliza, no diretório de trabalho, os arquivos do commit selecionado antes de iniciar o Terraform. O `environment.yaml` registra o destino AWS, e a plataforma resolve as credenciais, as roles e o backend autorizados para esse destino.
 
 Na Etapa 09, os testes do módulo auxiliar cobrem os três níveis de herança, a preservação dos campos vizinhos, a substituição de listas e a rejeição de valores incompatíveis com o schema. A validação do fluxo confirma que promover outra revisão muda os valores do próximo plan e preserva a versão da stack.
 
@@ -77,7 +77,7 @@ Backstage / CLI / pessoa → PR + validações + aprovação Git
 
 **Separação de responsabilidades:**
 - **Argo CD central:** sincroniza `TerraformStack` do Git para Kubernetes, **não executa Terraform nem cria workflows por conta própria**.
-- **TerraformStack Controller:** observa CRs, valida módulo/destino/permissões, dispara ou agenda verificações, controla concorrência/retries, invoca o motor de políticas e atualiza status.
+- **TerraformStack Controller:** observa CRs, valida módulo/destino/permissões, dispara ou agenda verificações, controla concorrência/retries, acompanha o resultado da política avaliada no Workflow e atualiza status.
 - **Argo Workflows:** orquestra plan, avaliação das políticas, gates/aprovação, apply e verificações.
 - **Terraform:** calcula mudanças e executa a infraestrutura na AWS.
 
@@ -138,6 +138,8 @@ Outros campos já validados pelo schema: `spec.suspend`, `spec.reconciliation.re
 - **Toda execução de apply exige aprovação humana explícita do plano** até a evolução prevista na Etapa 25. Auto apply só será avaliado com política versionada.
 - Validar schema, autorização, idempotência por generation/revisão, erros/retry, status e evidências. A Etapa 06 exercita o executor simulado. A Etapa 09 aplica a rede UAT com state segregado, lock, plano imutável e aprovação vinculada a hash, revisão Git e destino. O mesmo fluxo de aprovação atende às stacks de EKS.
 
+O passo de política do Workflow executa OPA com regras Rego versionadas sobre `terraform show -json` do plano salvo. No aceite, um plano permitido chega à pausa de aprovação humana e um plano com abertura de SSH para `0.0.0.0/0` termina bloqueado antes do apply. Exercitar o caso bloqueado somente até a decisão. Erro de avaliação ou decisão ausente também bloqueia. Registrar motivo, revisão da política e hash do plano, mantendo o JSON em armazenamento restrito. Após aprovação, o executor aplica o mesmo plano binário.
+
 ### Aprovação humana na Argo Workflows UI
 
 **Canal de aprovação escolhido:** Argo Workflows UI, com um passo `suspend: {}` entre `terraform plan` e `terraform apply`. O operador autorizado visualiza a referência do plano e retoma o Workflow pela UI. Nesta fase **não existe auto apply**; a aprovação de PR/Git não substitui a aprovação do plano de execução.
@@ -163,7 +165,7 @@ Outros campos já validados pelo schema: `spec.suspend`, `spec.reconciliation.re
 
 ### Etapa 25 — Policy-Based Reconciliation
 
-- Um **Policy Engine versionado/testável** classifica o plan segundo identidade, Environment, origem (PR vs drift), recurso, atributos, custo/impacto e operações (`create/update/delete/replace`). A tecnologia específica (por exemplo OPA) ainda está **a decidir**.
+- Um **Policy Engine versionado/testável** classifica o plan segundo identidade, Environment, origem (PR vs drift), recurso, atributos, custo/impacto e operações (`create/update/delete/replace`). A POC usa OPA e amplia as regras Rego exercitadas na Etapa 09. Validar as três decisões com planos distintos, incluindo um caso de baixo risco explicitamente autorizado para auto apply.
 - Três resultados possíveis: **Auto Apply** se expressamente permitido; **Require Approval** se sensível; **Deny/Block** se não autorizado.
 - Exemplos *ilustrativos*, não permissões default: remediação de tags permitidas; adição de recurso de baixo risco em UAT; aprovação para modificação de rota/rede crítica; bloqueio de exposição insegura ou destino não autorizado.
 - O **controller coordena o ciclo de vida**, e o **Workflow executa a decisão**. Não espalhar a política como regras ad hoc difíceis de auditar dentro dos Workflows.
