@@ -15,7 +15,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: aws-sts
-          image: public.ecr.aws/aws-cli/aws-cli:2
+          image: public.ecr.aws/aws-cli/aws-cli:latest
           command: ["aws"]
           args:
             - "--profile"
