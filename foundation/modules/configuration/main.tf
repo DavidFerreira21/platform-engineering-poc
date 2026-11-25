@@ -25,15 +25,15 @@ locals {
           keys(try(local.global_values[top], {})),
           keys(try(local.entity_values[top], {})),
           keys(try(local.env_values[top], {}))
-        )) : nested => (
+          )) : nested => (
           can(keys(try(local.global_values[top][nested], {}))) &&
           can(keys(try(local.entity_values[top][nested], {}))) &&
           can(keys(try(local.env_values[top][nested], {})))
-        ) ? merge(
+          ) ? merge(
           try(local.global_values[top][nested], {}),
           try(local.entity_values[top][nested], {}),
           try(local.env_values[top][nested], {})
-        ) : coalesce(
+          ) : coalesce(
           try(local.env_values[top][nested], null),
           try(local.entity_values[top][nested], null),
           try(local.global_values[top][nested], null)
