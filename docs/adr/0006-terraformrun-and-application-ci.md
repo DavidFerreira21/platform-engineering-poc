@@ -115,6 +115,21 @@ spec:
 
 [Detalhamento do fluxo e da identidade](../flows/terraformstack.md#43-executor-por-pods-do-argo-workflows-e-identidade-aws).
 
+### Contrato futuro: sourceRef e lifecycle de destruição
+
+**Decisão de design:** manter `TerraformStack` como API genérica de stacks completas, mas evoluir o identificador `spec.module.name/version` do CRD inicial para uma referência a **fonte versionada e aprovada** (`sourceRef`, `path`, `revision`). O source é resolvido no catálogo sob controle do Platform Team e não aceita URL arbitrária/credenciais. A revisão de código da stack e a revisão de `configuration` são independentes e ficam fixadas em cada execução. A transição do schema v1alpha1 requer compatibilidade explícita e validação; os campos ainda **não estão implementados**. Não dependemos do `GitRepository` de Flux.
+
+**Dois controles de destruição na API futura, ambos sujeitos ao Policy Engine e à aprovação humana:**
+
+- `spec.lifecycle.destroy: true`: solicita um `plan -destroy` e um `apply` **do mesmo plano aprovado**, mantendo o CR para acompanhar o resultado. Não reaproveitar aprovação de apply anterior.
+- `spec.lifecycle.destroyResourcesOnDeletion: true`: habilita a **intenção** de teardown no momento da exclusão do CR. O default é `false`; excluir YAML/CR não constitui aprovação. O controller usa finalizer, snapshot imutável de source/config/destino/state e Workflow com aprovação de identidade verificável. Quando não autorizado, bloqueia sem destruir. Uma solução separada e auditada para `orphan/retain` deverá ser estudada para falhas e CRs presos em deletion.
+
+**Garantias:** aplicar proteção das dependências reversas (não destruir rede enquanto EKS depender dela), state/lock, IAM, planejamento imutável, política de risco para delete/replace e registros de auditoria. `finalizer` protege o ciclo de exclusão, **não** substitui aprovação. Destruição explícita e destruição on-delete ficam previstas para a **Etapa 25**, nunca habilitadas silenciosamente nas etapas AWS iniciais.
+
+Outros campos de contrato que valem evoluir sem ampliar demais a API: `spec.suspend` para bloquear novas execuções; `spec.reconciliation.retryPolicy` para falhas transitórias sem reutilizar approval; `healthChecks` opcionais em fase posterior. `spec.reconciliation.driftCheckInterval` (Etapa 24) e `spec.dependsOn` (Etapas 10–11) permanecem aprovados. `serviceAccountName`, AWS role, backend e desbloqueio forçado **não** serão selecionáveis livremente pelo usuário via CR.
+
+[Exemplo conceitual e fluxo de destroy](../flows/terraformstack.md#32-evolução-do-contrato-sourceref-destroy-e-controles-operacionais).
+
 ## Decisão 3 — três etapas incrementais da POC
 
 ### Etapa 09 — Deploy declarativo ponta a ponta com aprovação
