@@ -77,6 +77,38 @@ Backstage / CLI / pessoa → PR + validações + aprovação Git
 
 **Argo CD `Synced` significa Git == CR Kubernetes, não AWS sem drift.** Drift de infraestrutura é informado em `TerraformStack.status.conditions` (por exemplo `DriftDetected`, `Ready`, `ApprovalRequired`, `ReconcileBlocked`) e pode ser exposto por health check customizado, CLI ou observabilidade. A POC **não depende** de interface/health customizados do Argo CD.
 
+### Executor Argo, identidade do destino e isolamento
+
+**Decisão:** manter o `TerraformStack Controller` próprio com **Argo Workflows** como executor/orquestrador; não substituir pelo Tofu Controller nem criar um segundo Runner Controller. O controller observa o CR, resolve o destino autorizado e cria um Workflow governado. O Argo cria **Pods efêmeros** para executar a imagem Terraform Executor nos passos de `plan`, policy, revalidação, `apply` e `verify`.
+
+Identidades **distintas e complementares**:
+
+- **Kubernetes:** o controller tem RBAC apenas para suas operações de controle; os Pods do Workflow usam uma `serviceAccountName` de executor reservada e protegida contra uso por Workflows arbitrários.
+- **AWS de origem:** quando o Hub migrar para EKS na conta de plataforma, uma identidade de Pod (EKS Pod Identity ou IRSA, conforme avaliação) poderá habilitar credenciais AWS temporárias. **O Hub `kind` atual não fornece EKS Pod Identity**; a Etapa 08 deve validar outra forma segura de bootstrap de credenciais temporárias, sem chaves estáticas no Git/CR/imagens.
+- **AWS de destino:** `spec.target.entity/environment` é uma chave lógica para consultar o registro confiável. O executor obtém uma sessão STS na role **permitida** da conta/região daquele Environment; manifesto não aceita role arbitrária. Conferir `GetCallerIdentity`, backend e trust policy. Não é o Kubernetes ServiceAccount, isoladamente, que escolhe a conta AWS.
+
+O mesmo plano imutável é transportado em artefato privado entre Pods; `plan` e `apply` podem ocorrer em Pods/sessões AWS distintos. **A aprovação não mantém Pod, credenciais nem lock de state abertos indefinidamente.** No retorno da pausa, uma nova sessão obtém o artefato, revalida identidade de aprovador, hash, geração, revisão, destino, state e validade antes de aplicar exatamente o plan aprovado. Bloquear se a checagem falhar. Bloqueios IAM, RBAC e admission impedem que um Workflow criado fora do controller contorne os gates.
+
+### Dependências e checagem periódica configurável
+
+**Decisão de evolução da API**, inspirada em práticas de operadores Terraform/OpenTofu: prever `spec.dependsOn` para stacks dependentes e `spec.reconciliation.driftCheckInterval` para a frequência desejada de verificação. Os nomes abaixo são **proposta de contrato, não campos hoje implementados** no CRD da Etapa 05.
+
+```yaml
+spec:
+  dependsOn:
+    - name: network-uat
+  reconciliation:
+    driftCheckInterval: 6h
+```
+
+- `dependsOn`: antes de executar uma stack, conferir dependência `Ready` com `observedGeneration` atual. Resolver por nome estável, no mesmo namespace e Entity/Environment por padrão; rejeitar referências proibidas, dependências inexistentes e ciclos. Exemplo: EKS Management depende da stack de rede UAT. Dependência pronta **não autoriza** apply sem política e aprovação.
+- `driftCheckInterval`: o controller agenda um `plan` de verificação idempotente, com `lastCheckAt` / `nextCheckAt`, jitter, deduplicação e proteção contra execuções concorrentes no mesmo state. **Intervalo é para detectar, não para corrigir automaticamente**; Etapa 24 detecta e relata, Etapa 25 aplica as políticas vigentes.
+- Reconcile por evento Git, retry explícito por annotation e checagem agendada são gatilhos diferentes. Não tratar toda notificação Kubernetes como ordem de executar Terraform.
+
+**Fases da implementação:** Etapa 06 exercita resolução de dependências e criação de Workflow **simulados**; Etapa 08 implementa a identidade AWS; Etapa 09 prova a execução real com aprovação; Etapas 10–11 usam `dependsOn` em rede → EKS; Etapa 24 ativa intervalo de drift.
+
+[Detalhamento do fluxo e da identidade](../flows/terraformstack.md#43-executor-por-pods-do-argo-workflows-e-identidade-aws).
+
 ## Decisão 3 — três etapas incrementais da POC
 
 ### Etapa 09 — Deploy declarativo ponta a ponta com aprovação
@@ -91,10 +123,10 @@ Backstage / CLI / pessoa → PR + validações + aprovação Git
 
 **Implementação prevista (sem código ou infraestrutura criados por este ADR):**
 
-1. O `TerraformStack Controller` dispara um Workflow com identificação imutável da stack, `metadata.generation`, revisão Git da solicitação, revisão dos YAMLs de configuração, módulo, versão e destino autorizado. O Workflow adquire o lock do state.
+1. O `TerraformStack Controller` dispara um Workflow com identificação imutável da stack, `metadata.generation`, revisão Git da solicitação, revisão dos YAMLs de configuração, módulo, versão e destino autorizado. O backend protege as operações Terraform com lock quando necessário, **sem manter o lock retido durante uma aprovação pendente**.
 2. O executor gera `terraform plan -out` com a configuração da revisão selecionada. Persiste o plano binário **em armazenamento privado e com prazo de validade**, associado ao hash SHA-256, ao state/serial, à revisão de configuração e à identidade do destino. Expõe apenas metadados não sensíveis para consulta.
 3. O passo de aprovação da UI usa um template `suspend: {}`, **sem `duration` que retome automaticamente**. Acesso ao Argo Server deve usar autenticação individual e autorização restrita a aprovadores, com trilha auditável de quem retomou o Workflow. Um simples `resume` não é autorização suficiente sem essa identidade verificável.
-4. Após o `resume`, um passo independente valida a identidade e a autorização do aprovador, o vínculo da decisão ao Workflow e ao hash do plano, as revisões da solicitação e da configuração, a `generation`, a validade do artefato, o lock/state e o destino. Qualquer falha, expiração ou mudança nesses vínculos **bloqueia o apply** e exige novo plan e nova aprovação.
+4. Após o `resume`, um passo independente valida a identidade e a autorização do aprovador, o vínculo da decisão ao Workflow e ao hash do plano, as revisões da solicitação e da configuração, a `generation`, a validade do artefato, o state/lock efetivo no momento do apply e o destino. Qualquer falha, expiração ou mudança nesses vínculos **bloqueia o apply** e exige novo plan e nova aprovação.
 5. O executor aplica **o arquivo de plano aprovado**, não executa um novo `terraform plan` implícito, verifica o resultado e atualiza `status`. A confirmação de sucesso depende de verificação da execução; `Argo CD Synced` não comprova o resultado na AWS.
 6. Reprovação, cancelamento, timeout e erro terminam sem apply; retry é controlado e nunca reaproveita aprovação para plano diferente. Operações `destroy` ou deleção de Stack não são autorizadas implicitamente.
 
@@ -135,11 +167,12 @@ O código, a pipeline CI/CD **e os manifests Kubernetes da aplicação de exempl
 ## Faseamento e pendências
 
 - **Etapa 05.** A Application `terraformstack-crd` entrega o CRD pelo catálogo do Hub. A API Kubernetes valida exemplos com dados fictícios.
-- **Etapa 06.** A Application `terraformstack-controller` entrega o controller e o `WorkflowTemplate`. Com ambos disponíveis, o Argo CD sincroniza a solicitação de exemplo e o controller cria o Workflow de execução simulada. [Divisão das Applications](0003-reconciliation-and-gitops.md#applications-e-sincronização-no-hub)
-- **Etapas 07 e 08.** Registro de UAT, identidade temporária do executor e inicialização autorizada do backend de estado.
+- **Etapa 06.** A Application `terraformstack-controller` entrega o controller e o `WorkflowTemplate`. Com ambos disponíveis, o Argo CD sincroniza a solicitação de exemplo e o controller cria Workflow simulado, validando dependências, concorrência e status. [Divisão das Applications](0003-reconciliation-and-gitops.md#applications-e-sincronização-no-hub)
+- **Etapas 07 e 08.** Registro de UAT, identidade temporária do executor (incluindo bootstrap seguro no Hub kind), resolução de STS cross-account e inicialização autorizada do backend de estado.
 - **Etapa 09.** Rede UAT aplicada com a revisão dos YAMLs selecionada na stack, state segregado, lock e aprovação humana do plano imutável.
-- **Etapas 24 e 25.** Detecção de drift com status e alerta. Depois, reconciliação com Policy Engine versionado.
-- **A validar:** formato final da API, status/conditions, requeue/scheduling, política de alterações de spec durante workflows, engine de políticas, versionamento de módulo, catálogo, lock de state e aprovação segura.
+- **Etapas 10–11.** Validar dependência explícita das stacks de EKS em relação à rede UAT.
+- **Etapas 24 e 25.** Intervalo de drift configurável, status e alerta; depois, reconciliação com Policy Engine versionado.
+- **A validar:** schema final de `dependsOn` e `driftCheckInterval`, status/conditions, política de intervalos padrão, bootstrap de identidade no Hub kind, engine de políticas, versionamento de módulo, catálogo, lock de state e aprovação segura.
 
 O guia da Etapa 05 descreve a instalação do CRD no Hub por GitOps. As operações AWS das etapas posteriores exigem autorização própria.
 
