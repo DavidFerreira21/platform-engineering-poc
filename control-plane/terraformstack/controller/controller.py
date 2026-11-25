@@ -1,10 +1,12 @@
 """Reconcilia a solicitação de demonstração da Etapa 06."""
 
 import logging
+import os
 from datetime import datetime, timezone
+from threading import Event, Thread
 from time import sleep
 
-from kubernetes import client, config
+from kubernetes import client, config, watch
 from kubernetes.client.exceptions import ApiException
 from urllib3.exceptions import HTTPError
 
@@ -15,6 +17,7 @@ TEMPLATE_NAME = "terraformstack-plan-simulado"
 CONDITION = "SimulatedPlanReady"
 UID_LABEL = "lab.platform.example/stack-uid"
 GENERATION_LABEL = "lab.platform.example/stack-generation"
+EXERCISE_LABEL = "lab.platform.example/exercise"
 TIMEOUT = 10
 
 
@@ -59,7 +62,7 @@ def workflow_for(stack):
             "name": f"lab06-plan-{uid}-{generation}",
             "namespace": WORKFLOW[2],
             "labels": {
-                "lab.platform.example/exercise": "lab06",
+                EXERCISE_LABEL: "lab06",
                 UID_LABEL: uid,
                 GENERATION_LABEL: str(generation),
             },
@@ -122,17 +125,76 @@ def reconcile(api):
     update_condition(api, stack, state, reason, f"Workflow {name} em fase {phase}.")
 
 
+def interval(name, default):
+    value = int(os.getenv(name, default))
+    if value <= 0:
+        raise ValueError(f"{name} precisa ser um inteiro positivo em segundos")
+    return value
+
+
+def stack_revision(stack):
+    metadata = stack["metadata"]
+    return metadata["uid"], metadata["generation"], metadata.get("deletionTimestamp")
+
+
+def observe(api, resource, selector, wake, timeout, retry, revision=None):
+    list_objects = api.list_namespaced_custom_object
+    while True:
+        stream = watch.Watch()
+        try:
+            snapshot = list_objects(*resource, **selector, _request_timeout=TIMEOUT)
+            items = snapshot["items"]
+            previous = revision(items[0]) if revision and items else None
+            # Reconcilia o estado da lista e retoma a partir da mesma revisão.
+            wake.set()
+            for event in stream.stream(
+                list_objects,
+                *resource,
+                **selector,
+                resource_version=snapshot["metadata"]["resourceVersion"],
+                timeout_seconds=timeout,
+                _request_timeout=(TIMEOUT, timeout + TIMEOUT),
+            ):
+                if event["type"] == "BOOKMARK":
+                    continue
+                if revision:
+                    current = None if event["type"] == "DELETED" else revision(event["object"])
+                    if current == previous:
+                        continue
+                    previous = current
+                wake.set()
+        except (ApiException, HTTPError) as error:
+            logging.warning("Watch de %s será restabelecido: %s", resource[-1],
+                            getattr(error, "status", type(error).__name__))
+            sleep(retry)
+        finally:
+            stream.stop()
+
+
 def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    poll_interval = interval("POLL_INTERVAL_SECONDS", "30")
+    watch_timeout = interval("WATCH_TIMEOUT_SECONDS", "60")
+    watch_retry = interval("WATCH_RETRY_SECONDS", "2")
     config.load_incluster_config()
     api = client.CustomObjectsApi()
-    logging.info("Observando TerraformStack %s/%s", STACK[2], STACK_NAME)
+    wake = Event()
+    Thread(target=observe, args=(
+        api, STACK, {"field_selector": f"metadata.name={STACK_NAME}"},
+        wake, watch_timeout, watch_retry, stack_revision,
+    ), daemon=True).start()
+    Thread(target=observe, args=(
+        api, WORKFLOW, {"label_selector": f"{EXERCISE_LABEL}=lab06"},
+        wake, watch_timeout, watch_retry,
+    ), daemon=True).start()
+    logging.info("Observando TerraformStack %s/%s com polling de %ss", STACK[2], STACK_NAME, poll_interval)
     while True:
+        wake.clear()
         try:
             reconcile(api)
         except (ApiException, HTTPError) as error:
             logging.warning("Reconciliação será repetida: %s", getattr(error, "status", type(error).__name__))
-        sleep(5)
+        wake.wait(poll_interval)
 
 
 if __name__ == "__main__":

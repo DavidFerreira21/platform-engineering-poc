@@ -13,7 +13,7 @@ rules:
   - apiGroups: [platform.example.io]
     resources: [terraformstacks]
     resourceNames: [lab06-network]
-    verbs: [get]
+    verbs: [get, list, watch]
   - apiGroups: [platform.example.io]
     resources: [terraformstacks/status]
     resourceNames: [lab06-network]
@@ -41,7 +41,7 @@ metadata:
 rules:
   - apiGroups: [argoproj.io]
     resources: [workflows]
-    verbs: [get, create]
+    verbs: [get, list, watch, create]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

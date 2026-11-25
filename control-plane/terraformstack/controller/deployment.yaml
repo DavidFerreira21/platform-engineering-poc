@@ -18,8 +18,15 @@ spec:
       serviceAccountName: terraformstack-controller
       containers:
         - name: controller
-          image: terraformstack-controller:lab06-v1
+          image: terraformstack-controller:lab06-v2
           imagePullPolicy: Never
+          env:
+            - name: POLL_INTERVAL_SECONDS
+              value: "30"
+            - name: WATCH_TIMEOUT_SECONDS
+              value: "60"
+            - name: WATCH_RETRY_SECONDS
+              value: "2"
           securityContext:
             runAsNonRoot: true
             allowPrivilegeEscalation: false
