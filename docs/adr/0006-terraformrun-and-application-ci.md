@@ -8,7 +8,7 @@ A POC usa a **Kubernetes API como contrato técnico** e quatro camadas de owners
 
 - **Foundation / Entity Core:** Terraform/OpenTofu para rede, IAM, dependências, e os três EKS por Environment (Management, PCI e Non-PCI).
 - **Domain Infrastructure:** Crossplane v2 central com XRDs/Compositions/Providers específicos para recursos AWS como ObjectStorage e Database.
-- **Domain Applications:** Application Team mantém **código, GitHub Actions e manifests Kubernetes no mesmo repositório de aplicação de teste separado**, a integrar na Etapa 12 do roteiro; Argo CD **local no Management EKS** lê esses manifests GitOps e entrega em EKS PCI/Non-PCI autorizados. O DevOps Federado mantém somente os manifests de Domain Infrastructure.
+- **Domain Applications:** Application Team mantém **código, GitHub Actions e manifests Kubernetes no mesmo repositório de aplicação de teste separado**, a integrar na Fase 5 (Etapas 18–21) do roteiro; Argo CD **local no Management EKS** lê esses manifests GitOps e entrega em EKS PCI/Non-PCI autorizados. O DevOps Federado mantém somente os manifests de Domain Infrastructure.
 
 **Intenção desta decisão:** oferecer, para módulos Terraform, **experiência declarativa semelhante à do Crossplane**: manifestos de intenção versionados no Git, provisionamento inicial condicionado a políticas, detecção recorrente de drift, e remediação automática ou com aprovação conforme riscos. Não se trata apenas de disparar uma execução única de Terraform.
 
@@ -64,8 +64,8 @@ Backstage / CLI / pessoa → PR + validações + aprovação Git
   → TerraformStack Controller (validação + agendamento)
   → Argo Workflows → Terraform Executor → terraform plan
   → Etapa 09: aprovação humana do plano imutável → terraform apply do mesmo plano
-  → Etapa 18: verificação periódica e relato de drift, sem apply
-  → Etapa 19: decisão versionada auto apply / aprovação / bloqueio
+  → Etapa 24: verificação periódica e relato de drift, sem apply
+  → Etapa 25: decisão versionada auto apply / aprovação / bloqueio
   → AWS Foundation / Entity Core → verificação → status do TerraformStack
 ```
 
@@ -82,7 +82,7 @@ Backstage / CLI / pessoa → PR + validações + aprovação Git
 ### Etapa 09 — Deploy declarativo ponta a ponta com aprovação
 
 - Aplicar `TerraformStack` pelo GitOps central (ou diretamente na API para teste local), e ver o controller iniciar Workflow/plan.
-- **Toda execução de apply exige aprovação humana explícita do plano** até a evolução prevista na Etapa 19. Auto apply só será avaliado com política versionada.
+- **Toda execução de apply exige aprovação humana explícita do plano** até a evolução prevista na Etapa 25. Auto apply só será avaliado com política versionada.
 - Validar schema, autorização, idempotência por generation/revisão, erros/retry, status e evidências. A Etapa 06 exercita o executor simulado. A Etapa 09 aplica a rede UAT com state segregado, lock, plano imutável e aprovação vinculada a hash, revisão Git e destino. O mesmo fluxo de aprovação atende às stacks de EKS.
 
 ### Aprovação humana na Argo Workflows UI
@@ -102,13 +102,13 @@ Backstage / CLI / pessoa → PR + validações + aprovação Git
 
 **Pendente para próxima decisão:** como representar os estados de execução e aprovação em `TerraformStack.status` (phase e conditions, ou apenas conditions) e quais referências não sensíveis expor.
 
-### Etapa 18 — Drift Detection
+### Etapa 24 — Drift Detection
 
 - Com intervalo configurado, controller agenda `terraform plan` (ou acionamento manual controlado) para verificar divergência entre configuração/state e AWS.
 - Diferenciar **mudança desejada via Git** de **drift externo** e registrar a informação no status/observabilidade; checar os resultados estruturados do plan, incluindo ações e diferenças observadas no refresh.
 - Detectar, registrar e notificar drift sem remediação. A evidência é a detecção de uma mudança externa numa stack UAT já aplicada.
 
-### Etapa 19 — Policy-Based Reconciliation
+### Etapa 25 — Policy-Based Reconciliation
 
 - Um **Policy Engine versionado/testável** classifica o plan segundo identidade, Environment, origem (PR vs drift), recurso, atributos, custo/impacto e operações (`create/update/delete/replace`). A tecnologia específica (por exemplo OPA) ainda está **a decidir**.
 - Três resultados possíveis: **Auto Apply** se expressamente permitido; **Require Approval** se sensível; **Deny/Block** se não autorizado.
@@ -138,7 +138,7 @@ O código, a pipeline CI/CD **e os manifests Kubernetes da aplicação de exempl
 - **Etapa 06.** A Application `terraformstack-controller` entrega o controller e o `WorkflowTemplate`. Com ambos disponíveis, o Argo CD sincroniza a solicitação de exemplo e o controller cria o Workflow de execução simulada. [Divisão das Applications](0003-reconciliation-and-gitops.md#applications-e-sincronização-no-hub)
 - **Etapas 07 e 08.** Registro de UAT, identidade temporária do executor e inicialização autorizada do backend de estado.
 - **Etapa 09.** Rede UAT aplicada com a revisão dos YAMLs selecionada na stack, state segregado, lock e aprovação humana do plano imutável.
-- **Etapas 18 e 19.** Detecção de drift com status e alerta. Depois, reconciliação com Policy Engine versionado.
+- **Etapas 24 e 25.** Detecção de drift com status e alerta. Depois, reconciliação com Policy Engine versionado.
 - **A validar:** formato final da API, status/conditions, requeue/scheduling, política de alterações de spec durante workflows, engine de políticas, versionamento de módulo, catálogo, lock de state e aprovação segura.
 
 O guia da Etapa 05 descreve a instalação do CRD no Hub por GitOps. As operações AWS das etapas posteriores exigem autorização própria.
