@@ -33,31 +33,35 @@ Preparar o Hub `kind` e instalar cada motor com um teste funcional pequeno. Os c
 
 ## Fase 2 — TerraformStack e primeira execução na AWS
 
-Construir o contrato declarativo e o motor de execução até **o primeiro apply AWS autorizado**, sem antecipar detecção ou remediação automática de drift.
+Construir o contrato declarativo, o executor e os **primeiros módulos Terraform reutilizáveis** até o primeiro apply AWS autorizado, sem antecipar a remediação de drift. O conjunto inicial é **Configuration + Network + EKS**: Configuration resolve valores, Network prepara a rede da conta spoke e EKS provisiona clusters e suas dependências.
 
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
 | **05** | [CRD Kubernetes `TerraformStack` via GitOps](../labs/05-terraformstack-crd.md) | API valida `spec` fictício e expõe `status.conditions`, sem executar Terraform. [ADR-0006](adr/0006-terraformrun-and-application-ci.md) |
 | **06** | TerraformStack Controller + WorkflowTemplate e executor simulado | CR estável cria Workflow e atualiza status; testar dependências `dependsOn` (inclusive ciclo/bloqueio), idempotência e concorrência sem AWS. Campo proposto, ainda não disponível no CRD da Etapa 05 |
 | **07** | [Registro e validação de UAT](../labs/07-registro-ambientes-aws.md) | `environment.yaml` associa `entity-a/uat` à conta/região; identidade humana verificada com Identity Center/STS |
-| **08** | Identidade temporária do executor e backend de state | Definir bootstrap seguro para os Pods do Argo no Hub `kind`; executor resolve `Entity/Environment` e assume role STS autorizada na conta UAT; verificar identidade, state segregado, lock e negação de destino indevido |
-| **09** | Primeira stack real: rede UAT por TerraformStack | Workflow executa Pods para plan, política, aprovação, revalidação, apply e verify; credenciais temporárias e mesmo plano aprovado, sem manter credenciais/lock durante a pausa; VPC/rede criada e status publicado |
+| **08** | Terraform Executor, módulo `configuration` e backend de state | Definir identidade temporária para os Pods do Argo no Hub `kind`, role STS por `Entity/Environment` e state segregado. Implementar o módulo **Configuration** para resolver valores versionados por camada global → Entity → Environment, inclusive feature flags; validar herança, revisão e entradas tipadas |
+| **09** | Módulo `network` e primeira stack AWS real em UAT | Criar módulo **Network** reutilizável para VPC e requisitos de rede da spoke (subnets, rotas e opções controladas por flags). Usar Configuration para compor entradas; Workflow executa plan, aprovação, apply e verify do mesmo plano, criando a rede UAT e seus outputs |
 
 **Execução e identidade:** Argo Workflows agenda Pods com uma ServiceAccount Kubernetes dedicada; o Terraform Executor usa credenciais AWS temporárias e assume apenas a role autorizada pelo registro de Entity/Environment. Em `kind`, o mecanismo inicial de credenciais é definido na Etapa 08; EKS Pod Identity é opção quando o Hub operar em EKS. Não criar um Runner Controller próprio. O modelo de `dependsOn` e de intervalo de drift será acrescentado ao CRD gradualmente, sem alterar retroativamente o contrato da Etapa 05. [Decisão detalhada](adr/0006-terraformrun-and-application-ci.md#executor-argo-identidade-do-destino-e-isolamento).
+
+**Módulos planejados:** `configuration` é um módulo **auxiliar de composição de configuração** e não uma stack AWS nem um mecanismo de autenticação. `network` é a primeira stack aplicada; o módulo `eks` entra na Fase 3. A resolução de roles de execução permanece no cadastro confiável de Environment e no executor — **não** em variáveis livres do YAML.
 
 **Marco da fase:** `TerraformStack` é capaz de receber intenção via GitOps, executar Terraform com aprovação humana e produzir infraestrutura real. Terraform não aplica continuamente a cada reconcile. **Auto Apply, verificação periódica e correção de drift entram na Fase 6.**
 
 ## Fase 3 — Provisionamento de EKS, GitOps e GitOps Bridge
 
-Usar o TerraformStack já operacional para transformar recursos AWS em um **Environment UAT gerenciado**. O registro do cluster, a autorização e a configuração por GitOps são ações independentes. Antes de registrar EKS privado, comprovar a conectividade e a identidade que o Argo CD usará; não presumir comunicação entre VPCs/contas.
+Usar o TerraformStack já operacional e criar o **módulo EKS reutilizável** para transformar recursos AWS em um **Environment UAT gerenciado**. O mesmo módulo recebe flags independentes para Management, PCI e Non-PCI e prepara os pré-requisitos AWS dos addons que serão instalados por GitOps, sem instalar todos os addons via Terraform. O registro do cluster, a autorização e a configuração por GitOps são ações independentes. Antes de registrar EKS privado, comprovar a conectividade e a identidade que o Argo CD usará; não presumir comunicação entre VPCs/contas.
 
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
-| **10** | Management EKS UAT e bootstrap de gestão | `TerraformStack` Management depende da stack de rede `Ready`; provisiona EKS, valida acesso e registro no Argo CD central; instala Argo CD local e configuração-base autorizada |
-| **11** | EKS Non-PCI e onboarding | `TerraformStack` Non-PCI valida `dependsOn` na infraestrutura exigida; cria EKS e configura identidade, permissões, registro no Argo CD apropriado e labels `entity/environment/cluster-role/compliance` |
-| **12** | Platform GitOps multicluster e perfis de add-ons | ApplicationSets do Argo CD central selecionam clusters registrados e instalam addons corporativos por perfil. Confirmar ownership único: central para addons, local para aplicações |
-| **13** | GitOps Bridge — outputs, Parameter Store e ESO | Outputs permitidos da rede/EKS são publicados na **conta UAT** com escrita controlada; ESO no **Management EKS** lê o SSM e materializa um Secret consumido localmente. Publicação não registra clusters |
+| **10** | Módulo `eks`, Management EKS e bootstrap de gestão | Criar módulo **EKS** reutilizável, com flags por cluster e pré-requisitos configuráveis de IAM/addons. `TerraformStack` Management depende da stack de rede `Ready`; provisionar EKS UAT, conferir outputs/acesso e iniciar onboarding no Argo CD central, Argo CD local e configuração-base autorizada |
+| **11** | EKS Non-PCI e onboarding por flags | Reutilizar o módulo **EKS**, habilitando **Non-PCI** sem precisar habilitar **PCI**; validar `dependsOn`, IAM, outputs, registro no Argo CD apropriado e labels `entity/environment/cluster-role/compliance`. Flags PCI e Non-PCI poderão ser habilitadas independentemente ou juntas, mas cada provisionamento dependerá de aprovação |
+| **12** | Platform GitOps multicluster e perfis de add-ons | ApplicationSets do Argo CD central selecionam clusters registrados e instalam addons corporativos por perfil. Validar os pré-requisitos AWS opcionais produzidos pelo módulo EKS (roles, permissões, identidade) e seu consumo pelo GitOps; confirmar ownership único |
+| **13** | GitOps Bridge — outputs, Parameter Store e ESO | Integrar publicação **allowlisted** dos outputs de Network/EKS no Parameter Store da **conta UAT** após apply/verify; ESO no **Management EKS** lê o SSM e materializa um Secret consumido localmente. Publicar outputs não registra clusters |
 | **14** | Smoke test de Domain Application no Non-PCI | Argo CD local sincroniza um workload HTTP mínimo a partir de Git, verifica serviço/health e remove apenas o teste; os componentes de plataforma permanecem |
+
+**Feature flags dos módulos:** definir flags tipadas e validadas para componentes opcionais de **Network** e **EKS**, com defaults seguros. Em EKS, `management`, `pci` e `nonPci` são seleções independentes; o mesmo código deve permitir somente PCI, somente Non-PCI ou ambos, sem forçar deploy de clusters não autorizados. Uma flag de **pré-requisitos de Karpenter** pode provisionar apenas identidades e dependências AWS, deixando a instalação do operador para GitOps; se o cluster usar **EKS Auto Mode**, não presumir instalação de Karpenter autogerenciado. Flags controlam o escopo solicitado, mas **não dispensam policy, plano e aprovação**. As saídas relevantes de Network/EKS alimentarão o contrato de publicação do GitOps Bridge da Etapa 13.
 
 **Marco da fase:** UAT possui Management e Non-PCI operacionais, ambos sob os mecanismos GitOps autorizados. O EKS PCI será avaliado com custo e isolamento na **Etapa 26**. O [GitOps Bridge](flows/gitops-bridge.md) não requer que o ApplicationSet central leia os Secrets do Management EKS.
 
@@ -102,7 +106,7 @@ Instrumentar os componentes implantados e concluir o lifecycle operacional do Te
 | **23** | Diagnóstico, recuperação e custos | Investigar uma falha controlada, recuperar a operação e conferir rastreabilidade e custos AWS |
 | **24** | Drift Detection do TerraformStack | Implementar `driftCheckInterval` configurável, agendamento idempotente com jitter e verificação periódica; detectar alteração externa em stack UAT, registrar última/próxima checagem e condição/alerta **sem aplicar correção** |
 | **25** | Reconciliação por políticas | Policy Engine versionado decide **Auto Apply / Require Approval / Deny** para mudança ou drift; testar correção permitida, gate humano e bloqueio de ação sensível |
-| **26** | EKS PCI e isolamento PCI/Non-PCI em UAT | Provisionar EKS PCI **somente com autorização/custo aprovados**; quando existir, registrar com perfil restrito, aplicar addons autorizados e testar negações entre PCI e Non-PCI. Se não houver EKS PCI, declarar validação apenas lógica, não isolamento real |
+| **26** | EKS PCI e isolamento PCI/Non-PCI em UAT | Reutilizar o módulo EKS e habilitar flag **PCI** somente com autorização/custo aprovados; registrar com perfil restrito, aplicar addons autorizados e testar negações entre PCI e Non-PCI. Sem PCI real, declarar somente validação lógica, não isolamento operacional |
 | **27** | Registro de PROD e isolamento por Environment | Registrar conta PROD distinta, validar identity/mapping/negações e políticas UAT/PROD. Provisionamento real em PROD depende de autorização separada; não presumir EKS PROD já criado |
 
 **Marco da fase:** plataforma observável e governada, com drift controlado e provas de isolamento compatíveis com os ambientes **efetivamente provisionados**. Os testes avançados de PCI/PROD não autorizam automaticamente novas despesas AWS.
