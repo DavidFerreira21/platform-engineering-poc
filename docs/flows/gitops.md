@@ -81,7 +81,7 @@ As duas primeiras Capabilities do roadmap são **`ObjectStorage` (S3)** e **`Dat
 4. O **Argo Workflows** orquestra `plan`, política, aprovação humana quando exigida e `apply` pelo Terraform Executor.
 5. O Terraform provisiona a infraestrutura; o controller verifica a execução e atualiza `TerraformStack.status`.
 
-**Não há `terraform apply` em todo reconcile da API Kubernetes.** A Etapa 09 introduz a execução real com aprovação vinculada ao plano; a Etapa 18 introduz a detecção periódica de drift; e a Etapa 19 introduz políticas de remediação automática, aprovação obrigatória ou bloqueio.
+**Não há `terraform apply` em todo reconcile da API Kubernetes.** A Etapa 09 introduz a execução real com aprovação vinculada ao plano; a Etapa 24 introduz a detecção periódica de drift; e a Etapa 25 introduz políticas de remediação automática, aprovação obrigatória ou bloqueio.
 
 Remover o CR do Git **não autoriza destroy automático**. Os detalhes de concorrência, plano imutável, aprovação, estado e retry estão no [ADR-0006](../adr/0006-terraformrun-and-application-ci.md) e serão aprofundados em `docs/flows/terraformstack.md`.
 
@@ -126,14 +126,15 @@ O [GitOps Bridge Flow](gitops-bridge.md) documenta separadamente: publicação d
 
 | Etapa | Evidência principal |
 | --- | --- |
-| 01–02 | Bootstrap kind, Argo CD central e catálogo de Applications |
-| 03–05 | Argo Workflows, Crossplane Core e CRD TerraformStack |
-| 06 | Controller e Terraform Executor simulado |
-| 07–09 | Environment UAT, IAM/backend e primeiro plano/aplicação aprovados |
-| 10–12 | EKS Management, Non-PCI, Argo local e smoke test da aplicação |
-| 13–15 | Providers e Capabilities AWS |
-| 18–20 | Drift, remediação por políticas e isolamento |
-| 23–24 | Integração completa de Domain Infrastructure e Domain Applications |
+| 01–02 | Hub `kind`, Argo CD central e catálogo de Applications |
+| 03–05 | Argo Workflows, Crossplane Core e API TerraformStack |
+| 06–09 | Controller, UAT, IAM/backend e primeiro Terraform apply aprovado |
+| 10–12 | EKS Management/Non-PCI, onboarding multicluster, Argo CD local e perfis corporativos |
+| 13–14 | GitOps Bridge (Parameter Store → ESO) e smoke test HTTP no Non-PCI |
+| 15–17 | Capabilities AWS por Crossplane |
+| 18–21 | Primeira aplicação FastAPI com Aurora/S3, CI GitHub Actions/ECR e CD GitOps |
+| 22–27 | Observabilidade, drift, reconciliação por políticas e isolamento |
+| 28–31 | Experience Layer e Golden Path integrado |
 
 Os laboratórios iniciais permanecem em **kind**; adicionar dependências AWS antes da etapa correspondente não faz parte desta aprovação.
 
