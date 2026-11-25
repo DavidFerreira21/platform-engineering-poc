@@ -66,7 +66,7 @@ unset uat_account uat_region
 
 Se você criou ou alterou o registro, publique a mudança por PR. O aceite da etapa é o YAML de UAT versionado e o resultado `OK` para o perfil do operador. A Etapa 08 prepara a identidade temporária do executor e o backend de estado.
 
-## Uso do registro PROD na Etapa 20
+## Uso do registro PROD na Etapa 27
 
 Quando for testar o isolamento entre contas, use o [registro PROD da POC](../foundation/config/entity-a/prod/environment.yaml) ou o modelo de Environment com a conta e a região aprovadas para PROD. Configure o perfil `platform-poc-prod` no IAM Identity Center para essa conta. Valide os dois destinos com IDs distintos antes dos testes de isolamento.
 
