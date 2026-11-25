@@ -16,6 +16,16 @@ Sincronizar um `TerraformStack` pelo Argo CD, acompanhar o Workflow criado pelo 
 
 A solicitação representa a intenção no Git. O controller acompanha a geração do CR e cria um Workflow com nome derivado do UID e da geração. O Workflow recebe o módulo, a versão e o destino lógico e registra o plan simulado. Essa divisão permite testar GitOps, reconciliação e execução no Hub antes de introduzir Terraform e identidade AWS. O status informa o resultado apenas da geração observada. [ADR-0006](../docs/adr/0006-terraformrun-and-application-ci.md) · [WorkflowTemplate](https://argo-workflows.readthedocs.io/en/release-4.1/workflow-templates/)
 
+O controller usa dois watches da API Kubernetes. O primeiro acompanha a stack de exemplo e ignora alterações que afetam somente o status. O segundo acompanha os Workflows do lab no namespace `argo-workflows`. Os dois sinalizam o mesmo loop de reconciliação. A leitura inicial, o restabelecimento dos watches e o polling recuperam mudanças mesmo se o Pod reiniciar ou perder a conexão.
+
+| Variável do Deployment | Padrão | Função |
+| --- | --- | --- |
+| `POLL_INTERVAL_SECONDS` | 300 (5 minutos) | Espera máxima por um evento antes de reconciliar novamente. |
+| `WATCH_TIMEOUT_SECONDS` | 60 | Duração solicitada para cada conexão watch antes de renovar a observação. |
+| `WATCH_RETRY_SECONDS` | 2 | Pausa antes de restabelecer um watch que falhou. |
+
+Os valores são inteiros positivos em segundos. O polling relê a stack e o Workflow da geração atual. O agendamento de novos plans para detectar drift entra na Etapa 24.
+
 ## Pré-requisitos
 
 - Docker ativo e Hub `kind-platform-management` acessível. Executar os comandos na raiz do monorepo.
@@ -29,8 +39,8 @@ hub -n argo-workflows rollout status deployment/argo-workflows-workflow-controll
 hub -n argo-workflows get serviceaccount argo-workflow
 hub wait --for=condition=Established --timeout=90s crd/terraformstacks.platform.example.io
 
-docker build -t terraformstack-controller:lab06-v1 control-plane/terraformstack/controller
-kind load docker-image terraformstack-controller:lab06-v1 --name platform-management
+docker build -t terraformstack-controller:lab06-v2 control-plane/terraformstack/controller
+kind load docker-image terraformstack-controller:lab06-v2 --name platform-management
 
 kubectl kustomize control-plane/terraformstack/lab06 | hub apply --dry-run=server -f -
 kubectl kustomize control-plane/terraformstack/demo/lab06 | hub apply --dry-run=server -f -
