@@ -4,9 +4,28 @@ metadata:
   name: lab06-network
   namespace: platform-system
 spec:
-  module:
-    name: lab-network
+  sourceRef:
+    name: foundation-stacks
+    path: stacks/lab-network
     version: "1.0.0"
   target:
     entity: entity-a
     environment: uat
+  configuration:
+    revision: latest
+  dependsOn: []
+  suspend: false
+  reconciliation:
+    driftCheckInterval: 6h
+    retryPolicy:
+      strategy: ExponentialBackoff
+      interval: 5m
+      maxInterval: 1h
+  lifecycle:
+    destroy: false
+    destroyResourcesOnDeletion: false
+  timeout:
+    plan: 15m
+    apply: 1h
+    verify: 10m
+  healthChecks: []
