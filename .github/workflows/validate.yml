@@ -16,6 +16,10 @@ jobs:
         uses: actions/checkout@v4
       - name: Validar links e blocos Markdown
         run: python3 tests/check_docs.py
+      - name: Validar contrato TerraformStack e manifests
+        run: |
+          python3 -m pip install --disable-pip-version-check PyYAML jsonschema
+          python3 -m unittest discover -s tests -p 'test_terraformstack_contract.py'
       - name: Validar sintaxe dos scripts bash
         run: bash -n platform/hub/scripts/create.sh platform/hub/scripts/install-traefik.sh platform/hub/scripts/verify.sh platform/hub/scripts/delete.sh
       - name: Validar YAML de exemplo e kind
