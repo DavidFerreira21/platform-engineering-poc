@@ -55,28 +55,18 @@ def update_condition(api, stack, state, reason, message, check_leadership):
 
 
 def workflow_for(stack):
-    """Cria somente o Workflow simulado; source/version não são resolvidos neste lab."""
+    """Cria o Workflow simulado; versões latest não são resolvidas neste lab."""
     metadata = stack["metadata"]
     spec = stack["spec"]
     uid, generation = metadata["uid"], metadata["generation"]
-    source = spec.get("sourceRef")
-    legacy = spec.get("module")
-    if bool(source) == bool(legacy):
-        raise ValueError("Informar exatamente um de spec.sourceRef ou spec.module")
-    if source:
-        source_name = source["name"]
-        path = source["path"]
-        parts = path.split("/")
-        if any(part in {"", ".", ".."} for part in parts) or path.startswith("/"):
-            raise ValueError("sourceRef.path deve ser um caminho relativo permitido")
-        module = parts[-1]
-        version = source.get("version") or "latest"
-    else:
-        source_name = "legacy-module"
-        path = legacy["name"]
-        module = legacy["name"]
-        version = legacy["version"]
-    config_revision = spec.get("configuration", {}).get("revision") or "latest"
+    source = spec["sourceRef"]
+    source_name = source["name"]
+    path = source["path"]
+    parts = path.split("/")
+    if any(part in {"", ".", ".."} for part in parts) or path.startswith("/"):
+        raise ValueError("sourceRef.path deve ser um caminho relativo permitido")
+    version = source.get("version") or "latest"
+    config_version = spec.get("configuration", {}).get("version") or "latest"
     return {
         "apiVersion": "argoproj.io/v1alpha1",
         "kind": "Workflow",
@@ -94,9 +84,8 @@ def workflow_for(stack):
             "arguments": {"parameters": [
                 {"name": "source", "value": source_name},
                 {"name": "path", "value": path},
-                {"name": "module", "value": module},
                 {"name": "version", "value": version},
-                {"name": "config-revision", "value": config_revision},
+                {"name": "config-version", "value": config_version},
                 {"name": "entity", "value": spec["target"]["entity"]},
                 {"name": "environment", "value": spec["target"]["environment"]},
             ]},
