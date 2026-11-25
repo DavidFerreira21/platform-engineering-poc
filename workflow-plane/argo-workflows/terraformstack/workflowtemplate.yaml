@@ -11,9 +11,8 @@ spec:
     parameters:
       - name: source
       - name: path
-      - name: module
       - name: version
-      - name: config-revision
+      - name: config-version
       - name: entity
       - name: environment
   templates:
@@ -22,4 +21,4 @@ spec:
         image: docker.io/library/busybox:1.37.0
         command: [echo]
         args:
-          - "lab06-plan-simulado: módulo={{workflow.parameters.module}} versão={{workflow.parameters.version}} destino={{workflow.parameters.entity}}/{{workflow.parameters.environment}} source={{workflow.parameters.source}} path={{workflow.parameters.path}} config={{workflow.parameters.config-revision}}"
+          - "lab06-plan-simulado: stack={{workflow.parameters.path}} versão={{workflow.parameters.version}} destino={{workflow.parameters.entity}}/{{workflow.parameters.environment}} source={{workflow.parameters.source}} path={{workflow.parameters.path}} config-version={{workflow.parameters.config-version}}"
