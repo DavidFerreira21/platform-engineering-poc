@@ -1,6 +1,6 @@
 # Guias das etapas
 
-O [roteiro prático](../docs/learning-roadmap.md) reúne as sete fases e o aceite de cada etapa. Após a Etapa 04, a sequência começa pelo CRD `TerraformStack` e pela execução simulada. O guia de UAT passa a ser usado na primeira integração com AWS.
+O [roteiro prático](../docs/learning-roadmap.md) reúne as oito fases e o aceite de cada etapa. Após a Etapa 04, a sequência começa pelo CRD `TerraformStack` e pela execução simulada. O guia de UAT passa a ser usado na primeira integração com AWS.
 
 | Etapa | Guia |
 | :--- | :--- |
