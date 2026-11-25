@@ -1,6 +1,6 @@
 # Etapa 06 — Controller do TerraformStack e executor simulado
 
-[← Etapa 05](05-terraformstack-crd.md) · [Guias das etapas](README.md) · [Etapa 07 →](07-registro-ambientes-aws.md)
+[← Etapa 05](05-terraformstack-crd.md) · [Guias das etapas](README.md) · [Próximo marco: 06B local (planejado) →](../docs/learning-roadmap.md#etapa-06b--terraformstack-de-ponta-a-ponta-no-kind)
 
 ## Objetivo
 
