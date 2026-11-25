@@ -1,6 +1,6 @@
 # Build a partir da raiz do repositório:
 # docker build -f workflow-plane/terraform-executor/Dockerfile -t terraformstack-executor:lab08 .
-FROM public.ecr.aws/aws-cli/aws-cli:2 AS awscli
+FROM public.ecr.aws/aws-cli/aws-cli:latest AS awscli
 
 FROM python:3.12-slim
 ARG TERRAFORM_VERSION=1.13.5
