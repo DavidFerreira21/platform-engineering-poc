@@ -54,8 +54,8 @@ Os YAMLs `domain.yaml` e `environment.yaml` são registros lógicos no Git. Vali
 1. Preparar o Hub `kind` e instalar as ferramentas nas Etapas 01 a 04. A Composition de teste da Etapa 04 roda no Hub local.
 2. Validar o CRD `TerraformStack` e a execução simulada no Hub nas Etapas 05 e 06, com dados fictícios.
 3. Registrar UAT na Etapa 07 com o modelo `foundation/environment.example.yaml` e conferir o acesso humano por IAM Identity Center. Na Etapa 08, validar o destino, a identidade do executor e o backend de estado. Aplicar a rede UAT com aprovação explícita na Etapa 09. Validar PROD para o exercício de isolamento na Etapa 27.
-4. Construir a stack EKS nas Etapas 10–11, completar onboarding, addons e GitOps Bridge nas 12–13 e fazer smoke test na 14.
-5. Validar Provider AWS no Hub `kind` na Etapa 15, sem presumir IRSA/Pod Identity ou credenciais permanentes. Validar `ObjectStorage` e Aurora nas Etapas 16–17. Introduzir o Domain na Etapa 30.
+4. Fazer bootstrap independente do Hub EKS na conta da plataforma e validar o controller, o Workflow e a identidade do executor no novo Hub. Construir a stack EKS nas Etapas 10–11, completar onboarding, addons e GitOps Bridge nas 12–13 e fazer smoke test na 14.
+5. Validar a identidade dedicada do Provider AWS no Hub EKS na Etapa 15. Validar `ObjectStorage` e Aurora nas Etapas 16–17. Introduzir o Domain na Etapa 30.
 
 ## Monorepo, fases e etapas
 
