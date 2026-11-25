@@ -173,7 +173,7 @@ def observe(api, resource, selector, wake, timeout, retry, revision=None):
 
 def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    poll_interval = interval("POLL_INTERVAL_SECONDS", "30")
+    poll_interval = interval("POLL_INTERVAL_SECONDS", "300")
     watch_timeout = interval("WATCH_TIMEOUT_SECONDS", "60")
     watch_retry = interval("WATCH_RETRY_SECONDS", "2")
     config.load_incluster_config()

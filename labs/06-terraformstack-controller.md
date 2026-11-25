@@ -20,7 +20,7 @@ O controller usa dois watches da API Kubernetes. O primeiro acompanha a stack de
 
 | Variável do Deployment | Padrão | Função |
 | --- | --- | --- |
-| `POLL_INTERVAL_SECONDS` | 30 | Espera máxima por um evento antes de reconciliar novamente. |
+| `POLL_INTERVAL_SECONDS` | 300 (5 minutos) | Espera máxima por um evento antes de reconciliar novamente. |
 | `WATCH_TIMEOUT_SECONDS` | 60 | Duração solicitada para cada conexão watch antes de renovar a observação. |
 | `WATCH_RETRY_SECONDS` | 2 | Pausa antes de restabelecer um watch que falhou. |
 
