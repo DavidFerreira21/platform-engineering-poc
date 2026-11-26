@@ -24,24 +24,29 @@ jobs:
         with:
           go-version: '1.24.x'
           cache: false
-      - name: Normalizar código e dependências Go
+      - name: Verificar formatação e dependências Go
         working-directory: control-plane/terraformstack/controller
         run: |
-          gofmt -w $(find . -name '*.go' -type f)
-          go mod tidy
-          git diff -- .
-          if [ -f go.sum ]; then cat go.sum; fi
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            printf 'Arquivos precisam de gofmt:\n%s\n' "$unformatted"
+            exit 1
+          fi
+          go mod tidy -diff
       - name: Testar TerraformStack Controller
         working-directory: control-plane/terraformstack/controller
         run: |
           go test -race ./...
           go vet ./...
-          go build -o /tmp/terraformstack-controller ./cmd
+          go build -mod=readonly -o /tmp/terraformstack-controller ./cmd
       - name: Testar controller com API Kubernetes (envtest)
         working-directory: control-plane/terraformstack/controller
         run: |
           go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.21
-          export KUBEBUILDER_ASSETS="$($(go env GOPATH)/bin/setup-envtest use 1.33.x -p path)"
+          assets="$("$(go env GOPATH)/bin/setup-envtest" use 1.33.x -p path)"
+          test -x "$assets/kube-apiserver"
+          test -x "$assets/etcd"
+          export KUBEBUILDER_ASSETS="$assets"
           go test -race -count=1 ./internal/controller -run TestEnvtest
       - name: Validar utilitários de identidade e state
         run: |

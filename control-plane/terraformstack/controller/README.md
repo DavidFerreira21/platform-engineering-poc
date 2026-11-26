@@ -14,7 +14,7 @@ Controller Go baseado em controller-runtime (framework do Kubebuilder). O CRD ve
 ## Testes
 
 ```bash
-go mod tidy
+go mod tidy -diff
 go test -race ./...
 go vet ./...
 ```

@@ -12,7 +12,7 @@ A suíte Go em `control-plane/terraformstack/controller/internal/controller` e `
 
 ```bash
 cd control-plane/terraformstack/controller
-go mod tidy
+go mod tidy -diff
 go test -race ./...
 ```
 

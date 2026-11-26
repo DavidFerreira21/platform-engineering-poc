@@ -9,17 +9,17 @@ type Data = map[string]any
 // Run is a normalized observation, not an Argo API object.
 // A nil observation means the execution does not exist.
 type Run struct {
- Name string
- Terminal bool
- Succeeded bool
- Valid bool
- Result Data
+	Name      string
+	Terminal  bool
+	Succeeded bool
+	Valid     bool
+	Result    Data
 }
 
 type Engine interface {
- Snapshot() Data
- Validate() error
- Create(context.Context, Data) error
- Get(context.Context, string, string) (*Run,error)
- Cancel(context.Context, string, string) error
+	Snapshot() Data
+	Validate() error
+	Create(context.Context, Data) error
+	Get(context.Context, string, string) (*Run, error)
+	Cancel(context.Context, string, string) error
 }
