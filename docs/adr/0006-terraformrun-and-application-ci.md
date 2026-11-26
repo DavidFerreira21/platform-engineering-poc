@@ -115,7 +115,7 @@ spec:
 
 **Fases da implementação:** Etapas 05–06 instalam e validam a criação idempotente de Workflows no Simulator; Etapa 12 valida a identidade AWS; Etapa 13 aplica Network com aprovação; Etapas 14–15 usam `dependsOn` em rede → EKS; Etapa 28 ativa intervalo de drift.
 
-[Gatilhos, drift e concorrência](../flows/terraformstack.md#4-gatilhos-drift-e-concorrência) · [Evolução na AWS](../flows/terraformstack.md#7-evolução-na-aws)
+[Gatilhos, drift e concorrência](../flows/terraformstack.md#4-gatilhos-drift-e-concorrência) · [Evolução na AWS](../flows/terraformstack.md#8-evolução-na-aws)
 
 ### Contrato do CRD: sourceRef e lifecycle de destruição
 
