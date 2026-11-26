@@ -26,7 +26,7 @@ Os valores de cada **stack** seguem a ordem `config/<arquivo>.yaml`, `config/<en
 
 ### Atualizações de arquitetura-alvo (a implementar)
 
-- **TerraformStack (CRD + controller).** O contrato de infraestrutura desejada fica em `control-plane/` e é sincronizado via Argo CD central. Argo Workflows, Terraform Executor e [Policy Engine](../workflow-plane/policy-engine/README.md) ficam em `workflow-plane/`. A Etapa 13 comprova o apply aprovado. A Etapa 06 valida políticas e drift no Simulator. As Etapas 28 e 29 validam esses mecanismos na AWS. `TerraformRun` é nome opcional de uma execução individual.
+- **TerraformStack (CRD + controller).** O contrato de infraestrutura desejada fica em `control-plane/` e é sincronizado via Argo CD central. O controller Go separa `internal/controller` (reconciliação), `internal/execution` (interface) e `internal/execution/argo` (integração Argo). Argo Workflows, Terraform Executor e [Policy Engine](../workflow-plane/policy-engine/README.md) ficam em `workflow-plane/`. A Etapa 13 comprova o apply aprovado. A Etapa 06 valida políticas e drift no Simulator. As Etapas 28 e 29 validam esses mecanismos na AWS. `TerraformRun` é nome opcional de uma execução individual. [Estrutura do controller](../control-plane/terraformstack/controller/README.md) · [ADR-0009](adr/0009-terraformstack-runtime.md).
 - **GitHub Actions das aplicações:** será mantido **em repositório de aplicação de teste separado**, a integrar durante o lab correspondente. Este monorepo não incluirá código/CI da aplicação.
 - **Management EKS:** Argo CD local, Operators a escolher e OpenTelemetry Collector/gateway para observabilidade central (Grafana/Loki/Tempo).
 

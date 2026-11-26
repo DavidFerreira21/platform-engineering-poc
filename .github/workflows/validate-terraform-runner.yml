@@ -2,8 +2,17 @@ name: Validate Terraform runner and policy
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "control-plane/terraformstack/**"
+      - "workflow-plane/terraform-executor/**"
+      - "workflow-plane/policy-engine/**"
+      - "workflow-plane/argo-workflows/terraformstack/**"
+      - ".github/workflows/validate-terraform-runner.yml"
   pull_request:
     paths:
+      - "control-plane/terraformstack/**"
       - "workflow-plane/terraform-executor/**"
       - "workflow-plane/policy-engine/**"
       - "workflow-plane/argo-workflows/terraformstack/**"
@@ -18,6 +27,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Construir imagem do controller
+        run: docker build -t terraformstack-controller:local control-plane/terraformstack/controller
       - name: Construir runner genérico
         run: docker build -t terraformstack-runner:local workflow-plane/terraform-executor
       - name: Verificar ferramentas
@@ -72,4 +83,14 @@ jobs:
                   opa["image"], *args,
               ], stdout=subprocess.PIPE, text=True, check=True)
               assert json.loads(result.stdout)["decision"] == "NoChanges"
+          PY
+          kubectl kustomize control-plane/terraformstack/overlays/kind > /tmp/controller.yaml
+          python3 - <<'PY'
+          import yaml
+          docs = list(yaml.safe_load_all(open('/tmp/controller.yaml')))
+          deployment = next(d for d in docs if d and d['kind'] == 'Deployment' and d['metadata']['name'] == 'terraformstack-controller')
+          maps = {d['metadata']['name']: d for d in docs if d and d['kind'] == 'ConfigMap'}
+          for volume in deployment['spec']['template']['spec']['volumes']:
+              if 'configMap' in volume:
+                  assert maps[volume['configMap']['name']]['immutable'] is True
           PY

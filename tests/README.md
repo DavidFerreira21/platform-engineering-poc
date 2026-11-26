@@ -8,15 +8,15 @@ Os testes cobrirão contratos Kubernetes, validação de schemas, controllers, w
 
 ## Regressão do TerraformStack Controller
 
-A suíte Go em `control-plane/terraformstack/controller/internal/controller` usa cliente fake e relógio determinístico; o envtest usa API Kubernetes e etcd reais. Não acessa AWS.
+A suíte Go em `control-plane/terraformstack/controller/internal/controller` e `internal/execution/argo` usa cliente fake e relógio determinístico; o envtest usa API Kubernetes e etcd reais. Não acessa AWS.
 
 ```bash
 cd control-plane/terraformstack/controller
-go mod tidy
+go mod tidy -diff
 go test -race ./...
 ```
 
-O CI executa os testes unitários e o envtest em cada PR. Os testes não substituem o Simulator do Lab 06: a atomicidade do claim do runner, a persistência real da API e a execução OPA/Terraform precisam de validação de integração.
+O CI executa os testes unitários e o envtest em cada PR e push na main. A validação do runner e OPA é complementar. Os testes não substituem o Simulator do Lab 06: a atomicidade do claim do runner, a persistência real da API e a execução OPA/Terraform precisam de validação de integração.
 
 ---
 

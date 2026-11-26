@@ -2,7 +2,7 @@
 
 [Arquitetura](../architecture.md) · [GitOps](gitops.md) · [ADR-0006](../adr/0006-terraformrun-and-application-ci.md) · [Roadmap](../learning-roadmap.md)
 
-O `TerraformStack` declara a infraestrutura desejada de Foundation e Entity Core. Na Etapa 06, o fluxo roda de ponta a ponta no Hub `kind`. O Terraform Stack Simulator usa o provider Kubernetes para gerenciar um ConfigMap com a configuração efetiva de Network. A integração com a AWS segue nas etapas do roadmap. [Guia do Simulator](../../labs/06-terraformstack-simulator.md)
+O `TerraformStack` declara a infraestrutura desejada de Foundation e Entity Core. Na Etapa 06, o aceite verifica o fluxo de ponta a ponta no Hub `kind`. O Terraform Stack Simulator usa o provider Kubernetes para gerenciar um ConfigMap com a configuração efetiva de Network. A integração com a AWS segue nas etapas do roadmap. [Guia do Simulator](../../labs/06-terraformstack-simulator.md)
 
 O [diagrama do TerraformStack](terraformstack-flow.png) representa a arquitetura-alvo para Foundation e Entity Core na AWS.
 
@@ -10,7 +10,7 @@ O [diagrama do TerraformStack](terraformstack-flow.png) representa a arquitetura
 
 1. O Git versiona o manifesto e os YAMLs de configuração. O Argo CD sincroniza o CR na API do Hub e injeta o SHA resolvido pela Application em `platform.example.io/revision`. O estado `Synced` indica que o manifesto foi entregue à API. [Application do Simulator](../../platform/hub/addons/catalog/terraformstack-simulator.yaml)
 2. O controller Go usa Controller Runtime (padrão Kubebuilder), watches de TerraformStacks e Workflows, cache de informers e fila com rate limiting. Eventos de dependências e alterações de status ou revisão GitOps reativam a reconciliação; drift e retry usam RequeueAfter. Ele valida a intenção contra o catálogo, verifica as dependências e grava em `status.execution` a intenção resolvida e o nome do Workflow antes de criá-lo. Em seguida, cria ou acompanha aquele Workflow em `argo-workflows`. O CR permanece como a identidade da stack e cada Workflow representa uma tentativa. [Controller](../../control-plane/terraformstack/controller/internal/controller/reconciler.go)
-3. O Argo Workflows executa a pipeline governada. Terraform calcula o plano, OPA avalia as mudanças e o apply depende da decisão e da autorização para aquela execução. O controller lê os resultados do Workflow e atualiza o CR. `TerraformRun` fica reservado como nome opcional para uma execução individual. [WorkflowTemplate](../../workflow-plane/argo-workflows/terraformstack/workflowtemplate.yaml)
+3. O Argo Workflows executa a pipeline governada. Terraform calcula o plano, OPA avalia as mudanças e o apply depende da decisão e da autorização para aquela execução. O adapter Argo traduz os resultados e a fase do Workflow para a interface interna; o reconciliador decide as transições e atualiza o CR. `TerraformRun` fica reservado como nome opcional para uma execução individual. [WorkflowTemplate](../../workflow-plane/argo-workflows/terraformstack/workflowtemplate.yaml)
 
 ## 2. Contrato e resolução de revisões
 
@@ -82,7 +82,7 @@ O `claimName` do WorkflowTemplate identifica o PVC que os Pods montam. O `claim(
 | `DriftCheck` | A última execução ficou `Ready` e já decorreu o `driftCheckInterval` desde `status.execution.finishedAt`. |
 | `Retry` | A última execução ficou `Failed` e `retryPolicy` permite outra tentativa após o intervalo. |
 
-No Simulator, o drift check usa os mesmos SHAs da intenção vigente. O OPA identifica mudanças externas no campo `resource_drift` do plan e decide se permite remediação. No ensaio, a edição direta do ConfigMap de `10.81.0.0/16` para `10.83.0.0/16` foi detectada e corrigida na mesma revisão Git. O controller registra `lastCheckTime` no fim da tentativa e conserva a última detecção em `lastDriftTime`. O acionamento manual dedicado por annotation, o jitter e a exposição da próxima checagem são evoluções planejadas. [Ensaio de drift](../../labs/06-terraformstack-simulator.md#3-observar-drift-e-reconciliação) · [Roadmap](../learning-roadmap.md#fase-6--observabilidade-operação-e-governança)
+No Simulator, o drift check usa os mesmos SHAs da intenção vigente. O OPA identifica mudanças externas no campo `resource_drift` do plan e decide se permite remediação. No ensaio de aceite, a edição direta do ConfigMap de `10.81.0.0/16` para `10.83.0.0/16` foi detectada e corrigida na mesma revisão Git. O controller registra `lastCheckTime` no fim da tentativa e conserva a última detecção em `lastDriftTime`. O acionamento manual dedicado por annotation, o jitter e a exposição da próxima checagem são evoluções planejadas. [Ensaio de drift](../../labs/06-terraformstack-simulator.md#3-observar-drift-e-reconciliação) · [Roadmap](../learning-roadmap.md#fase-6--observabilidade-operação-e-governança)
 
 Um sync repetido com a mesma intenção ou um reinício do controller conserva a execução ativa. Se chega uma nova revisão enquanto o Workflow espera aprovação, o controller encerra o Workflow anterior antes de agendar o novo. Se o apply já fez o claim, ele aguarda a conclusão da execução anterior. `suspend: true` impede novas execuções e cancela a ativa quando ela ainda não marcou o início do apply. [Reconciliação](../../control-plane/terraformstack/controller/internal/controller/reconciler.go)
 
@@ -111,7 +111,7 @@ O controller publica a condição corrente em `status.conditions`, preservando c
 | `DriftDetected` | `ExternalChange` | O plan identificou divergência externa. Consulte `lastDriftTime` após a transição de condição. |
 | `Ready` | `NoChanges`, `Verified` | O plan saiu sem mudanças ou o apply passou na verificação. |
 | `ReconcilePending` | `Suspended`, `DependencyBlocked`, `Cancelling`, `PreviousExecutionFinished` | Execução suspensa, dependência pendente ou transição entre intenções. |
-| `ReconcileBlocked` | `InvalidIntent`, `PolicyDenied`, `PolicyError`, `ApprovalRejected`, `Cancelled` | Validação, política, aprovação ou cancelamento interrompeu a tentativa. |
+| `ReconcileBlocked` | `InvalidIntent`, `IntegrationChanged`, `InvalidWorkflow`, `PolicyDenied`, `PolicyError`, `ApprovalRejected`, `Cancelled` | Validação, política, aprovação ou cancelamento interrompeu a tentativa. |
 | `Failed` | `WorkflowFailed`, `WorkflowMissing` | O Workflow falhou ou desapareceu. Consulte os Pods e a última execução antes de intervir no state. |
 | `Destroyed` | `Verified` | O teardown foi aplicado e verificado. |
 
@@ -119,7 +119,7 @@ Correlacione `status.observedGeneration` com a geração do CR e `status.resolve
 
 ## 7. Operação do controller
 
-O manager usa quatro workers, Leader Election por Lease e duas réplicas, com apenas um líder ativo. A API Kubernetes conserva a intenção e o claim com resourceVersion; o controller lê o objeto diretamente antes de autorizar mudanças. Métricas do controller-runtime em :8080 e probes em :8081. A coleta Prometheus será integrada na fase de observabilidade. Catálogo imutável é atualizado por rollout. [Implementação Go](../../control-plane/terraformstack/controller/README.md)
+O manager usa quatro workers por padrão, Leader Election por Lease e duas réplicas, com apenas um líder ativo. A API Kubernetes conserva a intenção e o claim com resourceVersion; o controller lê diretamente a stack, o Workflow e as dependências antes de autorizar mudanças; o cache/index é usado nos watches. Métricas do controller-runtime em :8080 e probes em :8081. A coleta Prometheus será integrada na fase de observabilidade. Catálogo imutável é atualizado por rollout. [Implementação Go](../../control-plane/terraformstack/controller/README.md)
 
 ## 8. Evolução na AWS
 
@@ -144,3 +144,5 @@ ConfigMap imutável e snapshot por tentativa impedem reinterpretar saídas de
 execuções ativas com outro mapeamento. Drene execuções antes de alterar o
 contrato; namespaces e templates exigem revisão coordenada do RBAC, admission
 policies e GitOps. O consumidor não escolhe o WorkflowTemplate no CR.
+
+O adapter concentra a leitura das fases e outputs Argo, a validação da identidade e template, criação, cancelamento e mapeamento de eventos. O reconciliador conserva as decisões de lifecycle e autorização. O WorkflowTemplate, runner e OPA são a implementação de referência confiável da POC, não bibliotecas obrigatórias do controller. Uma pipeline substituta deve implementar a mesma semântica, inclusive o claim, e ser validada pelo Platform Team. Os scripts de referência usam o namespace `platform-system` e a admissão protege a identidade/template canônicos; alterar nomes exige revisão coordenada desses componentes. `IntegrationChanged` bloqueia uma tentativa ativa quando o snapshot diverge; `InvalidWorkflow` indica identidade ou template incompatível. [ADR-0009](../adr/0009-terraformstack-runtime.md).

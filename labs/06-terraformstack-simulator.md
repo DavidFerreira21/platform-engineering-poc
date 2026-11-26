@@ -38,11 +38,14 @@ network() {
 hub -n platform-system wait terraformstack/simulator-network \
   --for=condition=Ready --timeout=180s
 stack -o yaml
-hub -n argo-workflows get workflow "$(workflow)"
+run="$(workflow)"
+hub -n argo-workflows get workflow "$run"
+hub -n argo-workflows get pods -l "workflows.argoproj.io/workflow=$run" \
+  -o 'custom-columns=NAME:.metadata.name,IMAGE:.spec.containers[-1].image,IMAGEID:.status.containerStatuses[?(@.name=="main")].imageID'
 network
 ```
 
-O primeiro sync entrega os CRs. O ConfigMap aparece depois do apply. Aguarde `Ready` para observar o resultado de `verify`. Se a espera expirar, execute `stack -o yaml` e abra o Workflow indicado por `status.execution.workflow`. Confira eventos dos Pods e PVCs, a fase e os logs. Confirme que o SHA publicado é acessível dentro do Hub e que os Pods podem obter o provider Kubernetes. Em `ImagePullBackOff` de imagem com tag `:local`, repita o build e o carregamento no mesmo Hub. Para falha ao baixar a imagem do OPA, confira a conectividade com o registry. [Comandos de build e carregamento](05-terraformstack-runtime.md#1-construir-ou-reconstruir-as-imagens)
+O primeiro sync entrega os CRs. O ConfigMap aparece depois do apply. Após atualizar o runner, confira o image ID do container `main` em um step Terraform desse Workflow. Aguarde `Ready` para observar o resultado de `verify`. Se a espera expirar, execute `stack -o yaml` e abra o Workflow indicado por `status.execution.workflow`. Confira eventos dos Pods e PVCs, a fase e os logs. Confirme que o SHA publicado é acessível dentro do Hub e que os Pods podem obter o provider Kubernetes. Em `ImagePullBackOff` de imagem com tag `:local`, repita o build e o carregamento no mesmo Hub. Para falha ao baixar a imagem do OPA, confira a conectividade com o registry. [Comandos de build e carregamento](05-terraformstack-runtime.md#1-construir-ou-reconstruir-as-imagens)
 
 ## 2. Exercitar as decisões OPA pelo GitOps
 
