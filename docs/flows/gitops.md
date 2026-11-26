@@ -2,7 +2,7 @@
 
 > **Estado:** arquitetura-alvo aprovada (v1); implementação incremental conforme o roadmap.  
 > **Atual:** Hub `kind` com bootstrap por scripts, Argo CD central e catálogo de add-ons.  
-> **Futuro:** EKS, múltiplas entidades/ambientes e avaliação do EKS Argo CD Capability.
+> **Futuro:** EKS e múltiplos ambientes com EKS Capability for Argo CD como Argo CD central. [ADR-0008](../adr/0008-managed-argocd-connectivity.md)
 
 ![Fluxo GitOps: Platform Addons, Crossplane, TerraformStack e Domain Applications](./gitops-flow.png)
 
@@ -35,7 +35,7 @@ O Argo CD não precisa estar instalado antes do script de bootstrap: o script es
 
 ### Futuro: Hub na AWS
 
-Terraform poderá provisionar o EKS do Control Plane e configurar seu mecanismo inicial de GitOps. O **EKS Argo CD Capability** é uma alternativa **sob avaliação**, sujeita a identidade, autorização cross-account, isolamento PCI, limites do serviço, rede e custo. Não é requisito dos laboratórios `kind`.
+Terraform poderá provisionar o EKS do Control Plane e configurar seu mecanismo inicial de GitOps. A **EKS Capability for Argo CD** é a escolha para o Hub AWS, com IAM Identity Center, IAM Capability Role, registro explícito do Hub por ARN e permissões de destino. Custo, disponibilidade e isolamento serão validados. Os laboratórios `kind` continuam autogerenciados.
 
 ## 3. Platform GitOps — governança dos add-ons
 
@@ -114,7 +114,7 @@ O onboarding futuro tem três operações independentes:
 2. **Registrar e autorizar:** automação estabelece identidade, permissões, endpoint/acesso e labels do destino no Argo CD apropriado. **Publicar outputs no Parameter Store, por si só, não registra o cluster.**
 3. **Configurar:** ApplicationSet identifica o cluster autorizado e gera Applications para os perfis aprovados.
 
-As landing zones podem ser isoladas, sem VPC Peering nem Transit Gateway. O padrão GitOps não deve pressupor conectividade irrestrita. A escolha entre Argo CD autogerenciado, acesso privado específico e EKS Argo CD Capability permanece sujeita à validação da arquitetura AWS.
+As landing zones podem ser isoladas, sem VPC Peering nem Transit Gateway. O padrão GitOps não deve pressupor conectividade irrestrita. Na AWS, as três VPCs (Platform, UAT e PROD) permanecem isoladas e têm saída via NAT. A EKS Capability for Argo CD acessa as APIs privadas por conectividade gerenciada AWS após registro por ARN e Access Entries. Essa conectividade não se estende a Pods, kubectl ou telemetria. [ADR-0008](../adr/0008-managed-argocd-connectivity.md)
 
 ## 9. Limites e GitOps Bridge
 
