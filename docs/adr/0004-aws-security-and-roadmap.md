@@ -11,3 +11,5 @@
 **Riscos:** validar operators/agentes, custos e requisitos PCI antes de Auto Mode. Um Argo CD não deve administrar PCI/Non-PCI sem revisão dos limites administrativos. Comprovar tentativas indevidas negadas entre Domain e conta/Environment. Observar drift, logs, eventos e trilha de auditoria.
 
 [Arquitetura](../architecture.md) · [Roadmap](../learning-roadmap.md)
+
+**Conectividade GitOps:** VPCs Platform, UAT e PROD isoladas, com NAT e APIs EKS privadas; Argo CD central gerenciado pela AWS acessa os destinos por ARN e Access Entries. Ver [ADR-0008](0008-managed-argocd-connectivity.md).
