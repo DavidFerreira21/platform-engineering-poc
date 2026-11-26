@@ -94,17 +94,17 @@ def test_apply_in_progress_not_terminated_on_spec_change(cluster):
     assert cluster.run()["sequence"] == 2
 
 
-@pytest.mark.parametrize("decision,request,expected", [
+@pytest.mark.parametrize("decision,apply_request,expected", [
     ("AutoApply", "hash", True),
     ("RequireApproval", "hash", True),
     ("RequireApproval", "different", False),
     ("Deny", "hash", False),
     ("Error", "hash", False),
 ])
-def test_authorization_requires_allowed_decision_and_matching_hash(cluster, decision, request, expected):
+def test_authorization_requires_allowed_decision_and_matching_hash(cluster, decision, apply_request, expected):
     cluster.add()
     cluster.start()
-    cluster.outcome(phase="Running", decision=decision, request=request, hash="hash")
+    cluster.outcome(phase="Running", decision=decision, request=apply_request, hash="hash")
     cluster.tick()
     assert (cluster.run().get("authorization") == "hash") is expected
 
