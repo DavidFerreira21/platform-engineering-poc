@@ -1,0 +1,88 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: terraformstack-lab06b-approval
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [argoproj.io]
+        apiVersions: [v1alpha1]
+        operations: [UPDATE]
+        resources: [workflows, workflows/status]
+  matchConditions:
+    - name: aprovador-local
+      expression: request.userInfo.username.startsWith('system:serviceaccount:terraformstack-lab06b:')
+  validations:
+    - expression: >-
+        request.namespace == 'argo-workflows' &&
+        has(oldObject.metadata.labels) &&
+        oldObject.metadata.labels['lab.platform.example/exercise'] == 'lab06b' &&
+        object.spec == oldObject.spec &&
+        (!has(object.metadata.annotations) && !has(oldObject.metadata.annotations) || has(object.metadata.annotations) && has(oldObject.metadata.annotations) && object.metadata.annotations == oldObject.metadata.annotations) &&
+        (!has(object.metadata.finalizers) && !has(oldObject.metadata.finalizers) || has(object.metadata.finalizers) && has(oldObject.metadata.finalizers) && object.metadata.finalizers == oldObject.metadata.finalizers)
+      message: O aprovador pode somente operar o gate dos Workflows do Lab 06B.
+    - expression: >-
+        has(oldObject.status.nodes) && has(object.status.nodes) &&
+        oldObject.status.phase == object.status.phase &&
+        (!has(oldObject.status.outputs) && !has(object.status.outputs) ||
+         has(oldObject.status.outputs) && has(object.status.outputs) &&
+         oldObject.status.outputs == object.status.outputs) &&
+        oldObject.status.nodes.size() == object.status.nodes.size() &&
+        oldObject.status.nodes.all(k, k in object.status.nodes &&
+          (object.status.nodes[k] == oldObject.status.nodes[k] ||
+           (oldObject.status.nodes[k].type == 'Suspend' &&
+            oldObject.status.nodes[k].templateName == 'approval' &&
+            oldObject.status.nodes[k].phase == 'Running' &&
+            object.status.nodes[k].type == 'Suspend' &&
+            object.status.nodes[k].templateName == 'approval' &&
+            object.status.nodes[k].inputs == oldObject.status.nodes[k].inputs &&
+            object.status.nodes[k].phase in ['Running', 'Succeeded'])))
+      message: Somente o passo de aprovação ativo pode mudar.
+    - expression: >-
+        oldObject.metadata.labels.all(k, k in object.metadata.labels &&
+          object.metadata.labels[k] == oldObject.metadata.labels[k] ||
+          k.startsWith('workflows.argoproj.io/action-')) &&
+        object.metadata.labels.all(k, k in oldObject.metadata.labels ||
+          k.startsWith('workflows.argoproj.io/action-'))
+      message: Os rótulos de identidade do Workflow são imutáveis.
+  auditAnnotations:
+    - key: aprovador
+      valueExpression: request.userInfo.username
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: terraformstack-lab06b-approval
+spec:
+  policyName: terraformstack-lab06b-approval
+  validationActions: [Deny, Audit]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: terraformstack-lab06b-configmaps
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE]
+        resources: [configmaps]
+  matchConditions:
+    - name: executor-local
+      expression: request.userInfo.username == 'system:serviceaccount:argo-workflows:terraformstack-local-executor'
+  validations:
+    - expression: >-
+        request.namespace == 'terraformstack-lab06b' &&
+        object.metadata.name in ['lab06b-network', 'lab06b-dependent']
+      message: O executor pode criar somente os ConfigMaps do Lab 06B.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: terraformstack-lab06b-configmaps
+spec:
+  policyName: terraformstack-lab06b-configmaps
+  validationActions: [Deny]

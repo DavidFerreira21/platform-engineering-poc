@@ -156,3 +156,30 @@ spec:
   templatePatch: |
     spec:
       source: {{ .source | toJson }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform-terraformstack-local
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://github.com/DavidFerreira21/platform-engineering-poc.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: platform-system
+    - server: https://kubernetes.default.svc
+      namespace: argo-workflows
+    - server: https://kubernetes.default.svc
+      namespace: terraformstack-lab06b
+  clusterResourceWhitelist:
+    - {group: "", kind: Namespace}
+    - {group: admissionregistration.k8s.io, kind: ValidatingAdmissionPolicy}
+    - {group: admissionregistration.k8s.io, kind: ValidatingAdmissionPolicyBinding}
+  namespaceResourceWhitelist:
+    - {group: "", kind: PersistentVolumeClaim}
+    - {group: "", kind: ServiceAccount}
+    - {group: apps, kind: Deployment}
+    - {group: argoproj.io, kind: WorkflowTemplate}
+    - {group: rbac.authorization.k8s.io, kind: Role}
+    - {group: rbac.authorization.k8s.io, kind: RoleBinding}

@@ -11,10 +11,9 @@ O [roteiro prático](../docs/learning-roadmap.md) reúne as oito fases e o aceit
 | **04** | [Crossplane Core](04-crossplane-core.md) |
 | **05** | [API do TerraformStack via GitOps](05-terraformstack-crd.md) |
 | **06** | [Controller do TerraformStack e executor simulado](06-terraformstack-controller.md) |
+| **06B** | [TerraformStack de ponta a ponta no kind](06b-terraformstack-kind.md) |
 | **07** | [Registro e validação de UAT](07-registro-ambientes-aws.md) |
 | **08** | [Identidade temporária do Terraform Executor no kind](08-identidade-executor-aws.md) |
-
-**Próximo marco após o Lab 06.** A [Etapa 06B no roadmap](../docs/learning-roadmap.md#etapa-06b--terraformstack-de-ponta-a-ponta-no-kind) especifica o aceite local do TerraformStack antes dos guias AWS 07 e 08. A implementação e o guia executável do 06B estão planejados.
 
 ## Como ler e reproduzir uma etapa
 

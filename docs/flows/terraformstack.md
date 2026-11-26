@@ -148,7 +148,7 @@ spec:
 
 **Campos que não exporemos inicialmente:** seleção livre de `serviceAccountName`, AWS Role ARN, backend, `forceUnlock`, `targets` e credenciais no manifesto. São poderes de execução ou operações de recuperação sensíveis; permanecem na configuração administrada da plataforma e em operações privilegiadas, nunca como bypass de política. Variáveis e feature flags vêm preferencialmente do módulo Configuration e de sua revisão aprovada.
 
-**Sequência:** o schema e o simulador da Etapa 06 já aceitam a referência e a suspensão, sem resolução real de versões nem execução AWS; utilizar `sourceRef` imutável nas stacks Network/EKS; construir o fluxo real de `plan -destroy`, finalizer, autorização, tratamento de dependências e recuperação na **Etapa 25**, junto ao motor de políticas. `driftCheckInterval` real permanece na **Etapa 24**. Para usar destroy em cleanup de laboratório antes da Etapa 25, recorrer a procedimento **manual e explicitamente autorizado**, fora da reconciliação automática do CR.
+**Sequência:** a Etapa 06 simula a execução. A Etapa 06B exercita plan, política, drift, dependências e destroy com Terraform local. As Etapas 24 e 25 validam detecção e correção governada de drift e teardown na AWS. [Guia do Lab 06B](../../labs/06b-terraformstack-kind.md)
 
 Referências externas: [Tofu Controller API](https://flux-iac.github.io/tofu-controller/References/terraform/) · [Destroy on deletion](https://flux-iac.github.io/tofu-controller/use-tf-controller/provision-resources-and-destroy-them-when-terraform-object-gets-deleted/).
 

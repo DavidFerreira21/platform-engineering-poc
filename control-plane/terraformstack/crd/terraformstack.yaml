@@ -160,6 +160,21 @@ spec:
                   type: integer
                   format: int64
                   minimum: 0
+                execution:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                policy:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                deletionIntent:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                lastDriftTime:
+                  type: string
+                  format: date-time
+                lastCheckTime:
+                  type: string
+                  format: date-time
                 resolvedSource:
                   type: object
                   description: Versões efetivas e artefatos imutáveis usados na execução.
