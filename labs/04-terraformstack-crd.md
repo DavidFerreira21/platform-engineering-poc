@@ -14,11 +14,10 @@ O CRD `v1alpha1` é o contrato instalado para as próximas etapas. `sourceRef` d
 
 ## 1. Sincronizar e validar
 
-Com o Argo CD central da [Etapa 02](02-argocd-central.md) e o Argo Workflows da [Etapa 03](03-argo-workflows.md), abra **terraformstack-crd**. Confira a revisão, o destino Hub e o diff com um CRD de escopo Namespaced. Faça o sync manual. Para uma revisão em branch, use um preview fixado no SHA publicado com o mesmo projeto e caminho. [Entrada do catálogo](../platform/hub/addons/catalog/terraformstack-crd.yaml)
+Com o Argo CD e o Argo Workflows instalados, abra **terraformstack-crd**. Confira a revisão, o destino Hub e o diff com um CRD de escopo Namespaced. Faça o sync manual e aguarde a operação terminar. Para testar uma revisão publicada em branch, informe o SHA no campo **Revision** do painel **Sync** da mesma Application. [Argo CD](02-argocd-central.md) · [Argo Workflows](03-argo-workflows.md) · [Entrada do catálogo](../platform/hub/addons/catalog/terraformstack-crd.yaml)
 
 ```bash
-cluster="${HUB_KIND_NAME:-platform-management}"
-hub() { kubectl --context "kind-$cluster" "$@"; }
+hub() { kubectl --context kind-platform-management "$@"; }
 
 hub wait --for=condition=Established crd/terraformstacks.platform.example.io --timeout=90s
 hub explain terraformstack.spec.sourceRef
@@ -27,7 +26,13 @@ kubectl kustomize control-plane/terraformstack/examples/simulator |
   hub apply --dry-run=server --validate=strict -f -
 ```
 
-Repita a validação em uma cópia do manifesto com `sourceRef.path: foundation/../simulator` e confira a rejeição pelo schema. Mantenha o CRD instalado para a Etapa 05.
+Repita o dry-run com um caminho inválido. O resultado esperado é `Invalid` em `spec.sourceRef.path`. Mantenha o CRD instalado para a Etapa 05.
+
+```bash
+sed 's|foundation/stacks/simulator|foundation/../simulator|g' \
+  control-plane/terraformstack/examples/simulator/stacks.yaml |
+  hub apply --dry-run=server --validate=strict -f -
+```
 
 ## O que observar
 

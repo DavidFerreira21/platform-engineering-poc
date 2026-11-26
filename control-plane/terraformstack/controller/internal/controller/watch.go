@@ -24,7 +24,8 @@ func (r *Reconciler) SetupWithManager(m ctrl.Manager,workers int, executionObjec
  // Eventos de dependências acionam também os pais (teardown reverso).
  neighbors:=handler.EnqueueRequestsFromMapFunc(func(ctx context.Context,o client.Object)[]reconcile.Request{
  if o.GetNamespace()!=r.StackNamespace{return nil}
- list:=stackList();if e:=r.List(ctx,list,client.InNamespace(r.StackNamespace),client.MatchingFields{dependencyIndex:o.GetName()});e!=nil{log.FromContext(ctx).Error(e,"index de dependências");return nil}
+ // O índice de dependências pertence ao cache, inclusive para objetos unstructured.
+ list:=stackList();if e:=m.GetCache().List(ctx,list,client.InNamespace(r.StackNamespace),client.MatchingFields{dependencyIndex:o.GetName()});e!=nil{log.FromContext(ctx).Error(e,"index de dependências");return nil}
  names:=[]string{};for _,item:=range list.Items{names=append(names,item.GetName())}
  s,e:=specOf(o.(*unstructured.Unstructured));if e==nil{for _,d:=range s.DependsOn{if !slices.Contains(names,d.Name){names=append(names,d.Name)}}}
  reqs:=[]reconcile.Request{};for _,name:=range names{reqs=append(reqs,reconcile.Request{NamespacedName:client.ObjectKey{Namespace:r.StackNamespace,Name:name}})};return reqs

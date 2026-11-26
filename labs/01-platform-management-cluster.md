@@ -8,7 +8,7 @@ Preparar um Hub Kubernetes local reproduzível e verificar o caminho de uma requ
 
 ## O que será feito
 
-- Criar ou reutilizar o cluster kind `platform-management` e preparar os namespaces `platform-system`, `traefik`, `argocd` e `crossplane-system`. Os dois últimos ficam reservados para as próximas etapas.
+- Criar ou reutilizar o cluster kind `platform-management` para as etapas locais e preparar os namespaces `platform-system`, `traefik`, `argocd` e `crossplane-system`. Os dois últimos ficam reservados para as próximas etapas.
 - Instalar o Traefik via Helm e publicar o Deployment, o Service e o Ingress do serviço de demonstração `echo`.
 - Validar `demo.localhost:8080` e acompanhar o caminho da requisição até o Pod.
 - Conferir como revisitar o exercício em um Hub que já tem etapas posteriores.
@@ -43,20 +43,11 @@ helm version
 Abra [`kind-config.yaml`](../platform/hub/kind-config.yaml): **host 127.0.0.1:8080 → node container:30080**, e **host 127.0.0.1:8443 → node container:30443**. Esses números correspondem aos **NodePorts** do Service Traefik definidos em [`values.yaml`](../platform/hub/traefik/values.yaml).
 
 ```bash
+unset HUB_KIND_NAME HUB_HTTP_PORT HUB_HTTPS_PORT
 bash platform/hub/scripts/create.sh
 ```
 
-O bootstrap de um Hub novo instala a política de auditoria usada na aprovação do TerraformStack. Se já houver um Hub de um ensaio anterior, preserve-o e use outro nome e portas para o teste. Os scripts do Traefik e do Argo CD aceitam os mesmos valores.
-
-```bash
-export HUB_KIND_NAME=platform-simulator HUB_HTTP_PORT=18080 HUB_HTTPS_PORT=18443
-bash platform/hub/scripts/create.sh
-```
-
-Use o contexto `kind-$HUB_KIND_NAME` e as portas configuradas ao seguir os guias em um Hub alternativo.
-
-
-O script reutiliza o cluster existente, caso haja um; nesse caso **não consegue alterar os mapeamentos de portas**. Se o cluster foi criado com uma configuração anterior, remova-o e recrie-o explicitamente (consulte a seção de limpeza). Em seguida, observe:
+As etapas locais usam o mesmo Hub `platform-management`, no contexto `kind-platform-management` e nas portas 8080 e 8443. O script prepara os namespaces e reutiliza o Hub se ele já existir. O mapeamento de portas e a política de auditoria do TerraformStack são definidos na criação do cluster. Em seguida, confira o Hub.
 
 ```bash
 kubectl --context kind-platform-management cluster-info
@@ -126,6 +117,17 @@ Se você voltar a esta etapa depois de instalar outros componentes, use a verifi
 ```bash
 bash platform/hub/scripts/verify.sh
 ```
+
+Antes do teste de aprovação do Simulator, confira se o API Server do Hub foi iniciado com a política de auditoria.
+
+```bash
+kubectl --context kind-platform-management -n kube-system \
+  get pod kube-apiserver-platform-management-control-plane \
+  -o jsonpath='{.spec.containers[0].command}' |
+  grep -F -- '--audit-policy-file=/var/local/terraformstack-audit/policy.yaml'
+```
+
+Se a opção estiver ausente, os testes locais continuam no mesmo Hub. A evidência de auditoria da aprovação depende da configuração aplicada na criação do cluster. [Teste de aprovação](06-terraformstack-simulator.md#2-exercitar-as-decisões-opa-pelo-gitops)
 
 O serviço `echo` fica disponível para a verificação do Hub em etapas posteriores. A exclusão completa do cluster é uma operação de manutenção separada. [Operações do Hub](../platform/hub/README.md)
 

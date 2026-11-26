@@ -2,7 +2,7 @@
 
 [← ADRs](README.md) · [Fluxo](../flows/terraformstack.md)
 
-**Status:** decisão vigente; implementação Go versionada e CI aprovado na revisão de integração. Aceite ponta a ponta no Hub kind permanece no Lab 06.
+**Status** — decisão vigente com runtime Go versionado. A Etapa 06 registra o aceite ponta a ponta no Hub `kind`. [Evidências](../../labs/06-terraformstack-simulator.md#evidências-de-aceite)
 
 ## Contexto
 
