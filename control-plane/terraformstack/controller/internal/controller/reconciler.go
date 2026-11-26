@@ -8,7 +8,7 @@ import (
 
  apierrors "k8s.io/apimachinery/pkg/api/errors"
  "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
- "github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/execution"
+ execengine "github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/execution"
  ctrl "sigs.k8s.io/controller-runtime"
  "sigs.k8s.io/controller-runtime/pkg/client"
  "sigs.k8s.io/controller-runtime/pkg/log"
@@ -18,7 +18,7 @@ type Reconciler struct {
  client.Client
  Reader client.Reader // Leitura consistente antes de decisões de autorização.
  Catalog Catalog
- Engine execution.Engine
+ Engine execengine.Engine
  StackNamespace string
  Now func()time.Time
 }
@@ -53,7 +53,7 @@ func (r *Reconciler) Reconcile(ctx context.Context,req ctrl.Request)(ctrl.Result
  if e==nil&&d["operation"]!="retain"&&s.Reconciliation.DriftCheckInterval!=""{interval,e=duration(s.Reconciliation.DriftCheckInterval)}
  if e==nil&&deleting&&status["deletionIntent"]!=nil&&!equal(status["deletionIntent"],d){e=fmt.Errorf("intenção de exclusão diverge do snapshot")}
  active:=len(run)>0&&str(run["finishedAt"])==""
- var w *execution.Run
+ var w *execengine.Run
  if active{
   // Uma execução conserva seu contrato. Não interpretar saídas antigas
   // usando nomes novos, nem criar uma execução paralela após um rollout.
