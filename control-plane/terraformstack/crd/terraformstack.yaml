@@ -120,6 +120,9 @@ spec:
                   properties:
                     workflow:
                       type: string
+                    phase:
+                      type: string
+                      enum: [Pending, Running, Waiting, AuthorizationRequested, Applying, Succeeded, Failed, Blocked, Cancelled]
                     intentHash:
                       type: string
                     authorization:

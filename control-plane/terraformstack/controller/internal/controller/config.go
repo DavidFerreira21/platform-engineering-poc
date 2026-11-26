@@ -11,7 +11,7 @@ import (
 )
 
 // Config é o contrato de instalação. Não permite alterar a semântica do
-// lifecycle, dos resultados OPA ou do handshake de autorização.
+// lifecycle, do resultado tipado ou da autorização.
 type Config struct {
 	Controller ControllerConfig    `json:"controller"`
 	Workflow   argo.WorkflowConfig `json:"workflow"`

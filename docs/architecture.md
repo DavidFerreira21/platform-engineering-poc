@@ -177,15 +177,16 @@ foundation/config/ ou core-infrastructure/ (Git)
   → validação de intenção + PR/aprovação
   → Argo CD central → Kubernetes API / TerraformStack CR
   → TerraformStack Controller → Argo Workflows
-  → Terraform Executor: plan → Policy Engine
+  → Pipeline: resolução de Git, contexto e state → plan → Policy Engine
   → auto apply / aprovação / bloqueio
+  → autorização do controller e claim → apply do plano aprovado
   → verificação e status → AWS Foundation / EKS
   → nova verificação periódica de drift (sem apply incondicional)
 ```
 
 O Bootstrap Terraform central é reutilizado por configuração de Entity/Environment, com **state segregado**. Inicialmente pode rodar em um lab manual e auditável. **Argo CD não executa Terraform**. Criar conta AWS automaticamente é possibilidade futura, **não exige `AWSEnvironment` CRD/controller próprio agora**.
 
-O núcleo de reconciliação não interpreta diretamente objetos Argo. A interface interna de execução e o adapter Argo separam lifecycle, dependências e autorização da criação, leitura, cancelamento e observação de Workflows. Argo Workflows é a única integração suportada. WorkflowTemplate, runner e OPA são a implementação de referência da POC; devem respeitar o contrato e as políticas de segurança, sob controle do Platform Team. [ADR-0009](adr/0009-terraformstack-runtime.md).
+O controller encaminha a fonte declarada e o mapa de contexto. A interface de execução e o adapter Argo traduzem os sinais de execução. Git, identidade efetiva, backend, variáveis e política são resolvidos pela pipeline, que publica uma referência imutável e um vínculo opaco de destino. Argo Workflows é a única integração suportada. WorkflowTemplate, runner e OPA são a implementação de referência da POC; devem respeitar o contrato e as políticas de segurança, sob controle do Platform Team. [ADR-0009](adr/0009-terraformstack-runtime.md) · [Execution Contract](flows/terraformstack-execution-contract.md).
 
 ### Evolução planejada do TerraformStack
 

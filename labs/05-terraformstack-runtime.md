@@ -6,13 +6,13 @@ Instalar o controller e a pipeline canônica que executa stacks Terraform a part
 
 ## O que será feito
 
-Construir a imagem do controller e o runner genérico. Publicar o WorkflowTemplate, seus scripts e a política OPA em ConfigMaps versionados. Instalar o controller com o catálogo do Hub local.
+Construir a imagem do controller e o runner genérico. Publicar o WorkflowTemplate, seus scripts, o perfil local e a política OPA em ConfigMaps imutáveis. Instalar o controller com a configuração de integração Argo.
 
 ## Por que fizemos assim
 
 O controller Go utiliza Controller Runtime no padrão Kubebuilder, com watches, cache, work queue e Leader Election. Dois Pods disputam uma Lease; apenas o líder reconcilia. Drift e retry usam temporizadores por stack. [Implementação](../control-plane/terraformstack/controller/README.md).
 
-O catálogo seleciona fonte, destino, backend e identidade. O controller fixa os SHAs de código e configuração, grava a referência da execução no CR e acompanha o Workflow. Os steps Terraform usam a imagem comum com ferramentas e executam o script montado. OPA usa sua imagem oficial e monta o pacote versionado do [Policy Engine](../workflow-plane/policy-engine/README.md), com perfis selecionados pelo catálogo. O overlay dá ao controller o catálogo do Hub e pode promover o runner por digest via `images`. O step `verify` executa `verify.sh` quando a raiz aprovada inclui uma verificação específica do recurso. [Fluxo da pipeline](../docs/flows/terraformstack.md#3-pipeline-e-aprovação)
+O controller registra a intenção, verifica dependências e acompanha os sinais do Workflow. A pipeline resolve Git, contexto, PVC, backend e configuração a partir do perfil aprovado. Os steps Terraform usam a imagem comum e executam o script montado. O OPA roda em sua imagem oficial e monta o pacote versionado. O step `verify` pode executar `verify.sh` na raiz da stack. [Fluxo da pipeline](../docs/flows/terraformstack.md#3-pipeline-e-aprovação) · [Perfil do Simulator](../workflow-plane/argo-workflows/terraformstack/simulator.json)
 
 ## Pré-requisitos
 
@@ -62,10 +62,10 @@ hub apply -f platform/hub/addons/bootstrap.yaml
 
 No Argo CD, confira a revisão e o destino Hub antes de cada sync manual.
 
-1. **terraformstack-workflows** em `argo-workflows`. O diff deve mostrar o WorkflowTemplate, a ServiceAccount, o RBAC e os ConfigMaps imutáveis com scripts e Rego.
-2. **terraformstack-controller** em `platform-system`. O diff deve mostrar Deployment, configuração do controller e catálogo imutáveis, permissões, namespace do Simulator, PVCs e políticas de admissão.
+1. **terraformstack-workflows** em `argo-workflows`. O diff deve mostrar o WorkflowTemplate, a ServiceAccount, o RBAC e os ConfigMaps imutáveis com scripts, perfil do Simulator e Rego.
+2. **terraformstack-controller** em `platform-system`. O diff deve mostrar Deployment, configuração imutável do controller, permissões, namespace do Simulator, PVCs e políticas de admissão.
 
-Se o catálogo aparecer sem hash no diff, confira o build do overlay com `kubectl kustomize control-plane/terraformstack/overlays/kind`.
+Confira os nomes por hash dos ConfigMaps nos builds de Kustomize. A Application de Workflows monta os scripts, o perfil e a política. O Deployment monta a configuração de integração.
 
 Para testar uma revisão publicada em branch, informe o SHA em **Sync → Revision** na própria Application de cada componente. Aguarde a operação terminar e confira o SHA no resultado do sync. O Argo CD pode mostrar `OutOfSync` enquanto compara com o destino `main` configurado no catálogo. [Catálogo do Workflow](../platform/hub/addons/catalog/terraformstack-workflows.yaml) · [Catálogo do controller](../platform/hub/addons/catalog/terraformstack-controller.yaml)
 
@@ -78,6 +78,12 @@ hub -n argo-workflows get workflowtemplate terraformstack
 hub -n platform-system auth can-i get secrets --as=system:serviceaccount:platform-system:terraformstack-controller
 hub -n argo-workflows get pvc simulator-network simulator-dependent
 ```
+
+## Atualizar um Hub da revisão anterior
+
+Conclua os Workflows antigos e suspenda os CRs pelo GitOps. Antes de trocar de contrato, conclua o destroy aprovado dos recursos descartáveis do Simulator com a revisão antiga. Depois da verificação, remova as solicitações antigas e descarte apenas seus PVCs de teste. Um PVC com state anterior sem vínculo fica bloqueado no runtime novo. Preserve qualquer state que precise ser recuperado e mantenha a revisão que o criou disponível. A POC exige uma migração explícita para reaproveitar esse state.
+
+Sincronize o CRD da Etapa 04, carregue as imagens reconstruídas, sincronize os Workflows e o controller e depois sincronize o Simulator com a mesma revisão. Atualize os manifestos das solicitações para `sourceRef.repository` e `context`. O perfil e os outputs devem corresponder à configuração instalada. [Etapa 04](04-terraformstack-crd.md) · [Execution Contract](../docs/flows/terraformstack-execution-contract.md)
 
 ## O que observar
 

@@ -11,7 +11,7 @@ O adapter publica um parâmetro global de entrada chamado `intent` na pipeline d
 ```json
 {
   "workflow": "tf-123-95fa9fa945dd-2",
-  "intentHash": "95fa9fa945dd3c0c4f674a88710607e76d171ba334688eaec85bf63d125ce151e",
+  "intentHash": "95fa9fa945dd3c0c4f674a88710607e76d171ba334688eaec85bf63d125ce151",
   "intent": {
     "stack": "simulator-network",
     "namespace": "platform-system",
@@ -52,7 +52,7 @@ Exemplo de publicação depois que o gate da pipeline libera uma alteração.
 ```json
 {
   "workflow": "tf-123-95fa9fa945dd-2",
-  "intentHash": "95fa9fa945dd3c0c4f674a88710607e76d171ba334688eaec85bf63d125ce151e",
+  "intentHash": "95fa9fa945dd3c0c4f674a88710607e76d171ba334688eaec85bf63d125ce151",
   "token": "plan-version-42"
 }
 ```
@@ -69,7 +69,7 @@ O controller registra `Pending` no agendamento e observa `Running`, `Waiting` e 
 status:
   claim:
     workflow: tf-123-95fa9fa945dd-2
-    intentHash: 95fa9fa945dd3c0c4f674a88710607e76d171ba334688eaec85bf63d125ce151e
+    intentHash: 95fa9fa945dd3c0c4f674a88710607e76d171ba334688eaec85bf63d125ce151
     authorization: plan-version-42
 ```
 

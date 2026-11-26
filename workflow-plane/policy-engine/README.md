@@ -2,7 +2,7 @@
 
 [← Workflow Plane](../README.md) · [TerraformStack](../../docs/flows/terraformstack.md)
 
-O OPA avalia o JSON do Terraform plan e o contexto confiável do catálogo. O WorkflowTemplate é genérico: não contém regras de Network, EKS ou de outros produtos.
+O OPA avalia o JSON do Terraform plan e o contexto resolvido pela pipeline. O WorkflowTemplate é genérico: não contém regras de Network, EKS ou de outros produtos.
 
 ## Organização
 
@@ -34,11 +34,11 @@ profiles:
     - xpto
 ```
 
-Não há regras reais AWS nesses exemplos. Somente `simulator` está ativo. O catálogo confiável de cada stack informa `policyProfile`; o consumidor não escolhe o perfil no CRD. Perfil ausente, módulo inválido, erro OPA e mudanças sem cobertura bloqueiam a execução. Error > Deny > RequireApproval > AutoApply; NoChanges é tratado pelo engine. Destroy continua exigindo aprovação.
+Não há regras reais AWS nesses exemplos. Somente `simulator` está ativo. O perfil de execução confiável informa `policyProfile`; o consumidor não escolhe o perfil no CRD. Perfil ausente, módulo inválido, erro OPA e mudanças sem cobertura bloqueiam a execução. Error > Deny > RequireApproval > AutoApply; NoChanges é tratado pelo engine. Destroy continua exigindo aprovação.
 
 ## Rastreabilidade
 
-O contexto com o perfil é vinculado ao hash do plan JSON e o resultado inclui perfil, decisões por módulo e digest SHA-256 de todos os arquivos de produção montados. ConfigMaps imutáveis com hash no nome preservam as regras usadas pelo Workflow; não remover versões ainda utilizadas por execuções ativas. O digest identifica o pacote, não substitui a autorização do plano. A troca de política não revoga automaticamente um Workflow já iniciado; mudanças de perfil no catálogo integram a intenção reconciliada.
+A resposta do OPA vincula o plan JSON e o contexto por hashes. A pipeline valida a resposta e publica decisão, hash do plano e digest SHA-256 do pacote montado. ConfigMaps imutáveis com hash no nome preservam as regras usadas pelo Workflow; não remover versões ainda utilizadas por execuções ativas. O digest identifica o pacote, não substitui a autorização do plano. Para trocar o perfil ou o pacote de políticas, drene as execuções em curso e sincronize o WorkflowTemplate com seus ConfigMaps imutáveis.
 
 ## Testes
 

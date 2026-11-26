@@ -316,7 +316,7 @@ func resolutionCurrent(run M, w *execengine.Run) bool {
 		return false
 	}
 	token := str(run["authorization"])
-	return token == "" || w.Authorization == "" || token == w.Authorization
+	return token == "" || token == w.Authorization
 }
 
 func terminalResult(run M, w *execengine.Run, applying, contractError bool) (string, string, execengine.Phase) {

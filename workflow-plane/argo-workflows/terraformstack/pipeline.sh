@@ -53,12 +53,16 @@ resolve() {
   fi
   reference="$(value '.pinnedReference // .intent.sourceRef.version')"
   if [[ "$reference" == latest ]]; then
-    reference="$(value .intent.revisionAnnotation)"
-    if [[ -n "$reference" && ! "$reference" =~ ^[a-f0-9]{40}$ ]]; then
-      block InvalidGitOpsRevision 'A revisão GitOps deve ser um commit Git completo.'
-      return
+    reference=HEAD
+    if [[ "$repository" == "$(jq -er .gitOpsRepository "$profile")" ]]; then
+      local annotation
+      annotation="$(value .intent.revisionAnnotation)"
+      if [[ -n "$annotation" && ! "$annotation" =~ ^[a-f0-9]{40}$ ]]; then
+        block InvalidGitOpsRevision 'A revisão GitOps deve ser um commit Git completo.'
+        return
+      fi
+      reference=${annotation:-HEAD}
     fi
-    reference=${reference:-HEAD}
   fi
   if [[ ! "$reference" =~ ^[a-zA-Z0-9][a-zA-Z0-9._/-]*$ ]] || ! git check-ref-format --allow-onelevel "$reference"; then
     block InvalidReference 'A referência Git tem formato inválido.'
@@ -68,8 +72,8 @@ resolve() {
   git -C /tmp/source fetch -q --depth=1 -- "$repository" "$reference"
   revision="$(git -C /tmp/source rev-parse 'FETCH_HEAD^{commit}')"
   [[ "$revision" =~ ^[a-f0-9]{40}$ ]]
-  if [[ -n "$(value '.pinnedReference // ""')" && "$revision" != "$(value .pinnedReference)" ]]; then
-    block ReferenceChanged 'O commit encontrado diverge da revisão fixada.'
+  if [[ "$reference" =~ ^[a-f0-9]{40}$ && "$revision" != "$reference" ]]; then
+    block ReferenceChanged 'O commit encontrado diverge da revisão solicitada.'
     return
   fi
   jq -c --arg revision "$revision" --arg binding "$binding" \
@@ -209,9 +213,11 @@ case "$1" in
     printf '%s\n' "$code" > /tmp/plan-exit
     ;;
   decision)
-    if ! jq -cer --arg doc "$DOCUMENT_HASH" --arg context "$CONTEXT_HASH" \
+    if ! jq -cers --arg doc "$DOCUMENT_HASH" --arg context "$CONTEXT_HASH" \
       --arg op "$operation" --arg profile "$(bound .policyProfile)" --argjson code "$PLAN_EXIT" '
+      select(length == 1) | .[0] |
       select(.documentHash == $doc and .contextHash == $context and
+             (.reason | type == "string" and length > 0) and
              .profile == $profile and (.modules | type == "array") and
              (.decision as $decision | ["AutoApply","RequireApproval","Deny","NoChanges"] | index($decision)) and
              (if $op == "destroy" then .decision == "RequireApproval" or .decision == "Deny" else true end) and

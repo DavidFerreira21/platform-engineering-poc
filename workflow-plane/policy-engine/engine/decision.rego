@@ -2,7 +2,7 @@ package terraformstack
 
 import rego.v1
 
-# O contexto é produzido pelo runner a partir da intenção do catálogo confiável.
+# O contexto é produzido pelo runner a partir do perfil de execução confiável.
 plan := json.unmarshal(input.document)
 context := json.unmarshal(input.context)
 profile := object.get(context, "policyProfile", "")

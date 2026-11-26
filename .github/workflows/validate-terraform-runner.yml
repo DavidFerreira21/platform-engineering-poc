@@ -33,7 +33,7 @@ jobs:
         run: docker build -t terraformstack-runner:local workflow-plane/terraform-executor
       - name: Verificar ferramentas
         run: |
-          docker run --rm terraformstack-runner:local -ec 'terraform version; git --version; jq --version; kubectl version --client; aws --version'
+          docker run --rm terraformstack-runner:local -ec 'terraform version; tofu version; git --version; jq --version; kubectl version --client; aws --version'
       - name: Testar regras do OPA
         run: |
           docker run --rm -v "$PWD/workflow-plane/policy-engine:/policy:ro" \
