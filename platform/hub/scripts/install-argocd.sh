@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-CONTEXT="kind-platform-management"
+CLUSTER="${HUB_KIND_NAME:-platform-management}"
+CONTEXT="kind-$CLUSTER"
 CONFIG="$ROOT/workflow-plane/argocd"
 CHART_VERSION="$(tr -d '[:space:]' < "$CONFIG/chart-version.txt")"
 
 for cmd in kind kubectl helm; do
   command -v "$cmd" >/dev/null 2>&1 || { echo "ERRO: '$cmd' não encontrado." >&2; exit 1; }
 done
-kind get clusters | grep -Fxq platform-management || { echo "ERRO: conclua a Etapa 01 primeiro." >&2; exit 1; }
+kind get clusters | grep -Fxq "$CLUSTER" || { echo "ERRO: conclua a Etapa 01 primeiro." >&2; exit 1; }
 kubectl --context "$CONTEXT" get namespace argocd >/dev/null
 kubectl --context "$CONTEXT" wait --for=condition=Established --timeout=60s \
   crd/ingressroutetcps.traefik.io || {
@@ -25,4 +26,4 @@ kubectl --context "$CONTEXT" wait --for=condition=Established --timeout=60s \
   crd/applications.argoproj.io crd/appprojects.argoproj.io crd/applicationsets.argoproj.io
 kubectl --context "$CONTEXT" -n argocd rollout status \
   deployment/argocd-applicationset-controller --timeout=120s
-echo "Argo CD pronto. Abra https://argocd.localhost:8443."
+echo "Argo CD pronto. Abra https://argocd.localhost:${HUB_HTTPS_PORT:-8443}."

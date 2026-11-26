@@ -1,0 +1,15 @@
+ec2:
+  enabled: false
+  replicas: 0
+  note: null
+  empty_list: []
+  network:
+    cidr_selection: [10.82.0.0/16]
+    cidrs:
+      - 10.82.0.0/16
+    endpoints:
+      private:
+        port: 9443
+    routes:
+      - destination: 10.82.0.0/16
+        enabled: false

@@ -5,5 +5,5 @@ output "values" {
 
 output "source_paths" {
   description = "Arquivos de configuração encontrados, na ordem de precedência."
-  value       = [for path in local.paths : path if fileexists(path)]
+  value       = local.source_paths
 }

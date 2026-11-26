@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: terraformstack-simulator
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: simulator-network
+  namespace: argo-workflows
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: simulator-dependent
+  namespace: argo-workflows
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: terraformstack-configmaps
+  namespace: terraformstack-simulator
+rules:
+  - apiGroups: [""]
+    resources: [configmaps]
+    resourceNames: [simulator-network, simulator-dependent]
+    verbs: [get, update, patch, delete]
+  - apiGroups: [""]
+    resources: [configmaps]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: terraformstack-configmaps
+  namespace: terraformstack-simulator
+subjects:
+  - {kind: ServiceAccount, name: terraformstack-executor, namespace: argo-workflows}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: terraformstack-configmaps}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: terraformstack-simulator-claim
+  namespace: platform-system
+rules:
+  - apiGroups: [platform.example.io]
+    resources: [terraformstacks]
+    resourceNames: [simulator-network, simulator-dependent]
+    verbs: [get]
+  - apiGroups: [platform.example.io]
+    resources: [terraformstacks/status]
+    resourceNames: [simulator-network, simulator-dependent]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: terraformstack-simulator-claim
+  namespace: platform-system
+subjects:
+  - {kind: ServiceAccount, name: terraformstack-executor, namespace: argo-workflows}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: terraformstack-simulator-claim}

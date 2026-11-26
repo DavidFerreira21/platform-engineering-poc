@@ -4,11 +4,13 @@
 
 A POC utiliza **um único repositório** para demonstrar responsabilidades que poderiam ser separadas por equipes/repositórios reais. [Diagrama visual da arquitetura e das três personas](arquitetura%20Plataform.png). A estrutura-alvo está detalhada na [arquitetura](architecture.md#5-organização-do-monorepo).
 
+O código é organizado pelo componente que a plataforma instala e mantém. A numeração dos guias indica a ordem de montagem. Overlays registram diferenças de destino e reutilizam os manifests base. Os blocos do Hub local serão reinstalados no EKS com a mesma estrutura.
+
 ## Divisão por ownership
 
 | Caminho-alvo | Camada e gestão |
 | :--- | :--- |
-| `config/` | YAMLs de valores por stack (`network.yaml`, `eks.yaml` etc.), organizados em global → Entity → Environment. O módulo compartilhado `configuration` resolve a herança a partir da Etapa 08 |
+| `config/` | YAMLs de valores por stack (`network.yaml`, `eks.yaml` etc.), organizados em global → Entity → Environment. O módulo compartilhado `configuration` resolve a herança usada pelo Simulator e pelas raízes AWS |
 | `foundation/modules/` + `foundation/config/<entity>/<env>/` | **Foundation** · implementações de stacks `network`/`eks`, módulos Terraform internos reutilizáveis e cadastro autorizado do Environment |
 | `data-plane/<entity>/core-infrastructure/<env>/` | **Entity Core** · compartilhado por ambiente, EKS por Terraform |
 | `data-plane/<entity>/domains/<domain>/domain.yaml` | **Domain** · registro lógico único, não CRD |
@@ -24,7 +26,7 @@ Os valores de cada **stack** seguem a ordem `config/<arquivo>.yaml`, `config/<en
 
 ### Atualizações de arquitetura-alvo (a implementar)
 
-- **TerraformStack (CRD + controller).** O contrato de infraestrutura desejada fica em `control-plane/` e é sincronizado via Argo CD central. Argo Workflows e Terraform Executor ficam em `workflow-plane/`. A Etapa 09 comprova o apply aprovado. As Etapas 24 e 25 acrescentam detecção de drift e reconciliação por políticas. `TerraformRun` é nome opcional de uma execução individual.
+- **TerraformStack (CRD + controller).** O contrato de infraestrutura desejada fica em `control-plane/` e é sincronizado via Argo CD central. Argo Workflows e Terraform Executor ficam em `workflow-plane/`. A Etapa 13 comprova o apply aprovado. A Etapa 06 valida políticas e drift no Simulator. As Etapas 28 e 29 validam esses mecanismos na AWS. `TerraformRun` é nome opcional de uma execução individual.
 - **GitHub Actions das aplicações:** será mantido **em repositório de aplicação de teste separado**, a integrar durante o lab correspondente. Este monorepo não incluirá código/CI da aplicação.
 - **Management EKS:** Argo CD local, Operators a escolher e OpenTelemetry Collector/gateway para observabilidade central (Grafana/Loki/Tempo).
 
@@ -37,7 +39,7 @@ Os valores de cada **stack** seguem a ordem `config/<arquivo>.yaml`, `config/<en
 - `platform/hub/kind-config.yaml` e `platform/hub/scripts/`: criação, inspeção e remoção **apenas do cluster local kind**.
 - `platform/hub/addons/` reúne o bootstrap dos AppProjects e do `ApplicationSet`, além de uma entrada por add-on do Hub. [Guia da Etapa 02](../labs/02-argocd-central.md)
 - [Guias das etapas](../labs/README.md) em `labs/`, começando pelo Hub local na Etapa 01.
-- `foundation/config/entity-a/{uat,prod}/environment.yaml` contém os registros de UAT e PROD com IDs distintos, região, baseline de rede e clusters EKS previstos. O roteiro usa UAT pela primeira vez na [Etapa 07](../labs/07-registro-ambientes-aws.md). PROD entra na Etapa 27 para validar isolamento.
+- `foundation/config/entity-a/{uat,prod}/environment.yaml` contém os registros de UAT e PROD com IDs distintos, região, baseline de rede e clusters EKS previstos. O roteiro usa UAT pela primeira vez na [Etapa 11](learning-roadmap.md#etapa-11--registro-de-uat). PROD entra na Etapa 31 para validar isolamento.
 
 ### Situação de migração
 

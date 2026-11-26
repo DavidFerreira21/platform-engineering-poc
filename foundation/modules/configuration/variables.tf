@@ -4,11 +4,11 @@ variable "config_root" {
 }
 
 variable "stack" {
-  description = "Nome da stack que seleciona o arquivo YAML, ex.: network ou eks."
+  description = "Nome base do arquivo YAML, com a mesma capitalização do arquivo."
   type        = string
 
   validation {
-    condition     = can(regex("^[a-z][a-z0-9_-]*$", var.stack))
+    condition     = can(regex("^[A-Za-z][A-Za-z0-9_-]*$", var.stack))
     error_message = "stack deve ser um nome simples, sem diretórios."
   }
 }

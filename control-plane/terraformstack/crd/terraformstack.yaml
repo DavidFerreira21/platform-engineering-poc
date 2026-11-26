@@ -24,7 +24,6 @@ spec:
               type: object
               description: Contrato declarativo de uma stack; os campos novos são API, não funções de execução já implementadas.
               required: [target, sourceRef]
-              additionalProperties: false
               properties:
                 sourceRef:
                   type: object
@@ -38,11 +37,12 @@ spec:
                     path:
                       type: string
                       minLength: 1
+                      maxLength: 512
                       pattern: '^[a-zA-Z0-9][a-zA-Z0-9_./-]*$'
                       description: Caminho da stack validado contra a raiz permitida da fonte, sem traversal.
                       x-kubernetes-validations:
-                        - rule: "self.split('/').all(p, p != '.' && p != '..' && p != '')"
-                          message: "sourceRef.path não permite segmentos vazios, . ou .." 
+                        - rule: "!self.matches('(^|/)[.]{1,2}(/|$)|//|/$')"
+                          message: "sourceRef.path não permite segmentos vazios, . ou .."
                     version:
                       type: string
                       minLength: 1
@@ -62,7 +62,6 @@ spec:
                       description: Identificador lógico do Environment na Entity.
                 configuration:
                   type: object
-                  additionalProperties: false
                   description: Versão selecionada dos YAMLs hierárquicos da stack (global → Entity → Environment).
                   properties:
                     version:
@@ -160,6 +159,21 @@ spec:
                   type: integer
                   format: int64
                   minimum: 0
+                execution:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                policy:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                deletionIntent:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                lastDriftTime:
+                  type: string
+                  format: date-time
+                lastCheckTime:
+                  type: string
+                  format: date-time
                 resolvedSource:
                   type: object
                   description: Versões efetivas e artefatos imutáveis usados na execução.

@@ -2,8 +2,8 @@
 
 [← Arquitetura](../architecture.md) · [GitOps Flow](gitops.md) · [TerraformStack Flow](terraformstack.md) · [Roadmap](../learning-roadmap.md)
 
-> **Estado:** arquitetura-alvo documentada; integração ainda não implementada.  
-> **Hoje:** o laboratório roda em `kind`; o `TerraformStack` da Etapa 05 possui contrato inicial, sem outputs AWS reais.  
+> **Estado:** arquitetura-alvo documentada; integração ainda não implementada.
+> **Hoje:** o laboratório roda em `kind`; o `TerraformStack` da Etapa 04 possui contrato inicial, sem outputs AWS reais.
 > **Futuro:** Terraform publica outputs selecionados em AWS Systems Manager Parameter Store na **conta do Environment**; consumidores Kubernetes autorizados os utilizam por meio do External Secrets Operator (ESO).
 >
 > **Imagem:** o arquivo `gitops-bridge-flow.png` será adicionado manualmente nesta pasta. O desenho é **lógico**, não representa uma conexão de rede ou IAM já provisionada.
@@ -176,7 +176,7 @@ Objetivo: demonstrar o conceito produtor → distribuição → consumidor, sem 
 
 ### Integração AWS — quando o roadmap chegar ao destino
 
-A evolução exige conta UAT autorizada, TerraformStack real, role de publicação, Parameter Store, Management EKS consumidor, ESO, RBAC e verificações. O [Roadmap V2](../learning-roadmap.md) prevê a integração AWS na **Etapa 13**, após o provisionamento e onboarding dos clusters das Etapas 10–12.
+A evolução exige conta UAT autorizada, TerraformStack real, role de publicação, Parameter Store, Management EKS consumidor, ESO, RBAC e verificações. O [Roadmap V2](../learning-roadmap.md) prevê a integração AWS na **Etapa 17**, após o provisionamento e onboarding dos clusters das Etapas 14–16.
 
 Não antecipar contas, clusters ou custos AWS apenas para validar o desenho.
 
@@ -211,4 +211,4 @@ O fluxo proposto adapta o padrão GitOps Bridge ao contexto de **contas AWS sepa
 - [ADR-0006 — TerraformStack, status, aprovação e drift](../adr/0006-terraformrun-and-application-ci.md)
 - [Roadmap](../learning-roadmap.md)
 
-**Sequência aprovada:** o [Roadmap V2](../learning-roadmap.md) coloca a publicação seletiva no SSM e o ESO do Management EKS na **Etapa 13**. A simulação local é opcional; a validação real exige identidade AWS e cluster autorizados. A documentação não provisiona infraestrutura.
+**Sequência aprovada:** o [Roadmap V2](../learning-roadmap.md) coloca a publicação seletiva no SSM e o ESO do Management EKS na **Etapa 17**. A simulação local é opcional; a validação real exige identidade AWS e cluster autorizados. A documentação não provisiona infraestrutura.

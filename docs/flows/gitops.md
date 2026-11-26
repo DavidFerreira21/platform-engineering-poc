@@ -81,7 +81,7 @@ As duas primeiras Capabilities do roadmap são **`ObjectStorage` (S3)** e **`Dat
 4. O **Argo Workflows** orquestra `plan`, política, aprovação humana quando exigida e `apply` pelo Terraform Executor.
 5. O Terraform provisiona a infraestrutura; o controller verifica a execução e atualiza `TerraformStack.status`.
 
-**Não há `terraform apply` em todo reconcile da API Kubernetes.** A Etapa 09 introduz a execução real com aprovação vinculada ao plano; a Etapa 24 introduz a detecção periódica de drift; e a Etapa 25 introduz políticas de remediação automática, aprovação obrigatória ou bloqueio.
+**Não há `terraform apply` em todo reconcile da API Kubernetes.** A Etapa 06 exercita Terraform, OPA, aprovação e drift no Simulator. A Etapa 13 leva o apply aprovado à Network UAT. As Etapas 28–29 validam drift e políticas na AWS.
 
 Remover o CR do Git **não autoriza destroy automático**. Os detalhes de concorrência, plano imutável, aprovação, estado e retry estão no [ADR-0006](../adr/0006-terraformrun-and-application-ci.md) e serão aprofundados em `docs/flows/terraformstack.md`.
 

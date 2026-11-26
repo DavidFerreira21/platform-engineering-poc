@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-CONTEXT="kind-platform-management"
-CLUSTER="platform-management"
+CLUSTER="${HUB_KIND_NAME:-platform-management}"
+CONTEXT="kind-$CLUSTER"
 CHART_VERSION="$(tr -d '[:space:]' < "$ROOT/platform/hub/traefik/chart-version.txt")"
 
 for cmd in kind kubectl helm; do
@@ -20,4 +20,4 @@ helm --kube-context "$CONTEXT" upgrade --install traefik traefik/traefik \
 kubectl --context "$CONTEXT" -n traefik rollout status deploy/traefik --timeout=180s
 kubectl --context "$CONTEXT" apply -f "$ROOT/platform/hub/traefik/demo.yaml"
 kubectl --context "$CONTEXT" -n platform-system rollout status deploy/echo --timeout=180s
-echo "Traefik instalado. Confira HTTP: curl -fsS --max-time 10 http://demo.localhost:8080/"
+echo "Traefik instalado. Confira HTTP: curl -fsS --max-time 10 http://demo.localhost:${HUB_HTTP_PORT:-8080}/"

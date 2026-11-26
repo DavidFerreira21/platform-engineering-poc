@@ -10,18 +10,12 @@ metadata:
   name: terraformstack-controller
   namespace: platform-system
 rules:
-  - apiGroups: [coordination.k8s.io]
-    resources: [leases]
-    resourceNames: [terraformstack-controller]
-    verbs: [get, update]
   - apiGroups: [platform.example.io]
     resources: [terraformstacks]
-    resourceNames: [lab06-network]
-    verbs: [get, list, watch]
+    verbs: [list, patch]
   - apiGroups: [platform.example.io]
     resources: [terraformstacks/status]
-    resourceNames: [lab06-network]
-    verbs: [patch]
+    verbs: [update]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -29,13 +23,8 @@ metadata:
   name: terraformstack-controller
   namespace: platform-system
 subjects:
-  - kind: ServiceAccount
-    name: terraformstack-controller
-    namespace: platform-system
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: terraformstack-controller
+  - {kind: ServiceAccount, name: terraformstack-controller, namespace: platform-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: terraformstack-controller}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -45,7 +34,7 @@ metadata:
 rules:
   - apiGroups: [argoproj.io]
     resources: [workflows]
-    verbs: [get, list, watch, create]
+    verbs: [create, get, patch]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -53,10 +42,5 @@ metadata:
   name: terraformstack-controller
   namespace: argo-workflows
 subjects:
-  - kind: ServiceAccount
-    name: terraformstack-controller
-    namespace: platform-system
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: terraformstack-controller
+  - {kind: ServiceAccount, name: terraformstack-controller, namespace: platform-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: terraformstack-controller}

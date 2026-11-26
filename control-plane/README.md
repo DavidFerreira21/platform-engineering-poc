@@ -15,10 +15,10 @@ Crossplane **não observa diretamente Git**. O **Argo CD central sincroniza CRs 
 
 ## TerraformStack
 
-O Control Plane publica o CRD **`TerraformStack`** para expressar a **infraestrutura desejada** de Foundation e Entity Core. A [Etapa 06](../labs/06-terraformstack-controller.md) exercita o controller com execução simulada. Na arquitetura-alvo, o Argo CD central sincroniza a solicitação, e o controller coordena os planos via Argo Workflows e Terraform Executor. Drift e reconciliação por políticas entram nas Etapas 18 e 19. `TerraformRun` é o nome opcional de uma execução isolada. [Guia da Etapa 05](../labs/05-terraformstack-crd.md)
+O Control Plane publica o CRD **`TerraformStack`** para expressar a **infraestrutura desejada** de Foundation e Entity Core. A [Etapa 05](../labs/05-terraformstack-runtime.md) exercita o controller com execução simulada. Na arquitetura-alvo, o Argo CD central sincroniza a solicitação, e o controller coordena os planos via Argo Workflows e Terraform Executor. Drift e reconciliação por políticas entram nas Etapas 22 e 23. `TerraformRun` é o nome opcional de uma execução isolada. [Guia da Etapa 04](../labs/04-terraformstack-crd.md)
 
-**Admission e políticas.** Kyverno e OPA são tecnologias a avaliar. O CRD entra na Etapa 05, o controller simulado na Etapa 06 e a reconciliação por políticas na Etapa 19. [ADR-0006](../docs/adr/0006-terraformrun-and-application-ci.md)
+**Admission e políticas.** O CRD entra na Etapa 04. O controller e a pipeline entram na Etapa 05. O Simulator valida OPA e a reconciliação na Etapa 06, antes da validação AWS nas Etapas 28–29. [ADR-0006](../docs/adr/0006-terraformrun-and-application-ci.md)
 
-A Etapa 04 instala o Crossplane Core no Hub via Argo CD e valida um XRD namespaced que compõe um ConfigMap local. As Capabilities AWS são exercitadas nas Etapas 14 e 15, após os clusters e a identidade do Provider AWS. [Guia da Etapa 04](../labs/04-crossplane-core.md)
+A Etapa 07 instala o Crossplane Core no Hub via Argo CD e valida um XRD namespaced que compõe um ConfigMap local. As Capabilities AWS são exercitadas nas Etapas 18 e 19, após os clusters e a identidade do Provider AWS. [Guia da Etapa 07](../labs/07-crossplane-core.md)
 
 [← Início](../README.md) · [Arquitetura](../docs/architecture.md)

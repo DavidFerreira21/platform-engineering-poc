@@ -1,0 +1,28 @@
+name: Validate Terraform runner and policy
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "workflow-plane/terraform-executor/**"
+      - "workflow-plane/argo-workflows/terraformstack/**"
+      - ".github/workflows/validate-terraform-runner.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  runner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir runner genérico
+        run: docker build -t terraformstack-runner:local workflow-plane/terraform-executor
+      - name: Verificar ferramentas
+        run: |
+          docker run --rm terraformstack-runner:local -ec 'terraform version; git --version; jq --version; kubectl version --client; aws --version'
+      - name: Testar regras do OPA
+        run: |
+          docker run --rm -v "$PWD/workflow-plane/argo-workflows/terraformstack:/policy:ro" \
+            openpolicyagent/opa:1.11.0-static test /policy/policy.rego /policy/policy_test.rego

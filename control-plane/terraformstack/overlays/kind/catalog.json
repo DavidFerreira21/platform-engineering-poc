@@ -1,0 +1,44 @@
+{
+  "sources": {
+    "foundation-stacks": {
+      "repository": "https://github.com/DavidFerreira21/platform-engineering-poc.git",
+      "paths": [
+        "foundation/stacks/simulator"
+      ]
+    }
+  },
+  "targets": {
+    "entity-a/simulator": {
+      "stacks": {
+        "simulator-network": {
+          "source": "foundation-stacks",
+          "path": "foundation/stacks/simulator",
+          "configurationPath": "foundation/config",
+          "volume": "simulator-network",
+          "backend": {
+            "path": "/state/terraform.tfstate"
+          },
+          "variables": {
+            "slot": "simulator-network",
+            "namespace": "terraformstack-simulator"
+          },
+          "serviceAccount": "terraformstack-executor"
+        },
+        "simulator-dependent": {
+          "source": "foundation-stacks",
+          "path": "foundation/stacks/simulator",
+          "configurationPath": "foundation/config",
+          "volume": "simulator-dependent",
+          "backend": {
+            "path": "/state/terraform.tfstate"
+          },
+          "variables": {
+            "slot": "simulator-dependent",
+            "namespace": "terraformstack-simulator"
+          },
+          "serviceAccount": "terraformstack-executor"
+        }
+      }
+    }
+  }
+}

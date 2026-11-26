@@ -82,54 +82,6 @@ spec:
       kind: "*"
 ---
 apiVersion: argoproj.io/v1alpha1
-kind: AppProject
-metadata:
-  name: platform-terraformstack-controller
-  namespace: argocd
-spec:
-  sourceRepos:
-    - https://github.com/DavidFerreira21/platform-engineering-poc.git
-  destinations:
-    - server: https://kubernetes.default.svc
-      namespace: platform-system
-    - server: https://kubernetes.default.svc
-      namespace: argo-workflows
-  clusterResourceWhitelist: []
-  namespaceResourceWhitelist:
-    - group: apps
-      kind: Deployment
-    - group: ""
-      kind: ServiceAccount
-    - group: rbac.authorization.k8s.io
-      kind: Role
-    - group: rbac.authorization.k8s.io
-      kind: RoleBinding
-    - group: argoproj.io
-      kind: WorkflowTemplate
----
-apiVersion: argoproj.io/v1alpha1
-kind: AppProject
-metadata:
-  name: platform-terraformstack-demo
-  namespace: argocd
-spec:
-  sourceRepos:
-    - https://github.com/DavidFerreira21/platform-engineering-poc.git
-  destinations:
-    - server: https://kubernetes.default.svc
-      namespace: platform-system
-  clusterResourceWhitelist: []
-  namespaceResourceWhitelist:
-    - group: platform.example.io
-      kind: TerraformStack
----
-apiVersion: coordination.k8s.io/v1
-kind: Lease
-metadata:
-  name: terraformstack-controller
-  namespace: platform-system
----
-apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
   name: hub-addons
@@ -156,3 +108,62 @@ spec:
   templatePatch: |
     spec:
       source: {{ .source | toJson }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform-terraformstack-controller
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://github.com/DavidFerreira21/platform-engineering-poc.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: platform-system
+    - server: https://kubernetes.default.svc
+      namespace: argo-workflows
+    - server: https://kubernetes.default.svc
+      namespace: terraformstack-simulator
+  clusterResourceWhitelist:
+    - {group: "", kind: Namespace}
+    - {group: admissionregistration.k8s.io, kind: ValidatingAdmissionPolicy}
+    - {group: admissionregistration.k8s.io, kind: ValidatingAdmissionPolicyBinding}
+  namespaceResourceWhitelist:
+    - {group: "", kind: PersistentVolumeClaim}
+    - {group: "", kind: ServiceAccount}
+    - {group: apps, kind: Deployment}
+    - {group: "", kind: ConfigMap}
+    - {group: rbac.authorization.k8s.io, kind: Role}
+    - {group: rbac.authorization.k8s.io, kind: RoleBinding}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform-terraformstack-workflows
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://github.com/DavidFerreira21/platform-engineering-poc.git
+  destinations:
+    - {server: "https://kubernetes.default.svc", namespace: argo-workflows}
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist:
+    - {group: "", kind: ConfigMap}
+    - {group: "", kind: ServiceAccount}
+    - {group: argoproj.io, kind: WorkflowTemplate}
+    - {group: rbac.authorization.k8s.io, kind: Role}
+    - {group: rbac.authorization.k8s.io, kind: RoleBinding}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform-terraformstack-simulator
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://github.com/DavidFerreira21/platform-engineering-poc.git
+  destinations:
+    - {server: "https://kubernetes.default.svc", namespace: platform-system}
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist:
+    - {group: platform.example.io, kind: TerraformStack}

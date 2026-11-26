@@ -10,10 +10,7 @@ from jsonschema import Draft7Validator, ValidationError
 
 ROOT = Path(__file__).resolve().parents[1]
 CRD = ROOT / "control-plane/terraformstack/crd/terraformstack.yaml"
-DEMOS = [
-    ROOT / "control-plane/terraformstack/demo/terraformstack.yaml",
-    ROOT / "control-plane/terraformstack/demo/lab06/terraformstack.yaml",
-]
+SIMULATOR = ROOT / "control-plane/terraformstack/examples/simulator/stacks.yaml"
 CONTROLLER = ROOT / "control-plane/terraformstack/controller/controller.py"
 WORKFLOW = ROOT / "workflow-plane/argo-workflows/terraformstack/workflowtemplate.yaml"
 
@@ -24,6 +21,10 @@ class TerraformStackContractTest(unittest.TestCase):
         crd = yaml.safe_load(CRD.read_text(encoding="utf-8"))
         cls.schema = crd["spec"]["versions"][0]["schema"]["openAPIV3Schema"]
         Draft7Validator.check_schema(cls.schema)
+        # Em fieldValidation=Strict, a API rejeita campos fora do schema estrutural.
+        spec = cls.schema["properties"]["spec"]
+        spec["additionalProperties"] = False
+        spec["properties"]["configuration"]["additionalProperties"] = False
         cls.validator = Draft7Validator(cls.schema)
 
     def example(self, **spec_changes):
@@ -34,10 +35,13 @@ class TerraformStackContractTest(unittest.TestCase):
         spec.update(spec_changes)
         return {"spec": spec}
 
-    def test_both_demo_manifests_validate(self):
-        for path in DEMOS:
-            with self.subTest(path=path):
-                self.validator.validate(yaml.safe_load(path.read_text(encoding="utf-8")))
+    def test_both_simulator_requests_validate(self):
+        manifests = list(yaml.safe_load_all(SIMULATOR.read_text(encoding="utf-8")))
+        self.assertEqual(len(manifests), 2)
+        for manifest in manifests:
+            with self.subTest(stack=manifest["metadata"]["name"]):
+                self.validator.validate(manifest)
+                self.assertEqual(manifest["spec"]["sourceRef"]["path"], "foundation/stacks/simulator")
 
     def test_latest_defaults_are_in_schema(self):
         properties = self.schema["properties"]["spec"]["properties"]
@@ -92,8 +96,14 @@ class TerraformStackContractTest(unittest.TestCase):
         ))
         template = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
         names = {p["name"] for p in template["spec"]["arguments"]["parameters"]}
-        self.assertEqual(names, {"source", "path", "version", "config-version",
-                                 "entity", "environment"})
+        self.assertEqual(names, {"intent", "volume"})
+        templates = {item["name"]: item for item in template["spec"]["templates"]}
+        steps = [item["name"] for group in templates["reconcile"]["steps"] for item in group]
+        self.assertEqual(steps, ["prepare", "init", "validate", "plan", "opa", "decision",
+                                 "approval", "authorize", "apply", "verify"])
+        self.assertEqual(templates["opa"]["container"]["command"], ["/opa"])
+        for name in ["prepare", "init", "validate", "plan", "apply", "verify"]:
+            self.assertEqual(templates[name]["container"]["image"], "terraformstack-runner:local")
 
     def test_controller_python_syntax(self):
         ast.parse(CONTROLLER.read_text(encoding="utf-8"))

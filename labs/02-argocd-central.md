@@ -67,7 +67,7 @@ hub -n argocd get application argo-workflows crossplane-core \
   -o 'custom-columns=APP:.metadata.name,OWNER:.metadata.ownerReferences[?(@.kind=="ApplicationSet")].name,SYNC:.status.sync.status'
 ```
 
-O `ApplicationSet` lê `platform/hub/addons/catalog/*.yaml` em `main` e gera uma `Application` por arquivo. O bootstrap também declara os AppProjects que limitam a origem, o destino e os tipos de recurso de cada add-on. A coluna `OWNER` deve mostrar `hub-addons` nas duas linhas. Em um Hub novo, cada add-on aguarda o sync manual indicado nas Etapas 03 e 04. [Bootstrap do Hub](../platform/hub/addons/bootstrap.yaml)
+O `ApplicationSet` lê `platform/hub/addons/catalog/*.yaml` em `main` e gera uma `Application` por arquivo. O bootstrap também declara os AppProjects que limitam a origem, o destino e os tipos de recurso de cada add-on. A coluna `OWNER` deve mostrar `hub-addons` nas duas linhas. Em um Hub novo, cada add-on aguarda o sync manual indicado nas Etapas 03 e 07. [Bootstrap do Hub](../platform/hub/addons/bootstrap.yaml)
 
 Se o Hub já tiver essas Applications, use os mesmos comandos. O `ApplicationSet` assume as Applications com os nomes existentes e mantém as versões dos charts, as configurações e os nomes dos releases. Confira a coluna `OWNER` antes de seguir.
 

@@ -1,0 +1,19 @@
+ec2:
+  instance_type: t3.micro
+  enabled: true
+  replicas: 2
+  note: global
+  empty_list: [global]
+  network:
+    ipv6: true
+    cidr_selection: 10.80.0.0/16
+    cidrs:
+      - 10.80.0.0/16
+      - 10.81.0.0/16
+    endpoints:
+      private:
+        dns: true
+        port: 443
+    routes:
+      - destination: 10.80.0.0/16
+        enabled: true
