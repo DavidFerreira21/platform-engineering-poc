@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - "workflow-plane/terraform-executor/**"
+      - "workflow-plane/policy-engine/**"
       - "workflow-plane/argo-workflows/terraformstack/**"
       - ".github/workflows/validate-terraform-runner.yml"
 
@@ -24,5 +25,18 @@ jobs:
           docker run --rm terraformstack-runner:local -ec 'terraform version; git --version; jq --version; kubectl version --client; aws --version'
       - name: Testar regras do OPA
         run: |
-          docker run --rm -v "$PWD/workflow-plane/argo-workflows/terraformstack:/policy:ro" \
-            openpolicyagent/opa:1.11.0-static test /policy/policy.rego /policy/policy_test.rego
+          docker run --rm -v "$PWD/workflow-plane/policy-engine:/policy:ro" \
+            openpolicyagent/opa:1.11.0-static test /policy/engine /policy/modules /policy/profiles -v
+      - name: Validar empacotamento Kustomize
+        run: |
+          python3 -m pip install PyYAML
+          kubectl kustomize workflow-plane/argo-workflows/terraformstack > /tmp/terraformstack.yaml
+          python3 - <<'PY'
+          import yaml
+          docs = list(yaml.safe_load_all(open("/tmp/terraformstack.yaml")))
+          cm = next(d for d in docs if d and d["kind"] == "ConfigMap" and d["metadata"]["name"].startswith("terraformstack-policy-"))
+          wf = next(d for d in docs if d and d["kind"] == "WorkflowTemplate")
+          assert set(cm["data"]) == {"decision.rego", "common.rego", "simulator.rego", "profiles.yaml"}
+          assert cm["immutable"] is True
+          assert next(v for v in wf["spec"]["volumes"] if v["name"] == "policy")["configMap"]["name"] == cm["metadata"]["name"]
+          PY

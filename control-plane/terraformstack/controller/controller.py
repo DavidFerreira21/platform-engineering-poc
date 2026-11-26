@@ -83,6 +83,11 @@ def intent(stack, catalog):
     if slot["path"] != source_ref["path"]:
         raise ValueError("Raiz Terraform não autorizada para esta stack.")
 
+    # A escolha do perfil pertence ao catálogo do Platform Team, não ao CR.
+    policy_profile = slot.get("policyProfile")
+    if not isinstance(policy_profile, str) or not re.fullmatch(r"[a-z][a-z0-9-]*", policy_profile):
+        raise ValueError("Policy Profile ausente ou inválido no catálogo.")
+
     pinned = metadata.get("annotations", {}).get(REVISION, "")
     revision = source_ref.get("version", "latest")
     configuration = spec.get("configuration", {}).get("version", "latest")
@@ -96,6 +101,7 @@ def intent(stack, catalog):
         "repository": source["repository"], "path": source_ref["path"],
         "configurationPath": slot.get("configurationPath"), "target": target_ref,
         "backend": slot["backend"], "volume": slot["volume"],
+        "policyProfile": policy_profile,
         "variables": slot["variables"], "serviceAccount": slot["serviceAccount"],
         "operation": "destroy" if deleting or lifecycle.get("destroy") else "apply",
     }

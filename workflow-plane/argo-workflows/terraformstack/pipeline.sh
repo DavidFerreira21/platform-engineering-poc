@@ -4,6 +4,8 @@ umask 077
 
 value() { jq -er "$1" <<<"$INTENT"; }
 digest() { sha256sum "$1" | cut -d ' ' -f 1; }
+# Hash determinístico do pacote montado (engine, módulos e perfis).
+policy_digest() { (cd /platform/policy && LC_ALL=C sha256sum *.rego *.yaml) | sha256sum | cut -d ' ' -f 1; }
 
 workspace="/state/$WORKFLOW"
 root="$workspace/source/$(value .path)"
@@ -93,7 +95,7 @@ case "$1" in
   plan)
     result="$(plan "$saved")"
     terraform -chdir="$root" show -json "$saved" > "$workspace/plan.json"
-    jq -c --argjson exitCode "$result" '{operation, target, variables, exitCode: $exitCode}' \
+    jq -c --argjson exitCode "$result" '{operation, target, variables, policyProfile, exitCode: $exitCode}' \
       <<< "$INTENT" > "$workspace/policy-context.json"
     jq -cn --rawfile document "$workspace/plan.json" --rawfile context "$workspace/policy-context.json" \
       '{document:$document, context:$context}' > "$workspace/policy-input.json"
@@ -104,9 +106,10 @@ case "$1" in
     ;;
   decision)
     if ! jq -ce --arg doc "$DOCUMENT_HASH" --arg context "$CONTEXT_HASH" \
-      --arg op "$operation" --argjson code "$PLAN_EXIT" '
+      --arg op "$operation" --arg profile "$(value .policyProfile)" --argjson code "$PLAN_EXIT" '
       select(.documentHash == $doc and .contextHash == $context and
              (.reason | type == "string" and length > 0) and
+             .profile == $profile and (.modules | type == "array") and
              (.decision as $decision | ["AutoApply","RequireApproval","Deny","NoChanges"] | index($decision)) and
              (if $op == "destroy" then .decision == "RequireApproval" or .decision == "Deny" else true end) and
              (if .decision == "NoChanges" then $code == 0 else true end))
@@ -114,7 +117,7 @@ case "$1" in
     ' <<< "$POLICY_RESULT" >/tmp/policy-result.json; then
       printf '%s\n' '{"decision":"Error","reason":"Decisão OPA inválida ou incompatível com o plano"}' >/tmp/policy-result.json
     fi
-    jq -c --arg hash "$PLAN_HASH" --arg policyDigest "$(digest /platform/policy/policy.rego)" \
+    jq -c --arg hash "$PLAN_HASH" --arg policyDigest "$(policy_digest)" \
       '. + {hash:$hash, policyDigest:$policyDigest}' /tmp/policy-result.json > /tmp/decision-record
     jq -r .decision /tmp/decision-record > /tmp/decision
     ;;
