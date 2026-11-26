@@ -8,38 +8,22 @@ import (
 
  apierrors "k8s.io/apimachinery/pkg/api/errors"
  "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
- "k8s.io/apimachinery/pkg/runtime/schema"
+ "github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/execution"
  ctrl "sigs.k8s.io/controller-runtime"
  "sigs.k8s.io/controller-runtime/pkg/client"
  "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var workflowGVK=schema.GroupVersionKind{Group:"argoproj.io",Version:"v1alpha1",Kind:"Workflow"}
 type Reconciler struct {
  client.Client
  Reader client.Reader // Leitura consistente antes de decisões de autorização.
  Catalog Catalog
- Integration WorkflowConfig
- StackNamespace, WorkflowNamespace string
+ Engine execution.Engine
+ StackNamespace string
  Now func()time.Time
 }
 func (r *Reconciler) clock()time.Time{if r.Now!=nil{return r.Now().UTC()};return time.Now().UTC()}
 func (r *Reconciler) stamp()string{return r.clock().Format(time.RFC3339)}
-func WorkflowObject()*unstructured.Unstructured{return workflowObject()}
-func workflowObject()*unstructured.Unstructured{o:=&unstructured.Unstructured{};o.SetGroupVersionKind(workflowGVK);return o}
-func (r *Reconciler) getWorkflow(ctx context.Context,name string)(*unstructured.Unstructured,error){
- if name==""{return nil,nil};w:=workflowObject();e:=r.Reader.Get(ctx,client.ObjectKey{Namespace:r.WorkflowNamespace,Name:name},w);if apierrors.IsNotFound(e){return nil,nil};return w,e
-}
-func (r *Reconciler) body(run M)*unstructured.Unstructured{
- d:=obj(run["intent"]);w:=workflowObject();w.SetName(str(run["workflow"]));w.SetNamespace(r.WorkflowNamespace);w.SetLabels(map[string]string{"platform.example.io/workflow":"terraformstack",uidLabel:str(d["uid"]),"platform.example.io/stack-name":str(d["stack"])})
- w.Object["spec"]=M{"serviceAccountName":d["serviceAccount"],"workflowTemplateRef":M{"name":r.Integration.TemplateRef.Name},"arguments":M{"parameters":[]any{M{"name":r.Integration.Parameters.Input.Intent,"value":canonical(d)},M{"name":r.Integration.Parameters.Input.Volume,"value":d["volume"]}}}};return w
-}
-func terminal(p string)bool{return p=="Succeeded"||p=="Failed"||p=="Error"}
-func (r *Reconciler) terminate(ctx context.Context,w *unstructured.Unstructured)error{
- if obj(w.Object["spec"])["shutdown"]=="Terminate"{return nil}
- old:=w.DeepCopy();obj(w.Object["spec"])["shutdown"]="Terminate";return r.Patch(ctx,w,client.MergeFromWithOptions(old,client.MergeFromWithOptimisticLock{}))
-}
-
 // O status inteiro é atualizado com resourceVersion. Isso impede sobrescrever
 // o claim feito pelo runner entre a leitura e a escrita.
 func (r *Reconciler) report(ctx context.Context,o *unstructured.Unstructured,kind,reason,message string,values M)error{
@@ -60,7 +44,7 @@ func again(e error)(ctrl.Result,error){return ctrl.Result{Requeue:true},e}
 func done(e error)(ctrl.Result,error){return ctrl.Result{},e}
 func (r *Reconciler) Reconcile(ctx context.Context,req ctrl.Request)(ctrl.Result,error){
  if req.Namespace!=r.StackNamespace{return done(nil)}
- if e:=r.Integration.Validate();e!=nil{return done(e)}
+ if e:=r.Engine.Validate();e!=nil{return done(e)}
  o:=stackObject();if e:=r.Reader.Get(ctx,req.NamespacedName,o);e!=nil{return done(client.IgnoreNotFound(e))}
  status:=obj(o.Object["status"]);run:=copyMap(obj(status["execution"]));deleting:=!o.GetDeletionTimestamp().IsZero()
  if deleting&&!slices.Contains(o.GetFinalizers(),finalizer){return done(nil)}
@@ -69,24 +53,24 @@ func (r *Reconciler) Reconcile(ctx context.Context,req ctrl.Request)(ctrl.Result
  if e==nil&&d["operation"]!="retain"&&s.Reconciliation.DriftCheckInterval!=""{interval,e=duration(s.Reconciliation.DriftCheckInterval)}
  if e==nil&&deleting&&status["deletionIntent"]!=nil&&!equal(status["deletionIntent"],d){e=fmt.Errorf("intenção de exclusão diverge do snapshot")}
  active:=len(run)>0&&str(run["finishedAt"])==""
- var w *unstructured.Unstructured
+ var w *execution.Run
  if active{
   // Uma execução conserva seu contrato. Não interpretar saídas antigas
   // usando nomes novos, nem criar uma execução paralela após um rollout.
-  if saved:=obj(run["integration"]);len(saved)>0&&!equal(saved,integrationSnapshot(r.Integration)){
+  if saved:=obj(run["integration"]);len(saved)>0&&!equal(saved,r.Engine.Snapshot()){
    return done(r.report(ctx,o,"ReconcileBlocked","IntegrationChanged","Contrato alterado durante execução; restaurar configuração anterior.",M{}))
   }
-  var err error;w,err=r.getWorkflow(ctx,str(run["workflow"]));if err!=nil{return done(err)}
-  if w!=nil&&(w.GetLabels()[uidLabel]!=string(o.GetUID())||str(obj(obj(w.Object["spec"])["workflowTemplateRef"])["name"])!=r.Integration.TemplateRef.Name){
+  var err error;w,err=r.Engine.Get(ctx,str(run["workflow"]),string(o.GetUID()));if err!=nil{return done(err)}
+  if w!=nil&&!w.Valid{
    return done(r.report(ctx,o,"ReconcileBlocked","InvalidWorkflow","Workflow não corresponde à identidade ou template autorizado.",M{}))
   }
  }
- phase:="";if w!=nil{phase=str(obj(w.Object["status"])["phase"])}
+ 
  if e!=nil{
-  if active&&w!=nil&&!terminal(phase)&&!yes(run["applying"]){
+  if active&&w!=nil&&!w.Terminal&&!yes(run["applying"]){
    // Persistir cancelamento antes de encerrar o Workflow: disputa CAS com claim.
    if !yes(run["cancelling"]){run["cancelling"]=true;return again(r.report(ctx,o,"ReconcileBlocked","InvalidIntent",e.Error(),M{"execution":run}))}
-   if err:=r.terminate(ctx,w);err!=nil{return done(err)}
+   if err:=r.Engine.Cancel(ctx,w.Name,string(o.GetUID()));err!=nil{return done(err)}
   }
   return done(r.report(ctx,o,"ReconcileBlocked","InvalidIntent",e.Error(),M{}))
  }
@@ -101,30 +85,30 @@ func (r *Reconciler) Reconcile(ctx context.Context,req ctrl.Request)(ctrl.Result
    if yes(run["created"])||yes(run["applying"]){return done(r.report(ctx,o,"Failed","WorkflowMissing","Execução removida; investigar Pods e state.",M{}))}
    if !changed&&!suspended&&eligible&&!yes(run["cancelling"]){
     // O nome determinístico impede duplicação mesmo após uma resposta perdida.
-    err:=r.Create(ctx,r.body(run));if apierrors.IsAlreadyExists(err){return again(nil)};return again(err)
+    err:=r.Engine.Create(ctx,run);if apierrors.IsAlreadyExists(err){return again(nil)};return again(err)
    }
-  }else if !terminal(phase){
+  }else if !w.Terminal{
    if (changed||suspended||!eligible||yes(run["cancelling"]))&&!yes(run["applying"]){
-    if !yes(run["cancelling"]){run["created"]=true;run["cancelling"]=true;return again(r.report(ctx,o,"ReconcilePending","Cancelling",w.GetName(),M{"execution":run}))}
-    return done(r.terminate(ctx,w))
+    if !yes(run["cancelling"]){run["created"]=true;run["cancelling"]=true;return again(r.report(ctx,o,"ReconcilePending","Cancelling",w.Name,M{"execution":run}))}
+    return done(r.Engine.Cancel(ctx,w.Name,string(o.GetUID())))
    }
-   result,err:=resultOf(w,r.Integration);if err!=nil{return done(err)}
+   result:=w.Result
    run["created"]=true
-   if yes(result["drift"])&&!yes(run["drift"]){run["drift"]=true;return again(r.report(ctx,o,"DriftDetected","ExternalChange",w.GetName(),M{"execution":run,"policy":result,"lastDriftTime":r.stamp()}))}
+   if yes(result["drift"])&&!yes(run["drift"]){run["drift"]=true;return again(r.report(ctx,o,"DriftDetected","ExternalChange",w.Name,M{"execution":run,"policy":result,"lastDriftTime":r.stamp()}))}
    request:=str(result["applyRequest"])
    if !changed&&!suspended&&eligible&&!yes(run["cancelling"])&&request!=""&&request==str(result["hash"])&&(result["decision"]=="AutoApply"||result["decision"]=="RequireApproval"){run["authorization"]=request}
    kind,reason:="Reconciling","Planning";if result["approval"]=="Running"{kind,reason="ApprovalRequired","AwaitingApproval"}else if yes(run["applying"]){reason="Applying"}
-   return done(r.report(ctx,o,kind,reason,w.GetName(),M{"execution":run,"policy":result}))
+   return done(r.report(ctx,o,kind,reason,w.Name,M{"execution":run,"policy":result}))
   }
-  result,err:=resultOf(w,r.Integration);if err!=nil{return done(err)}
+  result:=M{};if w!=nil{result=w.Result}
   kind,reason:="Failed","WorkflowFailed"
   switch{
   case yes(run["cancelling"])||w==nil||result["outcome"]=="Cancelled":kind,reason="ReconcileBlocked","Cancelled"
   case result["outcome"]=="Rejected":kind,reason="ReconcileBlocked","ApprovalRejected"
   case result["decision"]=="Deny":kind,reason="ReconcileBlocked","PolicyDenied"
   case result["decision"]=="Error":kind,reason="ReconcileBlocked","PolicyError"
-  case phase=="Succeeded"&&result["decision"]=="NoChanges"&&obj(run["intent"])["operation"]=="apply":kind,reason="Ready","NoChanges"
-  case phase=="Succeeded"&&result["outcome"]=="Verified":kind,reason="Ready","Verified";if obj(run["intent"])["operation"]=="destroy"{kind="Destroyed"}
+  case w!=nil&&w.Succeeded&&result["decision"]=="NoChanges"&&obj(run["intent"])["operation"]=="apply":kind,reason="Ready","NoChanges"
+  case w!=nil&&w.Succeeded&&result["outcome"]=="Verified":kind,reason="Ready","Verified";if obj(run["intent"])["operation"]=="destroy"{kind="Destroyed"}
   }
   values:=M{"policy":result,"lastCheckTime":r.stamp()}
   if yes(result["drift"])&&!yes(run["drift"]){values["lastDriftTime"]=r.stamp()}
@@ -145,6 +129,6 @@ func (r *Reconciler) Reconcile(ctx context.Context,req ctrl.Request)(ctrl.Result
   if remaining:=finished.Add(delay).Sub(r.clock());remaining>0{return ctrl.Result{RequeueAfter:remaining},nil}
  }
  next:=execution(d,run,trigger,attempt)
- next["integration"]=integrationSnapshot(r.Integration)
+ next["integration"]=r.Engine.Snapshot()
  return again(r.report(ctx,o,"Reconciling","Scheduling",str(next["workflow"]),M{"execution":next,"resolvedSource":M{"name":d["source"],"version":d["revision"],"configurationVersion":d["configuration"],"digest":d["revision"]},"policy":M{}}))
 }

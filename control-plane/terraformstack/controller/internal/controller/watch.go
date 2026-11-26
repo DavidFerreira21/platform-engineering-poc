@@ -18,7 +18,7 @@ import (
 )
 func LoadCatalog(path string)(Catalog,error){b,e:=os.ReadFile(path);if e!=nil{return Catalog{},e};return readCatalog(b)}
 const dependencyIndex="terraformstack.dependsOn"
-func (r *Reconciler) SetupWithManager(m ctrl.Manager,workers int)error{
+func (r *Reconciler) SetupWithManager(m ctrl.Manager,workers int, executionObject client.Object, executionHandler handler.EventHandler)error{
  ctx:=context.Background()
  if e:=m.GetFieldIndexer().IndexField(ctx,stackObject(),dependencyIndex,func(o client.Object)[]string{s,e:=specOf(o.(*unstructured.Unstructured));if e!=nil{return nil};names:=[]string{};for _,d:=range s.DependsOn{names=append(names,d.Name)};return names});e!=nil{return e}
  // Eventos de dependências acionam também os pais (teardown reverso).
@@ -29,17 +29,12 @@ func (r *Reconciler) SetupWithManager(m ctrl.Manager,workers int)error{
  s,e:=specOf(o.(*unstructured.Unstructured));if e==nil{for _,d:=range s.DependsOn{if !slices.Contains(names,d.Name){names=append(names,d.Name)}}}
  reqs:=[]reconcile.Request{};for _,name:=range names{reqs=append(reqs,reconcile.Request{NamespacedName:client.ObjectKey{Namespace:r.StackNamespace,Name:name}})};return reqs
  })
- wfMap:=handler.EnqueueRequestsFromMapFunc(func(ctx context.Context,o client.Object)[]reconcile.Request{
- if o.GetNamespace()!=r.WorkflowNamespace||o.GetLabels()["platform.example.io/workflow"]!="terraformstack"{return nil}
- name:=o.GetLabels()["platform.example.io/stack-name"];if name==""{return nil}
- return []reconcile.Request{{NamespacedName:client.ObjectKey{Namespace:r.StackNamespace,Name:name}}}
- })
  // Status do runner, geração, anotação Git e exclusão precisam gerar eventos.
  // Atualizações sem alteração efetiva de conteúdo não disparam a fila.
  changed:=predicate.Funcs{UpdateFunc:func(e event.UpdateEvent)bool{return e.ObjectOld.GetResourceVersion()!=e.ObjectNew.GetResourceVersion()}}
  return ctrl.NewControllerManagedBy(m).Named("terraformstack").
  For(stackObject(),builder.WithPredicates(changed)).
  Watches(stackObject(),neighbors,builder.WithPredicates(changed)).
- Watches(workflowObject(),wfMap,builder.WithPredicates(changed)).
+ Watches(executionObject,executionHandler,builder.WithPredicates(changed)).
  WithOptions(crcontroller.Options{MaxConcurrentReconciles:workers}).Complete(r)
 }

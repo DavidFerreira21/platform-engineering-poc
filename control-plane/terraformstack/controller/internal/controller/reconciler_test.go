@@ -2,6 +2,7 @@ package controller
 
 import (
  "context"
+ "github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/execution/argo"
  "encoding/json"
  "os"
  "path/filepath"
@@ -26,19 +27,19 @@ func fixture(t *testing.T)(*Reconciler,*unstructured.Unstructured){
  c,e:=LoadCatalog("../../../overlays/kind/catalog.json");if e!=nil{t.Fatal(e)}
  o:=stackObject();o.SetName(name);o.SetNamespace("platform-system");o.SetUID(types.UID("test-uid"));o.SetGeneration(1);o.SetAnnotations(map[string]string{revision:strings.Repeat("a",40)})
  o.Object["spec"]=M{"sourceRef":M{"name":"foundation-stacks","path":"foundation/stacks/simulator"},"target":M{"entity":"entity-a","environment":"simulator"}}
- cl:=fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithStatusSubresource(stackObject(),workflowObject()).WithObjects(o).Build()
+ cl:=fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithStatusSubresource(stackObject(),argo.WorkflowObject()).WithObjects(o).Build()
  config,e:=LoadConfig("../../controller-config.yaml");if e!=nil{t.Fatal(e)}
- r:=&Reconciler{Integration:config.Workflow,Client:cl,Reader:cl,Catalog:c,StackNamespace:"platform-system",WorkflowNamespace:"argo-workflows",Now:func()time.Time{return fixed}}
+ r:=&Reconciler{Engine:&argo.Adapter{Client:cl,Reader:cl,Config:config.Workflow},Client:cl,Reader:cl,Catalog:c,StackNamespace:"platform-system",Now:func()time.Time{return fixed}}
  return r,o
 }
 func getStack(t *testing.T,r *Reconciler)*unstructured.Unstructured{t.Helper();o:=stackObject();if e:=r.Get(context.Background(),client.ObjectKey{Namespace:r.StackNamespace,Name:name},o);e!=nil{t.Fatal(e)};return o}
 func getRun(t *testing.T,r *Reconciler)M{return obj(obj(getStack(t,r).Object["status"])["execution"])}
 func tick(t *testing.T,r *Reconciler,n int)ctrl.Result{t.Helper();var result ctrl.Result;for i:=0;i<n;i++{var e error;result,e=r.Reconcile(context.Background(),ctrl.Request{NamespacedName:client.ObjectKey{Namespace:r.StackNamespace,Name:name}});if e!=nil{t.Fatal(e)}};return result}
-func current(t *testing.T,r *Reconciler)*unstructured.Unstructured{t.Helper();w,e:=r.getWorkflow(context.Background(),str(getRun(t,r)["workflow"]));if e!=nil||w==nil{t.Fatalf("workflow: %v",e)};return w}
+func current(t *testing.T,r *Reconciler)*unstructured.Unstructured{t.Helper();w,e:=r.Engine.(*argo.Adapter).Raw(context.Background(),str(getRun(t,r)["workflow"]));if e!=nil||w==nil{t.Fatalf("workflow: %v",e)};return w}
 func workflowStatus(t *testing.T,r *Reconciler,phase,decision,outcome,request string){
  t.Helper();w:=current(t,r);record,_:=json.Marshal(M{"decision":decision,"hash":"hash"})
- p:=[]any{M{"name":r.Integration.Parameters.Output.Decision,"value":string(record)}}
- if outcome!=""{p=append(p,M{"name":r.Integration.Parameters.Output.Result,"value":outcome})};if request!=""{p=append(p,M{"name":r.Integration.Parameters.Output.Authorization,"value":request})}
+ p:=[]any{M{"name":r.Engine.(*argo.Adapter).Config.Parameters.Output.Decision,"value":string(record)}}
+ if outcome!=""{p=append(p,M{"name":r.Engine.(*argo.Adapter).Config.Parameters.Output.Result,"value":outcome})};if request!=""{p=append(p,M{"name":r.Engine.(*argo.Adapter).Config.Parameters.Output.Authorization,"value":request})}
  w.Object["status"]=M{"phase":phase,"outputs":M{"parameters":p}}
  if e:=r.Status().Update(context.Background(),w);e!=nil{t.Fatal(e)}
 }
@@ -49,7 +50,7 @@ func TestIntent(t *testing.T){
  obj(obj(o.Object["spec"])["sourceRef"])["path"]="../x";if _,e=Intent(o,r.Catalog);e==nil{t.Fatal("fonte não autorizada")}
 }
 func TestCatalogProfile(t *testing.T){for _,p:=range []any{nil,"","../network"}{r,o:=fixture(t);r.Catalog.Targets["entity-a/simulator"].Stacks[name]["policyProfile"]=p;if _,e:=Intent(o,r.Catalog);e==nil{t.Fatal("perfil inválido aceito")}}}
-func TestIdempotency(t *testing.T){r,_:=fixture(t);tick(t,r,2);run:=getRun(t,r);if num(run["sequence"])!=1{t.Fatal(run)};w,e:=r.getWorkflow(context.Background(),str(run["workflow"]));if e!=nil||w!=nil{t.Fatal("workflow antes de persistir intenção")};tick(t,r,5);if getRun(t,r)["workflow"]!=run["workflow"]||!yes(getRun(t,r)["created"]){t.Fatal("duplicação")}}
+func TestIdempotency(t *testing.T){r,_:=fixture(t);tick(t,r,2);run:=getRun(t,r);if num(run["sequence"])!=1{t.Fatal(run)};w,e:=r.Engine.(*argo.Adapter).Raw(context.Background(),str(run["workflow"]));if e!=nil||w!=nil{t.Fatal("workflow antes de persistir intenção")};tick(t,r,5);if getRun(t,r)["workflow"]!=run["workflow"]||!yes(getRun(t,r)["created"]){t.Fatal("duplicação")}}
 func TestAuthorization(t *testing.T){for _,s:=range []struct{d,q string;allow bool}{{"AutoApply","hash",true},{"RequireApproval","hash",true},{"RequireApproval","bad",false},{"Deny","hash",false},{"Error","hash",false}}{t.Run(s.d+s.q,func(t *testing.T){r,_:=fixture(t);tick(t,r,4);workflowStatus(t,r,"Running",s.d,"",s.q);tick(t,r,1);if (getRun(t,r)["authorization"]=="hash")!=s.allow{t.Fatal(getRun(t,r))}})}}
 func TestCancelBeforeApply(t *testing.T){r,_:=fixture(t);tick(t,r,4);change(t,r,"configuration",M{"version":strings.Repeat("b",40)});tick(t,r,2);if obj(current(t,r).Object["spec"])["shutdown"]!="Terminate"{t.Fatal("não cancelou")};workflowStatus(t,r,"Failed","","","");tick(t,r,3);if num(getRun(t,r)["sequence"])!=2{t.Fatal(getRun(t,r))}}
 func TestActiveApplyPreserved(t *testing.T){r,_:=fixture(t);tick(t,r,4);o:=getStack(t,r);obj(obj(o.Object["status"])["execution"])["applying"]=true;if e:=r.Status().Update(context.Background(),o);e!=nil{t.Fatal(e)};change(t,r,"configuration",M{"version":strings.Repeat("b",40)});tick(t,r,1);if obj(current(t,r).Object["spec"])["shutdown"]!=nil{t.Fatal("apply interrompido")};workflowStatus(t,r,"Succeeded","AutoApply","Verified","");tick(t,r,2);if num(getRun(t,r)["sequence"])!=2{t.Fatal(getRun(t,r))}}
@@ -75,12 +76,12 @@ func TestEnvtestStatusCAS(t *testing.T){
 
 func TestRenamedIntegration(t *testing.T){
  r,_:=fixture(t)
- r.Integration.TemplateRef.Name="custom-workflow"
- r.Integration.Parameters.Input.Intent="request-json"
- r.Integration.Parameters.Input.Volume="workspace"
- r.Integration.Parameters.Output.Decision="policy-output"
- r.Integration.Parameters.Output.Authorization="authorized-hash"
- r.Integration.Parameters.Output.Result="verification"
+ r.Engine.(*argo.Adapter).Config.TemplateRef.Name="custom-workflow"
+ r.Engine.(*argo.Adapter).Config.Parameters.Input.Intent="request-json"
+ r.Engine.(*argo.Adapter).Config.Parameters.Input.Volume="workspace"
+ r.Engine.(*argo.Adapter).Config.Parameters.Output.Decision="policy-output"
+ r.Engine.(*argo.Adapter).Config.Parameters.Output.Authorization="authorized-hash"
+ r.Engine.(*argo.Adapter).Config.Parameters.Output.Result="verification"
  tick(t,r,4)
  w:=current(t,r);spec:=obj(w.Object["spec"])
  if obj(spec["workflowTemplateRef"])["name"]!="custom-workflow"{t.Fatal(spec)}
@@ -92,12 +93,12 @@ func TestRenamedIntegration(t *testing.T){
 func TestIntegrationChangeBlocksActiveRun(t *testing.T){
  r,_:=fixture(t);tick(t,r,4)
  old:=getRun(t,r)["workflow"]
- r.Integration.Parameters.Output.Decision="different-decision"
+ r.Engine.(*argo.Adapter).Config.Parameters.Output.Decision="different-decision"
  tick(t,r,1)
  if reason(t,r)!="IntegrationChanged"||getRun(t,r)["workflow"]!=old{t.Fatal("execução não preservada")}
 }
 func TestRenamedPolicyFailure(t *testing.T){
- r,_:=fixture(t);r.Integration.Templates.Policy="policy-check";tick(t,r,4)
+ r,_:=fixture(t);r.Engine.(*argo.Adapter).Config.Templates.Policy="policy-check";tick(t,r,4)
  w:=current(t,r);w.Object["status"]=M{"phase":"Failed","nodes":M{"policy":M{"templateName":"policy-check","phase":"Error"}}}
  if e:=r.Status().Update(context.Background(),w);e!=nil{t.Fatal(e)};tick(t,r,1)
  if reason(t,r)!="PolicyError"{t.Fatal(reason(t,r))}

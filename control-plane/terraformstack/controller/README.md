@@ -45,3 +45,7 @@ e verificação. O runner precisa respeitar o claim com resourceVersion. Não h�
 plugins ou escolha de template pelo CR. Ao mudar namespaces ou template,
 ajuste também RBAC, admissão, destino GitOps e WorkflowTemplate; a configuração
 não concede permissões nem renomeia automaticamente objetos externos.
+
+## Fronteira de execução
+
+O package `internal/controller` mantém reconciliação, lifecycle, dependências e autorização. `internal/execution` define uma interface interna mínima de criação, leitura normalizada, cancelamento e snapshot. `internal/execution/argo` concentra objetos Workflow, parâmetros, resultados e mapeamento de eventos. O manager conecta o watch do adapter ao controller. Argo Workflows continua sendo a única integração suportada; não há plugins nem seleção de engine pelo usuário. O runner, OPA e WorkflowTemplate são uma implementação de referência da POC, não dependências compiladas do controller. Uma futura integração Tekton exigirá implementação e testes próprios.

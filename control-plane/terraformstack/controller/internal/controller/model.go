@@ -17,7 +17,6 @@ import (
 
 const revision = "platform.example.io/revision"
 const finalizer = "platform.example.io/terraformstack-cleanup"
-const uidLabel = "platform.example.io/stack-uid"
 type M = map[string]any
 type Catalog struct {
  Sources map[string]struct {
@@ -93,20 +92,6 @@ func DependenciesReady(all []unstructured.Unstructured,o *unstructured.Unstructu
  }
  if d["operation"]=="destroy"{for i:=range all{other:=&all[i];os,e:=specOf(other);if e!=nil||os.Target!=s.Target{continue};for _,dep:=range os.DependsOn{if dep.Name==o.GetName()&&!conditionTrue(other,"Destroyed"){return false}}}}
  return true
-}
-func resultOf(w *unstructured.Unstructured,integration WorkflowConfig)(M,error){
- p:=integration.Parameters.Output
- result:=M{};if w==nil{return result,nil}
- status:=obj(w.Object["status"]);outputs:=M{}
- for _,p:=range arr(obj(status["outputs"])["parameters"]){m:=obj(p);outputs[str(m["name"])]=m["value"]}
- if raw:=str(outputs[p.Decision]);raw!=""{if e:=json.Unmarshal([]byte(raw),&result);e!=nil||result==nil{return M{"decision":"Error","reason":"Resultado OPA inválido"},nil}}
- for _,v:=range obj(status["nodes"]){n:=obj(v);if n["templateName"]==integration.Templates.Policy&&(n["phase"]=="Failed"||n["phase"]=="Error"){result["decision"]="Error";result["reason"]="OPA falhou ao avaliar o plano"}
- if n["type"]=="Suspend"&&n["templateName"]==integration.Templates.Approval{result["approval"]=n["phase"];if a:=w.GetLabels()["workflows.argoproj.io/actor"];a!=""{result["approvalActor"]=a};if m:=str(n["message"]);m!=""{r:=[]rune(m);if len(r)>512{r=r[:512]};result["approvalMessage"]=string(r)}}}
- if r:=str(outputs[p.Authorization]);r!=""&&r!="none"{result["applyRequest"]=r}
- if outputs[p.Approval]=="Rejected"{result["outcome"]="Rejected"}
- if r:=str(outputs[p.Result]);r!=""{result["outcome"]=r}
- // JSON numbers from external output must use Kubernetes-compatible types.
- return normalize(result),nil
 }
 func normalize(m M)M{for k,v:=range m{m[k]=normalizeValue(v)};return m}
 func normalizeValue(v any)any{switch x:=v.(type){case M:return normalize(x);case []any:for i:=range x{x[i]=normalizeValue(x[i])};case json.Number:if n,e:=strconv.ParseInt(string(x),10,64);e==nil{return n};n,_:=strconv.ParseFloat(string(x),64);return n};return v}
