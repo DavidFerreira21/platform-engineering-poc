@@ -12,10 +12,16 @@ metadata:
 rules:
   - apiGroups: [platform.example.io]
     resources: [terraformstacks]
-    verbs: [list, patch]
+    verbs: [get, list, watch, update, patch]
   - apiGroups: [platform.example.io]
     resources: [terraformstacks/status]
     verbs: [update]
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    verbs: [get, list, watch, create, update, patch]
+  - apiGroups: [""]
+    resources: [events]
+    verbs: [create, patch]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -34,7 +40,7 @@ metadata:
 rules:
   - apiGroups: [argoproj.io]
     resources: [workflows]
-    verbs: [create, get, patch]
+    verbs: [create, get, list, watch, patch]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -44,3 +50,5 @@ metadata:
 subjects:
   - {kind: ServiceAccount, name: terraformstack-controller, namespace: platform-system}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: terraformstack-controller}
+
+# Cache de workflows é restrito ao namespace de execução via configuração.

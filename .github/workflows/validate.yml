@@ -20,10 +20,23 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check PyYAML jsonschema
           python3 -m unittest discover -s tests -p 'test_terraformstack_contract.py'
-      - name: Testar comportamento do TerraformStack Controller
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache: false
+      - name: Testar TerraformStack Controller
+        working-directory: control-plane/terraformstack/controller
         run: |
-          python3 -m pip install --disable-pip-version-check pytest==8.3.5 -r control-plane/terraformstack/controller/requirements.txt
-          python3 -m pytest -q tests/controller
+          go mod tidy
+          go test -race ./...
+          go vet ./...
+          go build -o /tmp/terraformstack-controller ./cmd
+      - name: Testar controller com API Kubernetes (envtest)
+        working-directory: control-plane/terraformstack/controller
+        run: |
+          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.21
+          export KUBEBUILDER_ASSETS="$($(go env GOPATH)/bin/setup-envtest use 1.33.x -p path)"
+          go test -race -count=1 ./internal/controller -run TestEnvtest
       - name: Validar utilitários de identidade e state
         run: |
           python3 -m py_compile \

@@ -8,14 +8,15 @@ Os testes cobrirão contratos Kubernetes, validação de schemas, controllers, w
 
 ## Regressão do TerraformStack Controller
 
-A suíte em `tests/controller/` executa o reconciliador Python real contra uma API Kubernetes simulada com cópias dos objetos, conflitos de resourceVersion e relógio determinístico. Não usa credenciais, cluster, Terraform ou AWS.
+A suíte Go em `control-plane/terraformstack/controller/internal/controller` usa cliente fake e relógio determinístico; o envtest usa API Kubernetes e etcd reais. Não acessa AWS.
 
 ```bash
-python3 -m pip install pytest==8.3.5 -r control-plane/terraformstack/controller/requirements.txt
-python3 -m pytest -q tests/controller
+cd control-plane/terraformstack/controller
+go mod tidy
+go test -race ./...
 ```
 
-Cobre resolução da intenção, catálogo, idempotência, retomada, concorrência de status, aprovação, cancelamento, apply ativo, dependências, drift, retry e finalizers. O CI executa a suíte em cada PR. Os testes não substituem o Simulator do Lab 06: a atomicidade do claim do runner, a persistência real da API e a execução OPA/Terraform precisam de validação de integração.
+O CI executa os testes unitários e o envtest em cada PR. Os testes não substituem o Simulator do Lab 06: a atomicidade do claim do runner, a persistência real da API e a execução OPA/Terraform precisam de validação de integração.
 
 ---
 
