@@ -32,7 +32,7 @@ kind load docker-image --name "$cluster" terraformstack-controller:local terrafo
 hub apply -f platform/hub/addons/bootstrap.yaml
 ```
 
-Se o diff da Application do controller mostrar o catálogo sem hash de conteúdo, confira o build do overlay com `kubectl kustomize control-plane/terraformstack/overlays/kind`. Se houver erro de imagem, compare o nome e a tag da revisão sincronizada com as imagens carregadas no nó.
+Se o diff da Application do controller mostrar o catálogo sem hash de conteúdo, confira o build do overlay com `kubectl kustomize control-plane/terraformstack/overlays/kind`. Em `ImagePullBackOff` para uma imagem com tag `:local`, repita o build da revisão sincronizada e o `kind load` no cluster alvo. A imagem precisa estar no nó do kind. O controller Go usa `/manager` como entrypoint. Confira com `docker image inspect --format '{{json .Config.Entrypoint}}' terraformstack-controller:local` para identificar uma imagem antiga com a mesma tag.
 
 ## 2. Sincronizar os componentes
 
