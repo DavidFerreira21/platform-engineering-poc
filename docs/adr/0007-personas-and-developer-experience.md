@@ -98,18 +98,18 @@ A **stack escolhida** é **Python + FastAPI** para API/backend HTTP, **Jinja2 + 
 
 **Entregas em momentos diferentes do roadmap:**
 
-1. **Etapa 14 — smoke test técnico:** sincronizar e testar um workload HTTP temporário no EKS Non-PCI após o Argo CD local existir, sem exigir aplicação de negócio ou CI completa.
-2. **Etapas 18–21 — primeira aplicação e CI/CD:** construir a interface/API, conectar Aurora e S3, publicar imagem no ECR e efetuar deploy pelo Argo CD local. A etapa entrega **software funcional e sua esteira**, não Developer Experience final.
-3. **Etapas 28–29 — Experience Layer:** estruturar contratos, ownership, permissões e Starter Kit consumível por Git/CLI; Backstage não é obrigatório.
-4. **Etapas 30–31 — Golden Path:** DevOps Federado solicita Capabilities do Domain, e a squad reutiliza a aplicação e pipeline existentes para demonstrar o percurso completo. Não criar um segundo app nem uma segunda esteira.
+1. **Etapa 18 — smoke test técnico:** sincronizar e testar um workload HTTP temporário no EKS Non-PCI após o Argo CD local existir, sem exigir aplicação de negócio ou CI completa.
+2. **Etapas 22–25 — primeira aplicação e CI/CD:** construir a interface/API, conectar Aurora e S3, publicar imagem no ECR e efetuar deploy pelo Argo CD local. A etapa entrega **software funcional e sua esteira**, não Developer Experience final.
+3. **Etapas 32–33 — Experience Layer:** estruturar contratos, ownership, permissões e Starter Kit consumível por Git/CLI; Backstage não é obrigatório.
+4. **Etapas 34–35 — Golden Path:** DevOps Federado solicita Capabilities do Domain, e a squad reutiliza a aplicação e pipeline existentes para demonstrar o percurso completo. Não criar um segundo app nem uma segunda esteira.
 
 Não é objetivo implementar arquitetura de software complexa, frontend sofisticado, vários serviços, catálogo multilíngue nem uma plataforma proprietária de builds. A aplicação e a sua esteira existem para validar **contratos, integração e entrega de ponta a ponta**.
 
 ## Consequências e decisões pendentes para as etapas
 
 - **Modelo de permissões:** CODEOWNERS/path rules nos exemplos; RBAC/admission/AppProjects/IAM efetivos para impedir mudanças fora do ownership.
-- **Integração CI → GitOps:** na Etapa 21, implementar atualização versionada de digest por PR; na Etapa 31, demonstrar o fluxo como jornada da squad. Promoção real para PROD requer destino autorizado.
-- **Golden Paths:** validar na **Etapa 31, após a Experience Layer na Etapa 29**, reutilizando a aplicação e a CI/CD das Etapas 18–21. Backstage segue opcional; **não exigir um gerador completo**.
+- **Integração CI → GitOps:** na Etapa 25, implementar atualização versionada de digest por PR; na Etapa 35, demonstrar o fluxo como jornada da squad. Promoção real para PROD requer destino autorizado.
+- **Golden Paths:** validar na **Etapa 35, após a Experience Layer na Etapa 33**, reutilizando a aplicação e a CI/CD das Etapas 22–25. Backstage segue opcional; **não exigir um gerador completo**.
 - **Produto e métricas DX:** demonstrar o fluxo da plataforma e a redução da carga cognitiva com a aplicação mínima; métricas de geração de novos serviços são opcionais.
 - **Status:** estes contratos e exemplos descrevem o desenho pretendido, não repositório da aplicação já fornecido ou componentes AWS/EKS implantados.
 

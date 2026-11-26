@@ -1,24 +1,200 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: terraformstack-plan-simulado
+  name: terraformstack
   namespace: argo-workflows
 spec:
-  entrypoint: plan-simulado
-  serviceAccountName: argo-workflow
-  activeDeadlineSeconds: 180
+  entrypoint: reconcile
+  securityContext:
+    runAsUser: 10001
+    runAsGroup: 10001
+    runAsNonRoot: true
+    fsGroup: 10001
   arguments:
     parameters:
-      - name: source
-      - name: path
-      - name: version
-      - name: config-version
-      - name: entity
-      - name: environment
+      - name: intent
+      - name: volume
+  volumes:
+    - name: state
+      persistentVolumeClaim:
+        claimName: '{{workflow.parameters.volume}}'
+    - name: scripts
+      configMap:
+        name: terraformstack-scripts
+    - name: policy
+      configMap:
+        name: terraformstack-policy
   templates:
-    - name: plan-simulado
+    - name: reconcile
+      steps:
+        - - {name: prepare, template: prepare}
+        - - {name: init, template: init}
+        - - {name: validate, template: validate}
+        - - {name: plan, template: plan}
+        - - {name: opa, template: opa}
+        - - name: decision
+            template: decision
+            arguments:
+              parameters:
+                - {name: result, value: '{{steps.opa.outputs.result}}'}
+                - {name: plan-hash, value: '{{steps.plan.outputs.parameters.plan-hash}}'}
+                - {name: document-hash, value: '{{steps.plan.outputs.parameters.document-hash}}'}
+                - {name: context-hash, value: '{{steps.plan.outputs.parameters.context-hash}}'}
+                - {name: plan-exit, value: '{{steps.plan.outputs.parameters.plan-exit}}'}
+        - - name: approval
+            template: approval
+            when: '{{steps.decision.outputs.parameters.decision}} == RequireApproval'
+        - - name: authorize
+            template: authorize
+            arguments:
+              parameters:
+                - {name: decision, value: '{{steps.decision.outputs.parameters.decision}}'}
+                - {name: plan-hash, value: '{{steps.plan.outputs.parameters.plan-hash}}'}
+                - name: approval
+                  value: "{{=steps.decision.outputs.parameters.decision == 'RequireApproval' ? steps.approval.outputs.parameters.approval : 'Reject'}}"
+                - name: approved-hash
+                  value: "{{=steps.decision.outputs.parameters.decision == 'RequireApproval' ? steps.approval.outputs.parameters['approved-hash'] : 'unconfirmed'}}"
+        - - name: apply
+            template: apply
+            when: "{{=steps.authorize.outputs.parameters['apply-request'] != 'none'}}"
+            arguments:
+              parameters:
+                - {name: plan-hash, value: '{{steps.plan.outputs.parameters.plan-hash}}'}
+        - - name: verify
+            template: verify
+            when: "{{=steps.authorize.outputs.parameters['apply-request'] != 'none'}}"
+    - name: prepare
+      activeDeadlineSeconds: 300
       container:
-        image: docker.io/library/busybox:1.37.0
-        command: [echo]
-        args:
-          - "lab06-plan-simulado: stack={{workflow.parameters.path}} versão={{workflow.parameters.version}} destino={{workflow.parameters.entity}}/{{workflow.parameters.environment}} source={{workflow.parameters.source}} path={{workflow.parameters.path}} config-version={{workflow.parameters.config-version}}"
+        <<: &runner
+          image: terraformstack-runner:local
+          imagePullPolicy: IfNotPresent
+          command: [bash, /platform/scripts/pipeline.sh]
+          env:
+            - {name: INTENT, value: '{{workflow.parameters.intent}}'}
+            - {name: WORKFLOW, value: '{{workflow.name}}'}
+          volumeMounts:
+            - {name: state, mountPath: /state}
+            - {name: scripts, mountPath: /platform/scripts, readOnly: true}
+            - {name: policy, mountPath: /platform/policy, readOnly: true}
+          securityContext: &restricted
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+        args: [prepare]
+    - name: init
+      activeDeadlineSeconds: 300
+      container:
+        <<: *runner
+        args: [init]
+    - name: validate
+      activeDeadlineSeconds: 300
+      container:
+        <<: *runner
+        args: [validate]
+    - name: plan
+      activeDeadlineSeconds: 300
+      container:
+        <<: *runner
+        args: [plan]
+      outputs:
+        parameters:
+          - {name: plan-hash, valueFrom: {path: /tmp/plan-hash}}
+          - {name: document-hash, valueFrom: {path: /tmp/document-hash}}
+          - {name: context-hash, valueFrom: {path: /tmp/context-hash}}
+          - {name: plan-exit, valueFrom: {path: /tmp/plan-exit}}
+    - name: opa
+      activeDeadlineSeconds: 60
+      container:
+        image: openpolicyagent/opa:1.11.0-static
+        command: [/opa]
+        args: [eval, --fail, --format=raw, --data, /platform/policy/policy.rego, --input, '/state/{{workflow.name}}/policy-input.json', data.terraformstack.decision]
+        volumeMounts:
+          - {name: policy, mountPath: /platform/policy, readOnly: true}
+          - {name: state, mountPath: /state, readOnly: true}
+        securityContext: *restricted
+    - name: decision
+      activeDeadlineSeconds: 60
+      inputs:
+        parameters:
+          - {name: result}
+          - {name: plan-hash}
+          - {name: document-hash}
+          - {name: context-hash}
+          - {name: plan-exit}
+      container:
+        <<: *runner
+        args: [decision]
+        env:
+          - {name: INTENT, value: '{{workflow.parameters.intent}}'}
+          - {name: WORKFLOW, value: '{{workflow.name}}'}
+          - {name: POLICY_RESULT, value: '{{inputs.parameters.result}}'}
+          - {name: PLAN_HASH, value: '{{inputs.parameters.plan-hash}}'}
+          - {name: DOCUMENT_HASH, value: '{{inputs.parameters.document-hash}}'}
+          - {name: CONTEXT_HASH, value: '{{inputs.parameters.context-hash}}'}
+          - {name: PLAN_EXIT, value: '{{inputs.parameters.plan-exit}}'}
+      outputs:
+        parameters:
+          - {name: decision, valueFrom: {path: /tmp/decision}}
+          - {name: decision-record, globalName: decision-record, valueFrom: {path: /tmp/decision-record}}
+    - name: approval
+      suspend: {}
+      inputs:
+        parameters:
+          - name: approval
+            default: Reject
+            enum: [Reject, Approve]
+          - name: approved-hash
+            default: unconfirmed
+      outputs:
+        parameters:
+          - name: approval
+            valueFrom:
+              supplied: {}
+              default: Reject
+          - name: approved-hash
+            valueFrom:
+              supplied: {}
+              default: unconfirmed
+    - name: authorize
+      activeDeadlineSeconds: 60
+      inputs:
+        parameters:
+          - {name: decision}
+          - {name: plan-hash}
+          - {name: approval}
+          - {name: approved-hash}
+      container:
+        <<: *runner
+        args: [authorize]
+        env:
+          - {name: INTENT, value: '{{workflow.parameters.intent}}'}
+          - {name: WORKFLOW, value: '{{workflow.name}}'}
+          - {name: DECISION, value: '{{inputs.parameters.decision}}'}
+          - {name: PLAN_HASH, value: '{{inputs.parameters.plan-hash}}'}
+          - {name: APPROVAL, value: '{{inputs.parameters.approval}}'}
+          - {name: APPROVED_HASH, value: '{{inputs.parameters.approved-hash}}'}
+      outputs:
+        parameters:
+          - {name: apply-request, globalName: apply-request, valueFrom: {path: /tmp/apply-request}}
+          - {name: approval-result, globalName: approval-result, valueFrom: {path: /tmp/approval-result}}
+    - name: apply
+      activeDeadlineSeconds: 300
+      inputs:
+        parameters:
+          - {name: plan-hash}
+      container:
+        <<: *runner
+        args: [apply]
+        env:
+          - {name: INTENT, value: '{{workflow.parameters.intent}}'}
+          - {name: WORKFLOW, value: '{{workflow.name}}'}
+          - {name: PLAN_HASH, value: '{{inputs.parameters.plan-hash}}'}
+    - name: verify
+      activeDeadlineSeconds: 300
+      container:
+        <<: *runner
+        args: [verify]
+      outputs:
+        parameters:
+          - {name: apply-result, globalName: apply-result, valueFrom: {path: /tmp/apply-result}}

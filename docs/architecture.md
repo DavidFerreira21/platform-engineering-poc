@@ -22,7 +22,7 @@ A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) �
 
 ![Diagrama de arquitetura de referência com Hub, contas AWS UAT/PROD, quatro camadas e três personas](arquitetura%20Plataform.png)
 
-[**Abrir diagrama em tamanho completo**](arquitetura%20Plataform.png) · O diagrama é **arquitetura-alvo**; não confirma recursos implantados. O contrato inicial `TerraformStack` está versionado na Etapa 05. O controller simulado está disponível na [Etapa 06](../labs/06-terraformstack-controller.md). Os mecanismos de política e drift entram em etapas posteriores. GitHub Actions de aplicações opera fora do Hub.
+[**Abrir diagrama em tamanho completo**](arquitetura%20Plataform.png) · O diagrama é **arquitetura-alvo**; não confirma recursos implantados. O contrato inicial `TerraformStack` está versionado na Etapa 04. A [Etapa 05](../labs/05-terraformstack-runtime.md) instala o controller e a pipeline. A Etapa 06 exercita política e drift no Simulator. GitHub Actions de aplicações opera fora do Hub.
 
 
 
@@ -101,7 +101,7 @@ Existem **três personas**, não quatro equipes para as quatro camadas de owners
 
 **Dois tipos de Capabilities:** **Infrastructure Capabilities** (Crossplane especializado, consumido pelo DevOps Federado) e **Application Capabilities** (padrões de runtime/build/deploy/telemetria, consumidos pelos desenvolvedores; **não implicam XRD Crossplane**). Um **Golden Path / Starter Kit** combina padrões e automações para uma jornada específica. Backstage, CLI e Git são canais alternativos; Backstage não é gateway obrigatório.
 
-**Aplicação de referência da POC: Python FastAPI + Jinja2/HTML/CSS.** A Etapa 14 valida um workload HTTP mínimo no Non-PCI. Na **Fase 5 (Etapas 18–21)**, o repositório da squad entrega a tela de registro e consulta de encomendas; a API persiste no **Aurora PostgreSQL** e publica um JSON de evidência no **S3**, ambos via Capabilities Crossplane. A esteira **GitHub Actions → ECR → atualização GitOps → Argo CD local** constrói e entrega a aplicação. A **Fase 7 (28–29)** estrutura a experiência e a **Fase 8 (30–31)** reutiliza a aplicação para comprovar o Golden Path com as três personas. [ADR-0007](adr/0007-personas-and-developer-experience.md)
+**Aplicação de referência da POC: Python FastAPI + Jinja2/HTML/CSS.** A Etapa 18 valida um workload HTTP mínimo no Non-PCI. Na **Fase 5 (Etapas 22–25)**, o repositório da squad entrega a tela de registro e consulta de encomendas; a API persiste no **Aurora PostgreSQL** e publica um JSON de evidência no **S3**, ambos via Capabilities Crossplane. A esteira **GitHub Actions → ECR → atualização GitOps → Argo CD local** constrói e entrega a aplicação. A **Fase 7 (28–29)** estrutura a experiência e a **Fase 8 (30–31)** reutiliza a aplicação para comprovar o Golden Path com as três personas. [ADR-0007](adr/0007-personas-and-developer-experience.md)
 
 ## 4. Quatro camadas de ownership
 
@@ -122,7 +122,7 @@ platform-engineering-poc/
 ├── control-plane/                       # Crossplane, Capabilities e políticas
 ├── workflow-plane/                      # GitOps central, Workflows, Terraform
 ├── observability-plane/
-├── foundation/                          # central, a criar no lab
+├── foundation/                          # infraestrutura central
 │   ├── modules/
 │   └── config/entity-a/
 │       ├── uat/environment.yaml
@@ -152,19 +152,19 @@ platform-engineering-poc/
 └── tests/
 ```
 
-**Repositório da aplicação de teste.** Previsto para a Fase 5 (Etapas 18–21), pertence às **Squads de Produto (Application Team)** e inclui `src/`, `tests/`, `Dockerfile`, `.github/workflows/` e `k8s/{base,overlays/uat,overlays/prod}`. O **Argo CD local** sincroniza esses manifests diretamente desse repositório.
+**Repositório da aplicação de teste.** Previsto para a Fase 5 (Etapas 22–25), pertence às **Squads de Produto (Application Team)** e inclui `src/`, `tests/`, `Dockerfile`, `.github/workflows/` e `k8s/{base,overlays/uat,overlays/prod}`. O **Argo CD local** sincroniza esses manifests diretamente desse repositório.
 
-**Esta é a árvore-alvo.** A Etapa 01 cria o Hub `kind` local. O roteiro usa o registro de UAT na Etapa 07 para preparar a primeira execução na AWS e o de PROD na Etapa 27 para testar isolamento. Novos diretórios de Domain e Foundation acompanham as respectivas entregas. A [estrutura](repository-structure.md) especifica essa transição.
+**Esta é a árvore-alvo.** A Etapa 01 cria o Hub `kind` local. O roteiro usa o registro de UAT na Etapa 11 para preparar a primeira execução na AWS e o de PROD na Etapa 31 para testar isolamento. Novos diretórios de Domain e Foundation acompanham as respectivas entregas. A [estrutura](repository-structure.md) especifica essa transição.
 
 O monorepo demonstra autonomia via PR, revisão de paths e eventualmente CODEOWNERS. **CODEOWNERS sem regras de proteção não basta;** também são necessários RBAC Kubernetes, admission, IAM por conta e AppProjects Argo CD. Terraform state fica fora do Git.
 
 
 ## 6. Registro e entrega de um Domain
 
-Na Etapa 30, a equipe registra o Domain em `data-plane/<entity>/domains/<domain>/domain.yaml` com identidade, ownership e Environments autorizados. Cada entrega passa por revisão no Git.
+Na Etapa 34, a equipe registra o Domain em `data-plane/<entity>/domains/<domain>/domain.yaml` com identidade, ownership e Environments autorizados. Cada entrega passa por revisão no Git.
 
 - **Infraestrutura do Domain.** O DevOps Federado declara as Capabilities necessárias em `data-plane/<entity>/domains/<domain>/<env>/infrastructure/`. O Argo CD central aplica os CRs, e o Crossplane reconcilia os recursos AWS no destino aprovado.
-- **Configuração e aplicação.** O Argo CD local entrega namespaces, políticas e workloads nos destinos autorizados. Na Etapa 31, a squad demonstra a entrega com código, CI e manifests Kubernetes no repositório da aplicação.
+- **Configuração e aplicação.** O Argo CD local entrega namespaces, políticas e workloads nos destinos autorizados. Na Etapa 35, a squad demonstra a entrega com código, CI e manifests Kubernetes no repositório da aplicação.
 - **Prontidão.** Verificar, por Environment, as condições `Ready` das Capabilities solicitadas e o estado de sincronização e saúde dos recursos Kubernetes. O registro de Domain documenta identidade e ownership.
 - **Remoção.** Descomissionar recursos por operação aprovada, após avaliar dependências e retenção.
 
@@ -187,11 +187,11 @@ O Bootstrap Terraform central é reutilizado por configuração de Entity/Enviro
 
 ### Evolução planejada do TerraformStack
 
-1. **Etapas 05 e 06 — Contrato e execução local.** Validar o CRD na API do Hub e exercitar Git → Argo CD central → controller → Workflow com executor simulado.
-2. **Etapas 07 a 09 — Primeira execução na AWS.** Registrar UAT, validar a identidade do executor e preparar o backend de estado. Gerar o plano da rede, obter aprovação humana vinculada ao plano e aplicar o mesmo artefato.
-3. **Etapas 24 e 25 — Drift e reconciliação por políticas.** Detectar drift numa stack aplicada e publicá-lo no status antes de habilitar qualquer remediação. Em seguida, aplicar decisões versionadas e auditáveis para auto apply autorizado, aprovação obrigatória ou bloqueio.
+1. **Etapas 04–08.** Instalar o TerraformStack e validar sua pipeline com o Simulator. Validar o fluxo Crossplane separadamente no Hub local.
+2. **Etapas 09–10.** Preparar Foundation e provisionar o Hub EKS Auto Mode por bootstrap externo. Reinstalar os mesmos blocos via Git e repetir os aceites no EKS.
+3. **Etapas 11–13.** Preparar UAT e o backend. Gerar, aprovar e aplicar o mesmo plano da rede da spoke.
 
-O schema inicial do CRD é validado na Etapa 05 e o Policy Engine é exercitado localmente na Etapa 06B e em AWS na Etapa 25. O Argo CD central sincroniza o CR Kubernetes. Argo Workflows executa os passos de plan, aprovação e apply.
+O schema inicial do CRD é validado na Etapa 04 e o Policy Engine é exercitado localmente na Etapa 06 e em AWS na Etapa 29. O Argo CD central sincroniza o CR Kubernetes. Argo Workflows executa os passos de plan, aprovação e apply.
 
 ### Domain Infrastructure: Argo CD central + Crossplane
 
@@ -231,11 +231,11 @@ O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicaçã
 
 **Fluxo operacional alvo.** Foundation cria ou adota contas e rede → Entity Core prepara EKS e Argo CD local → manifests de Capabilities aprovados são reconciliados por Crossplane central → workloads de Domain Applications são entregues por Argo CD local.
 
-**Ordem incremental da POC.** Hub local → TerraformStack e primeira rede UAT → EKS, onboarding, Platform GitOps e Bridge → Capabilities com Crossplane → primeira aplicação FastAPI e esteira CI/CD → observabilidade, drift e isolamento → Experience Layer → Golden Path. O [Roadmap V2](learning-roadmap.md) organiza o trabalho em **8 fases e Etapas 00–31**. A UAT recebe os primeiros recursos reais; PCI e PROD exigem autorização específica e testes compatíveis com a infraestrutura realmente criada.
+**Ordem incremental da POC.** Hub local → TerraformStack e primeira rede UAT → EKS, onboarding, Platform GitOps e Bridge → Capabilities com Crossplane → primeira aplicação FastAPI e esteira CI/CD → observabilidade, drift e isolamento → Experience Layer → Golden Path. O [Roadmap V2](learning-roadmap.md) organiza o trabalho em **8 fases e Etapas 00–35**. A UAT recebe os primeiros recursos reais; PCI e PROD exigem autorização específica e testes compatíveis com a infraestrutura realmente criada.
 
 ## 10. Decisões vigentes e pontos abertos
 
-**Atualização:** o CRD TerraformStack está versionado na Etapa 05. A Etapa 06 exercita o controller com execução simulada. A reconciliação por políticas entra em etapa posterior. GitHub Actions das aplicações opera no repositório da squad. OpenTelemetry, Grafana, Loki e Tempo compõem a stack-alvo. Os Operators locais ainda serão selecionados.
+**Atualização:** o CRD TerraformStack está versionado na Etapa 04. A Etapa 05 instala o controller e a pipeline. O Simulator exercita a reconciliação por políticas na Etapa 06. GitHub Actions das aplicações opera no repositório da squad. OpenTelemetry, Grafana, Loki e Tempo compõem a stack-alvo. Os Operators locais ainda serão selecionados.
 
 **Fechado:** Domain como unidade lógica de consumo/ownership, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas (incluindo **Domain Applications**), monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência.
 

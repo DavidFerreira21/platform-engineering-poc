@@ -9,35 +9,30 @@ spec:
     type: Recreate
   selector:
     matchLabels:
-      app.kubernetes.io/name: terraformstack-controller
+      app: terraformstack-controller
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: terraformstack-controller
+        app: terraformstack-controller
     spec:
       serviceAccountName: terraformstack-controller
       containers:
         - name: controller
-          image: terraformstack-controller:lab06-v3
-          imagePullPolicy: Never
-          env:
-            - name: LEADER_ELECTION_ENABLED
-              value: "false"
-            - name: POD_UID
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.uid
-            - name: POLL_INTERVAL_SECONDS
-              value: "300"
-            - name: WATCH_TIMEOUT_SECONDS
-              value: "60"
-            - name: WATCH_RETRY_SECONDS
-              value: "2"
+          image: terraformstack-controller:local
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: catalog
+              mountPath: /etc/terraformstack
+              readOnly: true
           securityContext:
             runAsNonRoot: true
-            allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
             capabilities:
               drop: [ALL]
             seccompProfile:
               type: RuntimeDefault
+      volumes:
+        - name: catalog
+          configMap:
+            name: terraformstack-catalog

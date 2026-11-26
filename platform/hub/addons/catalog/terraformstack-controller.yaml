@@ -4,4 +4,4 @@ namespace: platform-system
 source:
   repoURL: https://github.com/DavidFerreira21/platform-engineering-poc.git
   targetRevision: main
-  path: control-plane/terraformstack/lab06
+  path: control-plane/terraformstack/overlays/kind

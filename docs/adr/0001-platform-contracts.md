@@ -8,6 +8,6 @@
 
 **Consequências.** O pipeline valida o Environment e resolve a conta e a identidade autorizadas antes de aplicar uma Capability. Solicitações federadas também validam o Domain e seu ownership. Os registros YAML ficam no Git para consulta. O Argo CD central sincroniza os CRs Kubernetes. Um controller de lifecycle de contas depende de uma necessidade futura.
 
-**Sequência.** O `TerraformStack` usa dados fictícios nas Etapas 05 e 06. A referência lógica a Entity e Environment passa a ser resolvida pelo executor na Etapa 08, a partir do registro de UAT validado na Etapa 07. As primeiras Capabilities são exercícios do Platform Team em UAT. O contrato de Domain, incluindo ownership e Environments permitidos, entra na Etapa 30, antes da primeira solicitação federada. [Roteiro](../learning-roadmap.md)
+**Sequência.** O `TerraformStack` usa dados fictícios nas Etapas 04 e 05. A referência lógica a Entity e Environment passa a ser resolvida pelo executor na Etapa 12, a partir do registro de UAT validado na Etapa 11. As primeiras Capabilities são exercícios do Platform Team em UAT. O contrato de Domain, incluindo ownership e Environments permitidos, entra na Etapa 34, antes da primeira solicitação federada. [Roteiro](../learning-roadmap.md)
 
 [Arquitetura](../architecture.md) · [Índice](README.md)

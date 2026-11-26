@@ -26,7 +26,7 @@ A POC representa a transportadora como **uma única Entity**, a `entity-a`, com 
 | **Estoque** | Controlar a disponibilidade de materiais de embalagem e insumos em cada centro. |
 | **Planejamento de Rotas** | Planejar as transferências entre centros e as rotas de entrega. |
 
-O exercício implementa uma fatia do **Rastreamento de Encomendas**. Um operador informa o **Código da encomenda**, clica em **Registrar recebimento** e confere o código e o horário na lista de recebimentos. Na **Etapa 14**, um workload HTTP mínimo valida o deploy GitOps no Non-PCI. Nas **Etapas 18–21**, construiremos a aplicação de negócio com **FastAPI + Jinja2**, persistência no **Aurora PostgreSQL**, evidências JSON no **S3** e CI/CD via **GitHub Actions → ECR → Argo CD local**. Na **Etapa 31**, reutilizamos essa aplicação no Golden Path, com solicitações de Capabilities feitas pelo DevOps Federado. [ADR-0007](docs/adr/0007-personas-and-developer-experience.md)
+O exercício implementa uma fatia do **Rastreamento de Encomendas**. Um operador informa o **Código da encomenda**, clica em **Registrar recebimento** e confere o código e o horário na lista de recebimentos. Na **Etapa 18**, um workload HTTP mínimo valida o deploy GitOps no Non-PCI. Nas **Etapas 22–25**, construiremos a aplicação de negócio com **FastAPI + Jinja2**, persistência no **Aurora PostgreSQL**, evidências JSON no **S3** e CI/CD via **GitHub Actions → ECR → Argo CD local**. Na **Etapa 35**, reutilizamos essa aplicação no Golden Path, com solicitações de Capabilities feitas pelo DevOps Federado. [ADR-0007](docs/adr/0007-personas-and-developer-experience.md)
 
 ## 🧱 Visão arquitetural
 
@@ -72,7 +72,7 @@ A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership 
 
 ## 🔧 Decisões arquiteturais
 
-- **TerraformStack.** O CRD da Etapa 05 descreve a infraestrutura desejada e chega à API do Hub via Argo CD central. A Etapa 06 começa com a execução simulada e o Lab 06B exercita Terraform real, políticas e drift no Hub local. A primeira stack AWS exige aprovação humana na Etapa 09. As Etapas 24 e 25 validam drift e reconciliação por políticas na AWS. `TerraformRun` fica como nome opcional de uma execução individual. [ADR-0006](docs/adr/0006-terraformrun-and-application-ci.md)
+- **TerraformStack.** O CRD da Etapa 04 descreve a infraestrutura desejada e chega à API do Hub via Argo CD central. A Etapa 05 instala o controller e a pipeline canônica. A Etapa 06 exercita Terraform real, políticas e drift no Hub local com o Simulator. A primeira stack AWS exige aprovação humana na Etapa 13. As Etapas 28 e 29 validam drift e reconciliação por políticas na AWS. `TerraformRun` fica como nome opcional de uma execução individual. [ADR-0006](docs/adr/0006-terraformrun-and-application-ci.md)
 - **Domain Applications:** código Python, testes, **GitHub Actions**, Dockerfile e manifests Kubernetes no **repositório separado da squad** (Fase 5). CI publica imagem no Amazon ECR e propõe atualização declarativa de digest; o Argo CD local entrega a aplicação nos EKS autorizados.
 - **Management EKS:** Argo CD local, Operators **a escolher** e OpenTelemetry Collector/gateway para logs e traces; backend central com **Grafana + Loki + Tempo**. Estratégia de métricas/Prometheus em validação.
 - **Ownership:** Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications.
@@ -81,9 +81,9 @@ A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership 
 
 ## ☁️ Estratégia AWS
 
-A POC usa um Hub `kind` descartável. Após a simulação do 06, a Etapa 06B prova o ciclo completo do TerraformStack com Terraform real sobre um ConfigMap, OPA, auto apply, aprovação, bloqueio, drift e destroy. [Guia do Lab 06B](labs/06b-terraformstack-kind.md)
+A POC usa um Hub `kind` descartável. A Etapa 06 prova o ciclo completo do TerraformStack com Terraform real sobre um ConfigMap, OPA, auto apply, aprovação, bloqueio, drift e destroy. [Guia do Lab 06](labs/06-terraformstack-simulator.md)
 
-O bootstrap externo do Hub e as futuras spokes reutilizam o mesmo módulo EKS. Antes de provisionar os clusters das spokes, o Hub passa para EKS na conta da plataforma. Para a primeira execução real, a equipe registra UAT, valida a identidade do executor e prepara o backend de estado. Terraform aplica a rede e, em seguida, provisiona Management EKS e EKS Non-PCI, um cluster por vez. Após o smoke test, o Crossplane reconcilia `ObjectStorage` e `Database` com Amazon Aurora PostgreSQL. O guia introduz PROD nos testes de isolamento. [Roteiro prático](docs/learning-roadmap.md)
+Depois do aceite local de TerraformStack e Crossplane, as Etapas 09–10 preparam a conta de plataforma, provisionam o Hub EKS Auto Mode e reinstalam os blocos do Git. As Etapas 11–12 preparam UAT e o executor. A primeira Network da spoke, Management EKS e Non-PCI entram nas Etapas 13–15. As Capabilities AWS entram após o smoke test. [Roteiro prático](docs/learning-roadmap.md)
 
 > [!IMPORTANT]
 > Executar AWS somente com conta/região verificadas via STS, IAM mínimo, custo, autorização explícita e plano de cleanup. Não publicar credenciais, kubeconfigs ou Terraform state. Aprovar a documentação **não** autoriza `apply`/`destroy`.

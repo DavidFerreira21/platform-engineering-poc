@@ -1,0 +1,37 @@
+apiVersion: platform.example.io/v1alpha1
+kind: TerraformStack
+metadata:
+  name: simulator-network
+  namespace: platform-system
+spec:
+  sourceRef:
+    name: foundation-stacks
+    path: foundation/stacks/simulator
+  target:
+    entity: entity-a
+    environment: simulator
+  reconciliation:
+    driftCheckInterval: 45s
+    retryPolicy:
+      strategy: Fixed
+      interval: 10s
+      maxRetries: 1
+---
+apiVersion: platform.example.io/v1alpha1
+kind: TerraformStack
+metadata:
+  name: simulator-dependent
+  namespace: platform-system
+spec:
+  sourceRef:
+    name: foundation-stacks
+    path: foundation/stacks/simulator
+  target:
+    entity: entity-a
+    environment: simulator
+  suspend: true
+  dependsOn:
+    - name: simulator-network
+  reconciliation:
+    retryPolicy:
+      strategy: None

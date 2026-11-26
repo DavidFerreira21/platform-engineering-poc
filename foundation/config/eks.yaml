@@ -1,4 +1,4 @@
-# Baseline de referência da stack EKS; valores não criam clusters no Lab 08.
+# Baseline de referência da stack EKS para os perfis do Hub e das spokes.
 eks:
   publishParameterStore: false
   clusters:

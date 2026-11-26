@@ -20,76 +20,36 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check PyYAML jsonschema
           python3 -m unittest discover -s tests -p 'test_terraformstack_contract.py'
-      - name: Validar bootstrap STS e Job do Lab 08
+      - name: Validar utilitários de identidade e state
         run: |
-          python3 -m py_compile foundation/scripts/bootstrap-workflow-credentials.py
+          python3 -m py_compile \
+            foundation/scripts/bootstrap-workflow-credentials.py \
+            foundation/scripts/prepare-state-backend.py
           python3 - <<'PY'
           from pathlib import Path
           import yaml
-          job = yaml.safe_load(Path("foundation/iam/lab08/verify-uat-executor-job.yaml").read_text())
+          job = yaml.safe_load(Path("foundation/iam/executor/verify-uat-executor-job.yaml").read_text())
           assert job["kind"] == "Job"
           assert job["metadata"]["namespace"] == "argo-workflows"
           pod = job["spec"]["template"]["spec"]
           assert pod["containers"][0]["envFrom"][0]["secretRef"]["name"] == "terraform-executor-bootstrap"
           assert pod["volumes"][0]["configMap"]["name"] == "terraform-executor-aws-config"
-          assert "uat-executor" in pod["containers"][0]["args"]
-          print("Lab 08: script Python e Job de identidade válidos.")
           PY
-      - name: Instalar Terraform para validar Configuration
+      - name: Instalar Terraform para validar o Simulator
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.13.5
-      - name: Validar Terraform e smoke stack sem backend AWS
+      - name: Validar o Simulator com provider simulado
         run: |
-          terraform fmt -diff -check -recursive foundation/modules/configuration foundation/lab08/validation-stack
-          terraform -chdir=foundation/lab08/validation-stack init -backend=false -input=false
-          terraform -chdir=foundation/lab08/validation-stack validate -no-color
-      - name: Exercitar hierarquia Configuration no terraform plan local
-        run: |
-          for stack in network eks; do
-            terraform -chdir=foundation/lab08/validation-stack plan \
-              -input=false -no-color -lock=false \
-              -var=entity=entity-a -var=environment=uat \
-              -var="stack=$stack" -out="/tmp/lab08-$stack.tfplan"
-            terraform -chdir=foundation/lab08/validation-stack show -json \
-              "/tmp/lab08-$stack.tfplan" > "/tmp/lab08-$stack.json"
-          done
-          python3 - <<'PY'
-          import json
-          def outputs(stack):
-              with open(f"/tmp/lab08-{stack}.json") as source:
-                  return {k: v["value"] for k, v in json.load(source)["planned_values"]["outputs"].items()}
-          network = outputs("network")
-          eks = outputs("eks")
-          assert network["network_cidr"] == "10.81.0.0/16", network
-          assert network["network_dns_hostnames"] is True, network
-          assert eks["eks_management_enabled"] is True, eks
-          assert eks["eks_pci_enabled"] is False, eks
-          print("Configuration: precedence Global → Entity → Environment verificada.")
-          PY
-      - name: Validar scripts e manifestos do Lab 08
-        run: |
-          python3 -m py_compile \
-            foundation/scripts/bootstrap-workflow-credentials.py \
-            foundation/scripts/prepare-state-backend.py \
-            foundation/scripts/submit-lab08-workflow.py \
-            workflow-plane/terraform-executor/verify.py
-          python3 - <<'PY'
-          from pathlib import Path
-          import yaml
-          base = Path("workflow-plane/argo-workflows/lab08/workflowtemplate.yaml")
-          workflow = yaml.safe_load(base.read_text())
-          assert workflow["kind"] == "WorkflowTemplate"
-          pod = workflow["spec"]["templates"][0]["container"]
-          assert pod["image"] == "terraformstack-executor:lab08"
-          assert pod["envFrom"][0]["secretRef"]["name"] == "terraform-executor-bootstrap"
-          assert "AWS_CONFIG_FILE" in {x["name"] for x in pod["env"]}
-          for config in ["network", "eks"]:
-              assert yaml.safe_load(Path(f"foundation/config/{config}.yaml").read_text())
-          print("OK: componentes de Configuration e executor presentes.")
-          PY
+          terraform fmt -diff -check -recursive foundation/modules/configuration foundation/stacks/simulator
+          terraform -chdir=foundation/stacks/simulator init -backend=false -input=false
+          terraform -chdir=foundation/stacks/simulator validate -no-color
+          terraform -chdir=foundation/stacks/simulator test -no-color
       - name: Validar sintaxe dos scripts bash
-        run: bash -n platform/hub/scripts/create.sh platform/hub/scripts/install-traefik.sh platform/hub/scripts/verify.sh platform/hub/scripts/delete.sh
+        run: |
+          for file in platform/hub/scripts/*.sh workflow-plane/argo-workflows/terraformstack/pipeline.sh; do
+            bash -n "$file"
+          done
       - name: Validar YAML de exemplo e kind
         run: |
           python3 - <<'PY'

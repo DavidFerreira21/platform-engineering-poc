@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../controller
+  - simulator.yaml
+  - admission.yaml
+configMapGenerator:
+  - name: terraformstack-catalog
+    namespace: platform-system
+    files: [catalog.json]
+generatorOptions:
+  immutable: true

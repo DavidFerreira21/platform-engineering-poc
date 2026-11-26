@@ -139,14 +139,14 @@ def prepare(args):
     secret = {
         "apiVersion": "v1", "kind": "Secret",
         "metadata": {"name": SECRET_NAME, "namespace": NAMESPACE, "annotations": annotations,
-                     "labels": {"app.kubernetes.io/part-of": "terraformstack-lab08"}},
+                     "labels": {"app.kubernetes.io/part-of": "terraformstack-executor"}},
         "type": "Opaque",
         "data": {k: base64.b64encode(v.encode()).decode() for k, v in secret_values.items()},
     }
     configmap = {
         "apiVersion": "v1", "kind": "ConfigMap",
         "metadata": {"name": CONFIG_NAME, "namespace": NAMESPACE,
-                     "labels": {"app.kubernetes.io/part-of": "terraformstack-lab08"}},
+                     "labels": {"app.kubernetes.io/part-of": "terraformstack-executor"}},
         "data": {"config": config_content},
     }
     object_create(configmap)
@@ -166,7 +166,7 @@ def cleanup():
     # Remoção explícita; nunca excluir credenciais de outros componentes.
     kubectl(["delete", "secret", SECRET_NAME, "--ignore-not-found"])
     kubectl(["delete", "configmap", CONFIG_NAME, "--ignore-not-found"])
-    print("OK: material temporário do Lab 08 removido")
+    print("OK: material temporário do executor removido")
 
 
 def main():

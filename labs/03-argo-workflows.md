@@ -16,7 +16,7 @@ O exercício roda no Hub local e tem custo AWS zero.
 
 ## Por que fizemos assim
 
-O controller e os CRDs do Argo Workflows ficam em uma Application compartilhada. O manifesto do exercício define uma tarefa pequena, e cada submissão cria uma execução com nome próprio. A interface do Argo Workflows usa o Argo Server para reunir o estado e os logs da execução. O Traefik encaminha a conexão HTTPS de `workflows.localhost` ao Argo Server, que termina o TLS. O acesso nesta etapa é local e de leitura. A Etapa 09 introduz a identidade individual para aprovação de planos.
+O controller e os CRDs do Argo Workflows ficam em uma Application compartilhada. O manifesto do exercício define uma tarefa pequena, e cada submissão cria uma execução com nome próprio. A interface do Argo Workflows usa o Argo Server para reunir o estado e os logs da execução. O Traefik encaminha a conexão HTTPS de `workflows.localhost` ao Argo Server, que termina o TLS. O acesso nesta etapa é local e de leitura. A Etapa 06 usa identidade individual para aprovar o plano na UI.
 
 ## Pré-requisitos
 

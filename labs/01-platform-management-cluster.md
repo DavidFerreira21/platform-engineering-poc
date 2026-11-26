@@ -46,6 +46,16 @@ Abra [`kind-config.yaml`](../platform/hub/kind-config.yaml): **host 127.0.0.1:80
 bash platform/hub/scripts/create.sh
 ```
 
+O bootstrap de um Hub novo instala a política de auditoria usada na aprovação do TerraformStack. Se já houver um Hub de um ensaio anterior, preserve-o e use outro nome e portas para o teste. Os scripts do Traefik e do Argo CD aceitam os mesmos valores.
+
+```bash
+export HUB_KIND_NAME=platform-simulator HUB_HTTP_PORT=18080 HUB_HTTPS_PORT=18443
+bash platform/hub/scripts/create.sh
+```
+
+Use o contexto `kind-$HUB_KIND_NAME` e as portas configuradas ao seguir os guias em um Hub alternativo.
+
+
 O script reutiliza o cluster existente, caso haja um; nesse caso **não consegue alterar os mapeamentos de portas**. Se o cluster foi criado com uma configuração anterior, remova-o e recrie-o explicitamente (consulte a seção de limpeza). Em seguida, observe:
 
 ```bash
@@ -128,6 +138,6 @@ O serviço `echo` fica disponível para a verificação do Hub em etapas posteri
 
 ## Próximas etapas
 
-Siga para a [Etapa 02 — Argo CD central](02-argocd-central.md), a [Etapa 03 — Argo Workflows](03-argo-workflows.md) e a [Etapa 04 — Crossplane Core](04-crossplane-core.md). Ao adotar Traefik no Argo CD, documentar uma **transferência de ownership Helm → Argo CD**, sem dois reconciliadores gerenciando o release simultaneamente. Não executar o bootstrap do Traefik manual depois de adotado pelo GitOps.
+Siga para a [Etapa 02 — Argo CD central](02-argocd-central.md). Ao adotar Traefik no Argo CD, documentar uma **transferência de ownership Helm → Argo CD**, sem dois reconciliadores gerenciando o release simultaneamente. Não executar o bootstrap do Traefik manual depois de adotado pelo GitOps.
 
 Fontes: [kind — Configuration](https://kind.sigs.k8s.io/docs/user/configuration/) · [Traefik — Setup on Kubernetes](https://doc.traefik.io/traefik/setup/kubernetes/) · [Traefik Helm Chart](https://github.com/traefik/traefik-helm-chart).
