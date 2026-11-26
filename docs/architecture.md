@@ -206,7 +206,7 @@ flowchart LR
   XP -. "status / conditions" .-> API
 ```
 
-Neste fluxo de **Domain Infrastructure**, o Argo CD central sincroniza CRs Kubernetes de **Capability**; na arquitetura completa também sincronizará `TerraformStack`, para Foundation/Entity Core. Os registros de Domain/Environment informam ownership/destino após validação, **não são CRs**; **Crossplane não observa Git diretamente**. Em cada Capability validar schema, escopo, credenciais e política de deletion.
+O Argo CD central sincroniza os CRs de Capability de Domain Infrastructure e os CRs de `TerraformStack` de Foundation e Entity Core. Os registros de Domain e Environment informam ownership e destino após validação. Crossplane observa os CRs pela API Kubernetes. Em cada Capability, validar schema, escopo, credenciais e política de deletion. [Fluxo do TerraformStack](flows/terraformstack.md)
 
 ### Domain Applications: GitHub Actions + GitOps local
 
