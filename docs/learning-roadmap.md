@@ -47,13 +47,13 @@ Preparar a conta de plataforma e provisionar o Hub EKS Auto Mode por bootstrap e
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
 | **09** | Foundation da conta de plataforma e módulos AWS | Conferir acesso humano, conta, região, backend e rede de plataforma. Completar os módulos Configuration, Network e EKS usados pelas raízes reutilizáveis e validar os planos |
-| **10** | Bootstrap externo e reinstalação do Hub EKS Auto Mode | Provisionar a rede e o Hub na conta de plataforma por execução autorizada com states separados. Publicar imagens por digest, validar acesso ao Git e aos registries, preparar armazenamento e reinstalar os blocos do Git e repetir os dois aceites Kubernetes no EKS |
+| **10** | Bootstrap externo e reinstalação do Hub EKS Auto Mode | Provisionar a rede e o Hub na conta de plataforma por execução autorizada com states separados. Publicar imagens por digest, validar acesso ao Git e aos registries, preparar armazenamento, criar EKS Capability for Argo CD com IAM Identity Center, registrar Hub por ARN, reinstalar os blocos do Git e repetir os dois aceites Kubernetes no EKS |
 | **11** | Registro de UAT | Validar o registro de destino, conta, região, acesso humano por IAM Identity Center e STS |
 | **12** | Identidade do executor e state | Provar a sessão temporária do Pod no Hub EKS, assunção da role UAT, bloqueio de destino indevido e operação do backend S3 com locking |
 | **13** | Network e primeiro apply da spoke UAT | Resolver revisões imutáveis e aplicar o mesmo plan aprovado. Verificar e disponibilizar ID da VPC e sub-redes para EKS |
 | **14** | EKS Management em UAT | Consumir outputs verificados de Network e exigir dependência `Ready`. Aplicar o perfil Management, testar acesso privado e iniciar o onboarding |
 | **15** | EKS Non-PCI em UAT | Habilitar Non-PCI na mesma raiz EKS. Verificar dependências, IAM e outputs. PCI segue para a Etapa 30 |
-| **16** | Platform GitOps multicluster e add-ons | Validar conectividade e identidade antes de registrar os clusters. ApplicationSets entregam os add-ons por perfil e o Argo CD local recebe seus destinos autorizados |
+| **16** | Platform GitOps multicluster e add-ons | Criar Access Entries, registrar ARNs e labels, comprovar sincronização de APIs privadas entre VPCs isoladas pela EKS Capability for Argo CD. ApplicationSets entregam add-ons por perfil; Argo CD local recebe destinos autorizados na própria VPC. [ADR-0008](adr/0008-managed-argocd-connectivity.md) |
 | **17** | GitOps Bridge | Publicar outputs allowlisted no Parameter Store após verify e comprovar consumo via ESO no Management EKS |
 | **18** | Smoke test HTTP do Non-PCI | Argo CD local sincroniza workload mínimo, verifica serviço e remove os recursos do teste |
 
@@ -155,6 +155,6 @@ Reutilizar a mesma aplicação de Rastreamento de Encomendas e a pipeline constr
 
 ## Evoluções opcionais
 
-Avaliar posteriormente EKS Auto Mode (sem instalar Karpenter autogerenciado sobre seu autoscaling), EKS Argo CD Capability, portal Backstage, um contrato abstrato de aplicação e automação de criação de contas. Nenhum deles é necessário para concluir a POC V2.
+EKS Auto Mode e EKS Capability for Argo CD integram a arquitetura AWS nas Etapas 09–16; validar custo e disponibilidade. Avaliar posteriormente portal Backstage, um contrato abstrato de aplicação e automação de criação de contas.
 
 [Arquitetura](architecture.md) · [GitOps](flows/gitops.md) · [TerraformStack](flows/terraformstack.md) · [GitOps Bridge](flows/gitops-bridge.md) · [Guia das etapas](../labs/README.md)
