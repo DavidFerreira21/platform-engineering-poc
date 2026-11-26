@@ -17,9 +17,9 @@ func TestConfigValidation(t *testing.T) {
 	for _, v := range []struct{ old, new string }{
 		{"workers: 4", "workers: 0"},
 		{"leaderElection: true", "unknown: true"},
-		{"decision: decision-record", "decision: apply-request"},
+		{"state: execution-state", "state: execution-result"},
 		{"name: terraformstack", "name: ''"},
-		{"policy: opa", "policy: approval"},
+		{"serviceAccountName: terraformstack-executor", "serviceAccountName: ''"},
 		{"namespace: argo-workflows", "namespace: ../argo"},
 		{"workers: 4", "workers: 4\n  allowDeny: true"},
 	} {

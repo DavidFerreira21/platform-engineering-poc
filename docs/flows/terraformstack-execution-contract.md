@@ -1,42 +1,82 @@
-# TerraformStack — contrato de execução
+# Execution Contract do TerraformStack
 
-> Proposta em implementação nesta branch. Não representa o runtime atual até o aceite dos testes.
+[Fluxo do TerraformStack](terraformstack.md) · [ADR-0009](../adr/0009-terraformstack-runtime.md)
 
-## Fronteira
+O contrato liga o controller, o adapter Argo e o WorkflowTemplate pela Kubernetes API. O adapter envia uma solicitação JSON e normaliza quatro parâmetros globais de saída. O Platform Team configura os nomes de transporte, a ServiceAccount e o template. Uma pipeline alternativa pode organizar seus steps livremente e precisa cumprir a mesma semântica.
 
-O CR declara sourceRef (repository, path, version), context opcional (mapa string/string), dependsOn, suspend, reconciliation e lifecycle. Não há target, configuration, timeout ou healthChecks. Não há compatibilidade com o contrato anterior nesta POC.
+## Solicitação
 
-O controller mantém identidade, dependências, lifecycle, agendamento, retry, autorização, concorrência e conditions. Não resolve Git, conta, região, identidade cloud, backend, PVC, variáveis ou políticas. A pipeline e o IaC resolvem esses elementos. Argo Workflows permanece a integração suportada. A compatibilidade com OpenTofu será validada na pipeline, com state separado.
+O adapter publica um parâmetro global de entrada chamado `intent` na pipeline de referência. Seu conteúdo tem esta estrutura.
 
-## Comunicação
+```json
+{
+  "workflow": "tf-123-95fa9fa945dd-2",
+  "intentHash": "95fa9fa945dd3c0c4f674a88710607e76d171ba334688eaec85bf63d125ce151e",
+  "intent": {
+    "stack": "simulator-network",
+    "namespace": "platform-system",
+    "uid": "123",
+    "generation": 2,
+    "revisionAnnotation": "a8d6be1284360d87e2546a9c2bacf84757623817",
+    "deleting": false,
+    "sourceRef": {
+      "repository": "https://github.com/DavidFerreira21/platform-engineering-poc.git",
+      "path": "foundation/stacks/simulator",
+      "version": "latest"
+    },
+    "context": {"entity": "entity-a", "environment": "simulator"},
+    "operation": "apply"
+  },
+  "pinnedReference": "a8d6be1284360d87e2546a9c2bacf84757623817",
+  "binding": "simulator-binding-01"
+}
+```
 
-Não há novo componente ou CRD. O adapter cria o Workflow com a intenção JSON e identidade da execução, observa eventos por labels, lê phase e outputs globais e normaliza para tipos internos. O reconciler é a autoridade sobre conditions. O runner só escreve o claim restrito.
+`workflow` e `intentHash` identificam a tentativa e sua intenção. O hash cobre a representação canônica da intenção, incluindo fonte, contexto, UID, generation, anotação de revisão e operação. `context` é um mapa de strings encaminhado integralmente. O controller retira o finalizer para `retain`. As demais operações encaminhadas são `apply` e `destroy`.
 
-Proposta de mapeamento no controller-config.yaml:
-- input intent
-- outputs execution-state, authorization-request, execution-result, resolved-source
+`pinnedReference` e `binding` são opcionais. O executor devolve a referência imutável e o vínculo efetivo do destino. O controller fixa a referência usada na tentativa anterior nos próximos retries e checagens periódicas. Para destroy, fixa a referência conhecida. O vínculo acompanha as próximas solicitações da stack. A pipeline verifica seu significado e recusa deriva de backend ou destino.
 
-Os nomes de transporte são configuráveis; a semântica não. A ServiceAccount e o template são definidos pelo Platform Team. Não exigir nomes de steps de OPA ou aprovação.
+## Saídas globais
 
-## Semântica
+As saídas são strings JSON com `workflow` e `intentHash` iguais aos da solicitação. Na pipeline de referência, os nomes têm este mapeamento.
 
-- Pending/Running: execução não terminal.
-- Waiting: condição externa; reason e message para diagnóstico.
-- AuthorizationRequested: identificador opaco não vazio vinculado a execução e intenção vigentes; controller concede somente se elegível e não cancelando.
-- Applying: derivado do claim persistido, não de uma declaração arbitrária de output.
-- Succeeded: resultado funcional válido e fase terminal compatível, distinguindo NoChanges, Verified e teardown verificado.
-- Failed: falha operacional; retry conforme política.
-- Blocked: bloqueio funcional, sem retry automático.
-- Cancelled: cancelamento, sem sucesso implícito.
+| Nome | Campos específicos | Semântica |
+| --- | --- | --- |
+| `resolved-source` | `reference`, `binding` | Identificadores imutáveis e opacos. Publicar antes de progresso, pedido de autorização ou sucesso |
+| `execution-state` | `phase` (`Running` ou `Waiting`), `driftDetected` opcional, diagnósticos | Sinaliza atividade ou espera por condição externa e informa drift detectado |
+| `authorization-request` | `token` | Valor opaco que identifica a alteração autorizada pela pipeline |
+| `execution-result` | `outcome`, diagnósticos | Resultado funcional terminal da tentativa |
 
-Drift é um sinal tipado, não uma string de diagnóstico. Detalhes opcionais são limitados e não contêm segredos. Resultados ausentes, inválidos ou contraditórios não autorizam apply nem Ready. Eventos podem ser repetidos ou fora de ordem; ler o estado corrente da API e validar identidade. Não interpretar reason ou message como autorização.
+Exemplo de publicação depois que o gate da pipeline libera uma alteração.
 
-## Identidade, autorização e versões
+```json
+{
+  "workflow": "tf-123-95fa9fa945dd-2",
+  "intentHash": "95fa9fa945dd3c0c4f674a88710607e76d171ba334688eaec85bf63d125ce151e",
+  "token": "plan-version-42"
+}
+```
 
-Persistir intenção e nome determinístico antes de criar Workflow; manter snapshot do contrato. Vincular autorização ao UID, geração, revisão GitOps, identidade da execução e identificador opaco. Claim com resourceVersion disputa atomicamente com cancelamento. Não cancelar apply com claim obtido; aguardar término. Manter RBAC e admissão de proteção do protocolo.
+O resultado aceita `NoChanges` sem alteração para `apply`, `Verified` após alteração verificada e claim correspondente, `Blocked` para recusa funcional sem autorização e `Cancelled` para execução que terminou sem iniciar a alteração. `Verified` aplicado a `destroy` encerra a stack em `Destroyed`. `NoChanges` e `Verified` exigem fase nativa `Succeeded`. Falha nativa sem resultado funcional vira falha operacional e pode habilitar retry. Sucesso nativo sem resultado válido bloqueia a execução. O executor pode publicar `Blocked` antes da resolução para sinalizar uma recusa na entrada.
 
-A pipeline resolve e valida a revisão Git e publica referência imutável; controller conserva o valor opaco por intenção para drift/retry. Para latest, a revisão GitOps identifica a mudança da intenção, não necessariamente um commit do repositório de origem externo. Retry antes de resolução bem-sucedida não pode fingir que existe referência fixada. A pipeline mantém hashes, assinatura comparável, revalidação, plano original e locking. Contexto resolvido e identidade de state devem permanecer estáveis entre plan/apply e entre reconciliações; mudança de destino/backend exige tratamento explícito, sem migração implícita.
+Os diagnósticos opcionais são `reason`, `message` e `details` como mapa curto de strings. Códigos técnicos, hashes adequados para consulta e mensagens curtas são aceitos. Mantenha segredos, planos, state e configuração sensível fora dos parâmetros e do status. A lógica de autorização usa os campos tipados. O adapter recusa envelopes incompatíveis, duplicados, maiores que 4 KiB, de identidade divergente ou com resultados contraditórios.
 
-## Aceite
+## Estados, autorização e claim
 
-Validar CRD, Go, adapter, envtest, race, OPA, Kustomize, CI e Simulator completo (plan/apply/verify, no changes, aprovação, bloqueio, drift, retry, dependências, suspensão, restart, concorrência, destroy, resultados inválidos). Atualizar ADR-0009, arquitetura, fluxo e Labs 04–06 junto da implementação. Não provisionar AWS nesta refatoração.
+O controller registra `Pending` no agendamento e observa `Running`, `Waiting` e `AuthorizationRequested` pelo adapter. Confere identidade, intenção vigente, dependências, suspensão e cancelamento antes de gravar `status.execution.authorization`. O executor espera o token correspondente, verifica a intenção na API e registra somente o claim.
+
+```yaml
+status:
+  claim:
+    workflow: tf-123-95fa9fa945dd-2
+    intentHash: 95fa9fa945dd3c0c4f674a88710607e76d171ba334688eaec85bf63d125ce151e
+    authorization: plan-version-42
+```
+
+O executor usa JSON Patch com teste do `metadata.resourceVersion`. O controller também usa `resourceVersion` na atualização de status. Se o cancelamento vencer, a autorização é revogada antes de terminar o Workflow. Se o claim vencer, o controller registra `Applying` e acompanha o término daquela alteração antes de prosseguir com outra intenção. A política de admissão do Hub limita o executor a registrar o claim autorizado e vigente.
+
+Ao terminar, o adapter e o controller distinguem `Succeeded`, `Failed`, `Blocked` e `Cancelled`. O status do CR registra a condição da reconciliação, a resolução observada e o diagnóstico. A autorização de negócio, a verificação do plano e a política são implementadas pela pipeline confiável.
+
+## Configuração
+
+Os nomes estão em [controller-config.yaml](../../control-plane/terraformstack/controller/controller-config.yaml). O controller guarda um snapshot dessa configuração durante a tentativa. Drene os Workflows ao mudar template, namespace, ServiceAccount ou mapeamento. Garanta que apenas identidades autorizadas criem o Workflow e editem seus outputs e que o executor obtenha somente os acessos requeridos. [Instalação e atualização do runtime](../../labs/05-terraformstack-runtime.md)

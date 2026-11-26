@@ -16,8 +16,7 @@ import (
 )
 
 func main() {
-	var path, configPath string
-	flag.StringVar(&path, "catalog", "/etc/terraformstack/catalog.json", "catálogo confiável imutável")
+	var configPath string
 	flag.StringVar(&configPath, "config", "/etc/terraformstack-config/controller-config.yaml", "contrato de integração")
 	opts := zap.Options{}
 	opts.BindFlags(flag.CommandLine)
@@ -31,11 +30,6 @@ func main() {
 	}
 	stackNS, wfNS := config.Controller.StackNamespace, config.Workflow.Namespace
 	workers, leader := config.Controller.Workers, *config.Controller.LeaderElection
-	catalog, e := controller.LoadCatalog(path)
-	if e != nil {
-		logger.Error(e, "catálogo inválido")
-		os.Exit(1)
-	}
 	lease := 15 * time.Second
 	renew := 10 * time.Second
 	retry := 2 * time.Second
@@ -49,7 +43,7 @@ func main() {
 		os.Exit(1)
 	}
 	engine := &argo.Adapter{Client: manager.GetClient(), Reader: manager.GetAPIReader(), Config: config.Workflow}
-	r := &controller.Reconciler{Client: manager.GetClient(), Reader: manager.GetAPIReader(), Catalog: catalog, StackNamespace: stackNS, Engine: engine}
+	r := &controller.Reconciler{Client: manager.GetClient(), Reader: manager.GetAPIReader(), StackNamespace: stackNS, Engine: engine}
 	if e = r.SetupWithManager(manager, workers, argo.WorkflowObject(), engine.WatchHandler(stackNS)); e != nil {
 		logger.Error(e, "controller")
 		os.Exit(1)

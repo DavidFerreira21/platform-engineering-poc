@@ -36,9 +36,6 @@ spec:
             - name: controller-config
               mountPath: /etc/terraformstack-config
               readOnly: true
-            - name: catalog
-              mountPath: /etc/terraformstack
-              readOnly: true
           securityContext:
             runAsNonRoot: true
             readOnlyRootFilesystem: true
@@ -51,6 +48,3 @@ spec:
         - name: controller-config
           configMap:
             name: terraformstack-controller-config
-        - name: catalog
-          configMap:
-            name: terraformstack-catalog

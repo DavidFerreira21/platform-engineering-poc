@@ -1,5 +1,4 @@
-# Configuração de instalação, sob controle do Platform Team.
-# O catálogo autoriza stacks e identidades; o WorkflowTemplate define os steps.
+# Configuração operacional e nomes de transporte sob controle do Platform Team.
 controller:
   stackNamespace: platform-system
   workers: 4
@@ -8,17 +7,12 @@ workflow:
   namespace: argo-workflows
   templateRef:
     name: terraformstack
-  # Nomes de transporte, não semântica da autorização.
+  serviceAccountName: terraformstack-executor
   parameters:
     input:
       intent: intent
-      volume: volume
     output:
-      decision: decision-record
-      authorization: apply-request
-      approval: approval-result
-      result: apply-result
-  # Referências para diagnóstico e identificação do gate humano.
-  templates:
-    policy: opa
-    approval: approval
+      state: execution-state
+      authorization: authorization-request
+      result: execution-result
+      resolvedSource: resolved-source

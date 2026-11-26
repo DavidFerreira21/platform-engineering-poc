@@ -26,23 +26,19 @@ var fixed = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
 func fixture(t *testing.T) (*Reconciler, *unstructured.Unstructured) {
 	t.Helper()
-	c, e := LoadCatalog("../../../overlays/kind/catalog.json")
-	if e != nil {
-		t.Fatal(e)
-	}
 	o := stackObject()
 	o.SetName(name)
 	o.SetNamespace("platform-system")
 	o.SetUID(types.UID("test-uid"))
 	o.SetGeneration(1)
 	o.SetAnnotations(map[string]string{revision: strings.Repeat("a", 40)})
-	o.Object["spec"] = M{"sourceRef": M{"name": "foundation-stacks", "path": "foundation/stacks/simulator"}, "target": M{"entity": "entity-a", "environment": "simulator"}}
+	o.Object["spec"] = M{"sourceRef": M{"repository": "https://example.org/stacks.git", "path": "foundation/stacks/simulator"}, "context": M{"arbitrary-key": "arbitrary-value"}}
 	cl := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithStatusSubresource(stackObject(), argo.WorkflowObject()).WithObjects(o).Build()
 	config, e := LoadConfig("../../controller-config.yaml")
 	if e != nil {
 		t.Fatal(e)
 	}
-	r := &Reconciler{Engine: &argo.Adapter{Client: cl, Reader: cl, Config: config.Workflow}, Client: cl, Reader: cl, Catalog: c, StackNamespace: "platform-system", Now: func() time.Time { return fixed }}
+	r := &Reconciler{Engine: &argo.Adapter{Client: cl, Reader: cl, Config: config.Workflow}, Client: cl, Reader: cl, StackNamespace: "platform-system", Now: func() time.Time { return fixed }}
 	return r, o
 }
 func getStack(t *testing.T, r *Reconciler) *unstructured.Unstructured {
@@ -76,20 +72,49 @@ func current(t *testing.T, r *Reconciler) *unstructured.Unstructured {
 	}
 	return w
 }
-func workflowStatus(t *testing.T, r *Reconciler, phase, decision, outcome, request string) {
+func workflowStatus(t *testing.T, r *Reconciler, phase, progress, outcome, token string) {
 	t.Helper()
 	w := current(t, r)
-	record, _ := json.Marshal(M{"decision": decision, "hash": "hash"})
-	p := []any{M{"name": r.Engine.(*argo.Adapter).Config.Parameters.Output.Decision, "value": string(record)}}
-	if outcome != "" {
-		p = append(p, M{"name": r.Engine.(*argo.Adapter).Config.Parameters.Output.Result, "value": outcome})
+	run := getRun(t, r)
+	names := r.Engine.(*argo.Adapter).Config.Parameters.Output
+	p := []any{}
+	add := func(name string, fields M) {
+		fields["workflow"], fields["intentHash"] = run["workflow"], run["intentHash"]
+		data, err := json.Marshal(fields)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p = append(p, M{"name": name, "value": string(data)})
 	}
-	if request != "" {
-		p = append(p, M{"name": r.Engine.(*argo.Adapter).Config.Parameters.Output.Authorization, "value": request})
+	add(names.ResolvedSource, M{"reference": "immutable-rev", "binding": "destination-01"})
+	if progress != "" {
+		add(names.State, M{"phase": progress})
+	}
+	if outcome != "" {
+		add(names.Result, M{"outcome": outcome, "reason": "FixtureDiagnostic"})
+	}
+	if token != "" {
+		add(names.Authorization, M{"token": token})
 	}
 	w.Object["status"] = M{"phase": phase, "outputs": M{"parameters": p}}
-	if e := r.Status().Update(context.Background(), w); e != nil {
-		t.Fatal(e)
+	if err := r.Status().Update(context.Background(), w); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func grantAndClaim(t *testing.T, r *Reconciler) {
+	t.Helper()
+	workflowStatus(t, r, "Running", "", "", "hash")
+	tick(t, r, 1)
+	o := getStack(t, r)
+	status := obj(o.Object["status"])
+	run := obj(status["execution"])
+	if run["authorization"] != "hash" {
+		t.Fatal(run)
+	}
+	status["claim"] = M{"workflow": run["workflow"], "intentHash": run["intentHash"], "authorization": "hash"}
+	if err := r.Status().Update(context.Background(), o); err != nil {
+		t.Fatal(err)
 	}
 }
 func change(t *testing.T, r *Reconciler, k string, v any) {
@@ -109,25 +134,25 @@ func reason(t *testing.T, r *Reconciler) string {
 	return str(obj(a[0])["reason"])
 }
 func TestIntent(t *testing.T) {
-	r, o := fixture(t)
-	d, e := Intent(o, r.Catalog)
-	if e != nil || d["policyProfile"] != "simulator" || d["revision"] != strings.Repeat("a", 40) {
-		t.Fatalf("%v %v", d, e)
+	_, o := fixture(t)
+	d, err := Intent(o)
+	if err != nil || obj(d["context"])["arbitrary-key"] != "arbitrary-value" ||
+		obj(d["sourceRef"])["version"] != "latest" || d["revisionAnnotation"] != strings.Repeat("a", 40) {
+		t.Fatalf("%v %v", d, err)
 	}
-	obj(obj(o.Object["spec"])["sourceRef"])["path"] = "../x"
-	if _, e = Intent(o, r.Catalog); e == nil {
-		t.Fatal("fonte não autorizada")
+	obj(o.Object["spec"])["context"] = M{"region-free": "updated"}
+	updated, err := Intent(o)
+	if err != nil || execution(d, nil, "GitOps", 0)["intentHash"] == execution(updated, nil, "GitOps", 0)["intentHash"] {
+		t.Fatal("mudança de contexto não alterou a identidade")
 	}
-}
-func TestCatalogProfile(t *testing.T) {
-	for _, p := range []any{nil, "", "../network"} {
-		r, o := fixture(t)
-		r.Catalog.Targets["entity-a/simulator"].Stacks[name]["policyProfile"] = p
-		if _, e := Intent(o, r.Catalog); e == nil {
-			t.Fatal("perfil inválido aceito")
+	for _, path := range []string{"../x", "a/../x", "a/./x", "a//x", "a/", "/a", "./a"} {
+		obj(obj(o.Object["spec"])["sourceRef"])["path"] = path
+		if _, err := Intent(o); err == nil {
+			t.Fatalf("caminho inválido aceito: %s", path)
 		}
 	}
 }
+
 func TestIdempotency(t *testing.T) {
 	r, _ := fixture(t)
 	tick(t, r, 2)
@@ -145,16 +170,21 @@ func TestIdempotency(t *testing.T) {
 	}
 }
 func TestAuthorization(t *testing.T) {
-	for _, s := range []struct {
-		d, q  string
-		allow bool
-	}{{"AutoApply", "hash", true}, {"RequireApproval", "hash", true}, {"RequireApproval", "bad", false}, {"Deny", "hash", false}, {"Error", "hash", false}} {
-		t.Run(s.d+s.q, func(t *testing.T) {
+	for _, test := range []struct {
+		name, phase, outcome, token string
+		allow                       bool
+	}{
+		{"request", "Running", "", "hash", true},
+		{"waiting", "Waiting", "", "", false},
+		{"external gate completed", "Waiting", "", "hash", true},
+		{"contradictory", "Running", "Blocked", "hash", false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
 			r, _ := fixture(t)
 			tick(t, r, 4)
-			workflowStatus(t, r, "Running", s.d, "", s.q)
+			workflowStatus(t, r, "Running", test.phase, test.outcome, test.token)
 			tick(t, r, 1)
-			if (getRun(t, r)["authorization"] == "hash") != s.allow {
+			if (getRun(t, r)["authorization"] == "hash") != test.allow {
 				t.Fatal(getRun(t, r))
 			}
 		})
@@ -163,7 +193,7 @@ func TestAuthorization(t *testing.T) {
 func TestCancelBeforeApply(t *testing.T) {
 	r, _ := fixture(t)
 	tick(t, r, 4)
-	change(t, r, "configuration", M{"version": strings.Repeat("b", 40)})
+	change(t, r, "context", M{"arbitrary-key": "changed-value"})
 	tick(t, r, 2)
 	if obj(current(t, r).Object["spec"])["shutdown"] != "Terminate" {
 		t.Fatal("não cancelou")
@@ -177,17 +207,13 @@ func TestCancelBeforeApply(t *testing.T) {
 func TestActiveApplyPreserved(t *testing.T) {
 	r, _ := fixture(t)
 	tick(t, r, 4)
-	o := getStack(t, r)
-	obj(obj(o.Object["status"])["execution"])["applying"] = true
-	if e := r.Status().Update(context.Background(), o); e != nil {
-		t.Fatal(e)
-	}
-	change(t, r, "configuration", M{"version": strings.Repeat("b", 40)})
+	grantAndClaim(t, r)
+	change(t, r, "context", M{"arbitrary-key": "changed-value"})
 	tick(t, r, 1)
 	if obj(current(t, r).Object["spec"])["shutdown"] != nil {
 		t.Fatal("apply interrompido")
 	}
-	workflowStatus(t, r, "Succeeded", "AutoApply", "Verified", "")
+	workflowStatus(t, r, "Succeeded", "Running", "Verified", "hash")
 	tick(t, r, 2)
 	if num(getRun(t, r)["sequence"]) != 2 {
 		t.Fatal(getRun(t, r))
@@ -200,7 +226,7 @@ func TestMissingWorkflow(t *testing.T) {
 		t.Fatal(e)
 	}
 	tick(t, r, 2)
-	if reason(t, r) != "WorkflowMissing" {
+	if reason(t, r) != "ExecutionMissing" {
 		t.Fatal(reason(t, r))
 	}
 }
@@ -208,7 +234,7 @@ func TestDriftTimer(t *testing.T) {
 	r, _ := fixture(t)
 	change(t, r, "reconciliation", M{"driftCheckInterval": "45s"})
 	tick(t, r, 4)
-	workflowStatus(t, r, "Succeeded", "NoChanges", "", "")
+	workflowStatus(t, r, "Succeeded", "Running", "NoChanges", "")
 	tick(t, r, 1)
 	result := tick(t, r, 1)
 	if result.RequeueAfter != 45*time.Second {
@@ -216,7 +242,7 @@ func TestDriftTimer(t *testing.T) {
 	}
 	r.Now = func() time.Time { return fixed.Add(45 * time.Second) }
 	tick(t, r, 2)
-	if getRun(t, r)["trigger"] != "DriftCheck" {
+	if getRun(t, r)["trigger"] != "DriftCheck" || getRun(t, r)["pinnedReference"] != "immutable-rev" {
 		t.Fatal(getRun(t, r))
 	}
 }
@@ -224,17 +250,17 @@ func TestRetry(t *testing.T) {
 	r, _ := fixture(t)
 	change(t, r, "reconciliation", M{"retryPolicy": M{"strategy": "Fixed", "interval": "10s", "maxRetries": int64(1)}})
 	tick(t, r, 4)
-	workflowStatus(t, r, "Failed", "AutoApply", "", "")
+	workflowStatus(t, r, "Failed", "Running", "", "")
 	tick(t, r, 1)
 	if tick(t, r, 1).RequeueAfter != 10*time.Second {
 		t.Fatal("timer")
 	}
 	r.Now = func() time.Time { return fixed.Add(10 * time.Second) }
 	tick(t, r, 2)
-	if num(getRun(t, r)["attempt"]) != 1 {
+	if num(getRun(t, r)["attempt"]) != 1 || getRun(t, r)["pinnedReference"] != "immutable-rev" {
 		t.Fatal(getRun(t, r))
 	}
-	workflowStatus(t, r, "Failed", "AutoApply", "", "")
+	workflowStatus(t, r, "Failed", "Running", "", "")
 	tick(t, r, 1)
 	r.Now = func() time.Time { return fixed.Add(time.Hour) }
 	tick(t, r, 2)
@@ -251,29 +277,34 @@ func TestSuspend(t *testing.T) {
 	}
 }
 func TestDependencies(t *testing.T) {
-	r, o := fixture(t)
-	obj(o.Object["spec"])["dependsOn"] = []any{M{"name": "simulator-dependent"}}
-	d, e := Intent(o, r.Catalog)
-	if e != nil {
-		t.Fatal(e)
+	_, o := fixture(t)
+	obj(o.Object["spec"])["dependsOn"] = []any{M{"name": "dependent"}}
+	spec, err := specOf(o)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if DependenciesReady(nil, o, d, r.Catalog) {
-		t.Fatal("dependência ausente")
+	if dependencyReason(nil, o, spec, "apply") != "DependencyBlocked" {
+		t.Fatal("dependência ausente aceita")
 	}
 	other := o.DeepCopy()
-	other.SetName("simulator-dependent")
+	other.SetName("dependent")
+	obj(other.Object["spec"])["dependsOn"] = []any{M{"name": o.GetName()}}
+	if dependencyReason([]unstructured.Unstructured{*o, *other}, o, spec, "apply") != "DependencyCycle" {
+		t.Fatal("ciclo aceito")
+	}
 	obj(other.Object["spec"])["dependsOn"] = []any{}
-	desired, e := Intent(other, r.Catalog)
-	if e != nil {
-		t.Fatal(e)
+	obj(other.Object["spec"])["context"] = M{"another": "context"}
+	desired, err := Intent(other)
+	if err != nil {
+		t.Fatal(err)
 	}
 	other.Object["status"] = M{"observedGeneration": int64(1), "execution": M{"intent": desired}, "conditions": []any{M{"type": "Ready", "status": "True", "observedGeneration": int64(1)}}}
-	if !DependenciesReady([]unstructured.Unstructured{*other}, o, d, r.Catalog) {
-		t.Fatal("dependência pronta")
+	if dependencyReason([]unstructured.Unstructured{*o, *other}, o, spec, "apply") != "" {
+		t.Fatal("dependência pronta de outro contexto deveria ser aceita")
 	}
 	other.SetGeneration(2)
-	if DependenciesReady([]unstructured.Unstructured{*other}, o, d, r.Catalog) {
-		t.Fatal("geração obsoleta")
+	if dependencyReason([]unstructured.Unstructured{*o, *other}, o, spec, "apply") != "DependencyBlocked" {
+		t.Fatal("geração obsoleta aceita")
 	}
 }
 func TestRetainAndDestroy(t *testing.T) {
@@ -293,7 +324,8 @@ func TestRetainAndDestroy(t *testing.T) {
 				if obj(getRun(t, r)["intent"])["operation"] != "destroy" {
 					t.Fatal("intenção destroy")
 				}
-				workflowStatus(t, r, "Succeeded", "RequireApproval", "Verified", "")
+				grantAndClaim(t, r)
+				workflowStatus(t, r, "Succeeded", "Waiting", "Verified", "hash")
 				tick(t, r, 2)
 			}
 			check := stackObject()
@@ -304,19 +336,17 @@ func TestRetainAndDestroy(t *testing.T) {
 		})
 	}
 }
-func TestPolicyError(t *testing.T) {
+func TestBlockedResult(t *testing.T) {
 	r, _ := fixture(t)
 	tick(t, r, 4)
-	w := current(t, r)
-	w.Object["status"] = M{"phase": "Failed", "nodes": M{"opa": M{"templateName": "opa", "phase": "Error"}}}
-	if e := r.Status().Update(context.Background(), w); e != nil {
-		t.Fatal(e)
-	}
+	workflowStatus(t, r, "Succeeded", "Running", "Blocked", "")
 	tick(t, r, 1)
-	if reason(t, r) != "PolicyError" {
-		t.Fatal(reason(t, r))
+	result := obj(obj(getStack(t, r).Object["status"])["result"])
+	if reason(t, r) != "ExecutionBlocked" || result["reason"] != "FixtureDiagnostic" {
+		t.Fatal(reason(t, r), result)
 	}
 }
+
 func TestEnvtestStatusCAS(t *testing.T) {
 	if os.Getenv("KUBEBUILDER_ASSETS") == "" {
 		t.Skip("configure KUBEBUILDER_ASSETS")
@@ -347,11 +377,11 @@ func TestEnvtestStatusCAS(t *testing.T) {
 		t.Fatal(e)
 	}
 	stale := o.DeepCopy()
-	o.Object["status"] = M{"execution": M{"applying": true}}
+	o.Object["status"] = M{"claim": M{"workflow": "test-wf", "intentHash": strings.Repeat("a", 64), "authorization": "test-token"}}
 	if e = c.Status().Update(context.Background(), o); e != nil {
 		t.Fatal(e)
 	}
-	stale.Object["status"] = M{"execution": M{"applying": false}}
+	stale.Object["status"] = M{"execution": M{"cancelling": true}}
 	if e = c.Status().Update(context.Background(), stale); !apierrors.IsConflict(e) {
 		t.Fatalf("esperava conflito, obtido %v", e)
 	}
@@ -361,8 +391,7 @@ func TestRenamedIntegration(t *testing.T) {
 	r, _ := fixture(t)
 	r.Engine.(*argo.Adapter).Config.TemplateRef.Name = "custom-workflow"
 	r.Engine.(*argo.Adapter).Config.Parameters.Input.Intent = "request-json"
-	r.Engine.(*argo.Adapter).Config.Parameters.Input.Volume = "workspace"
-	r.Engine.(*argo.Adapter).Config.Parameters.Output.Decision = "policy-output"
+	r.Engine.(*argo.Adapter).Config.Parameters.Output.State = "policy-output"
 	r.Engine.(*argo.Adapter).Config.Parameters.Output.Authorization = "authorized-hash"
 	r.Engine.(*argo.Adapter).Config.Parameters.Output.Result = "verification"
 	tick(t, r, 4)
@@ -372,10 +401,10 @@ func TestRenamedIntegration(t *testing.T) {
 		t.Fatal(spec)
 	}
 	inputs := arr(obj(spec["arguments"])["parameters"])
-	if obj(inputs[0])["name"] != "request-json" || obj(inputs[1])["name"] != "workspace" {
+	if len(inputs) != 1 || obj(inputs[0])["name"] != "request-json" {
 		t.Fatal(inputs)
 	}
-	workflowStatus(t, r, "Running", "AutoApply", "", "hash")
+	workflowStatus(t, r, "Running", "Running", "", "hash")
 	tick(t, r, 1)
 	if getRun(t, r)["authorization"] != "hash" {
 		t.Fatal("contrato renomeado não reconhecido")
@@ -385,23 +414,32 @@ func TestIntegrationChangeBlocksActiveRun(t *testing.T) {
 	r, _ := fixture(t)
 	tick(t, r, 4)
 	old := getRun(t, r)["workflow"]
-	r.Engine.(*argo.Adapter).Config.Parameters.Output.Decision = "different-decision"
+	r.Engine.(*argo.Adapter).Config.Parameters.Output.State = "different-decision"
 	tick(t, r, 1)
 	if reason(t, r) != "IntegrationChanged" || getRun(t, r)["workflow"] != old {
 		t.Fatal("execução não preservada")
 	}
 }
-func TestRenamedPolicyFailure(t *testing.T) {
+func TestWorkflowOperationalFailure(t *testing.T) {
 	r, _ := fixture(t)
-	r.Engine.(*argo.Adapter).Config.Templates.Policy = "policy-check"
 	tick(t, r, 4)
 	w := current(t, r)
-	w.Object["status"] = M{"phase": "Failed", "nodes": M{"policy": M{"templateName": "policy-check", "phase": "Error"}}}
-	if e := r.Status().Update(context.Background(), w); e != nil {
-		t.Fatal(e)
+	w.Object["status"] = M{"phase": "Failed", "nodes": M{"arbitrary": M{"templateName": "arbitrary-step", "phase": "Error"}}}
+	if err := r.Status().Update(context.Background(), w); err != nil {
+		t.Fatal(err)
 	}
 	tick(t, r, 1)
-	if reason(t, r) != "PolicyError" {
+	if reason(t, r) != "ExecutionFailed" {
+		t.Fatal(reason(t, r))
+	}
+}
+
+func TestUnclaimedVerifiedResult(t *testing.T) {
+	r, _ := fixture(t)
+	tick(t, r, 4)
+	workflowStatus(t, r, "Succeeded", "Running", "Verified", "hash")
+	tick(t, r, 1)
+	if reason(t, r) != "InvalidExecutionContract" {
 		t.Fatal(reason(t, r))
 	}
 }

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Verifica o contrato v1alpha1 sem acesso a Kubernetes/AWS."""
+"""Verifica o contrato v1alpha1 e o transporte da pipeline."""
 
+import json
 from pathlib import Path
 import unittest
 
@@ -8,10 +9,11 @@ import yaml
 from jsonschema import Draft7Validator, ValidationError
 
 ROOT = Path(__file__).resolve().parents[1]
-CRD = ROOT / "control-plane/terraformstack/crd/terraformstack.yaml"
-SIMULATOR = ROOT / "control-plane/terraformstack/examples/simulator/stacks.yaml"
-CONTROLLER = ROOT / "control-plane/terraformstack/controller"
-WORKFLOW = ROOT / "workflow-plane/argo-workflows/terraformstack/workflowtemplate.yaml"
+TERRAFORMSTACK = ROOT / "control-plane/terraformstack"
+CRD = TERRAFORMSTACK / "crd/terraformstack.yaml"
+SIMULATOR = TERRAFORMSTACK / "examples/simulator/stacks.yaml"
+CONTROLLER = TERRAFORMSTACK / "controller"
+PIPELINE = ROOT / "workflow-plane/argo-workflows/terraformstack"
 
 
 class TerraformStackContractTest(unittest.TestCase):
@@ -20,93 +22,84 @@ class TerraformStackContractTest(unittest.TestCase):
         crd = yaml.safe_load(CRD.read_text(encoding="utf-8"))
         cls.schema = crd["spec"]["versions"][0]["schema"]["openAPIV3Schema"]
         Draft7Validator.check_schema(cls.schema)
-        # Em fieldValidation=Strict, a API rejeita campos fora do schema estrutural.
         spec = cls.schema["properties"]["spec"]
-        spec["additionalProperties"] = False
-        spec["properties"]["configuration"]["additionalProperties"] = False
+        for fields in (spec, spec["properties"]["sourceRef"]):
+            fields["additionalProperties"] = False
         cls.validator = Draft7Validator(cls.schema)
 
-    def example(self, **spec_changes):
-        spec = {
-            "target": {"entity": "entity-a", "environment": "uat"},
-            "sourceRef": {"name": "foundation-stacks", "path": "stacks/network"},
-        }
-        spec.update(spec_changes)
+    @staticmethod
+    def example(**changes):
+        spec = {"sourceRef": {"repository": "https://example.org/stacks.git", "path": "stacks/network"}}
+        spec.update(changes)
         return {"spec": spec}
 
-    def test_both_simulator_requests_validate(self):
+    def test_simulator_manifests_match_pipeline_profile(self):
         manifests = list(yaml.safe_load_all(SIMULATOR.read_text(encoding="utf-8")))
-        self.assertEqual(len(manifests), 2)
+        profile = json.loads((PIPELINE / "simulator.json").read_text(encoding="utf-8"))
+        self.assertEqual({item["metadata"]["name"] for item in manifests}, set(profile["slots"]))
         for manifest in manifests:
             with self.subTest(stack=manifest["metadata"]["name"]):
                 self.validator.validate(manifest)
-                self.assertEqual(manifest["spec"]["sourceRef"]["path"], "foundation/stacks/simulator")
+                self.assertEqual(manifest["metadata"]["namespace"], profile["stackNamespace"])
+                self.assertEqual(manifest["spec"]["sourceRef"]["path"], profile["path"])
+                self.assertEqual(manifest["spec"]["sourceRef"]["repository"], profile["repository"])
+                self.assertEqual(manifest["spec"]["context"], profile["context"])
 
-    def test_latest_defaults_are_in_schema(self):
+    def test_optional_context_and_version(self):
+        self.validator.validate(self.example())
+        self.validator.validate(self.example(context={"anything": "any value"}))
+        self.validator.validate(self.example(sourceRef={
+            "repository": "opaque-repository", "path": "stacks/network", "version": "v1.2.3",
+        }))
         properties = self.schema["properties"]["spec"]["properties"]
         self.assertEqual(properties["sourceRef"]["properties"]["version"]["default"], "latest")
-        self.assertEqual(properties["configuration"]["properties"]["version"]["default"], "latest")
         self.assertFalse(properties["lifecycle"]["properties"]["destroy"]["default"])
         self.assertFalse(properties["lifecycle"]["properties"]["destroyResourcesOnDeletion"]["default"])
 
-    def test_version_can_be_omitted_or_specified(self):
-        self.validator.validate(self.example())
-        self.validator.validate(self.example(sourceRef={
-            "name": "foundation-stacks", "path": "stacks/network", "version": "1.2.3",
-        }))
-        self.validator.validate(self.example(configuration={"version": "latest"}))
-
-    def test_legacy_module_is_rejected(self):
-        with self.assertRaises(ValidationError):
-            self.validator.validate({"spec": {
-                "module": {"name": "lab-network", "version": "1.0.0"},
-                "target": {"entity": "entity-a", "environment": "uat"},
-            }})
-        with self.assertRaises(ValidationError):
-            self.validator.validate(self.example(
-                module={"name": "lab-network", "version": "1.0.0"}
-            ))
-
-    def test_configuration_revision_is_rejected(self):
-        with self.assertRaises(ValidationError):
-            self.validator.validate(self.example(configuration={"revision": "old-sha"}))
-
-    def test_rejects_unknown_source_selector_and_invalid_controls(self):
-        for spec in (
-            {"target": {"entity": "entity-a", "environment": "uat"}},
-            self.example(sourceRef={"name": "foundation-stacks"}),
+    def test_previous_fields_and_invalid_types_are_rejected(self):
+        for request in (
+            {"spec": {}},
+            self.example(sourceRef={"name": "foundation-stacks", "path": "a"}),
+            self.example(sourceRef={"repository": "repo", "path": "a", "name": "old"}),
+            self.example(sourceRef={"repository": "repo", "path": "/absolute"}),
+            self.example(context={"scope": ["one", "two"]}),
+            self.example(target={"entity": "entity-a", "environment": "uat"}),
+            self.example(configuration={"version": "latest"}),
+            self.example(timeout={"apply": "15m"}),
+            self.example(healthChecks=[]),
+            self.example(module={"name": "old"}),
             self.example(reconciliation={"driftCheckInterval": "garbage"}),
             self.example(lifecycle={"destroy": "true"}),
-            self.example(timeout={"apply": "tomorrow"}),
             self.example(reconciliation={"retryPolicy": {"strategy": "Always"}}),
         ):
-            with self.subTest(spec=spec), self.assertRaises(ValidationError):
-                self.validator.validate(spec if "spec" in spec else {"spec": spec})
+            with self.subTest(request=request), self.assertRaises(ValidationError):
+                self.validator.validate(request)
 
-    def test_extended_fields_and_workflow_parameters(self):
+    def test_controls_and_workflow_contract(self):
         self.validator.validate(self.example(
             dependsOn=[{"name": "network-uat"}], suspend=True,
             reconciliation={"driftCheckInterval": "6h", "retryPolicy": {
                 "strategy": "ExponentialBackoff", "interval": "5m", "maxInterval": "1h",
             }},
             lifecycle={"destroy": False, "destroyResourcesOnDeletion": False},
-            timeout={"plan": "15m", "apply": "1h"},
-            healthChecks=[{"name": "vpc", "type": "TerraformOutput", "target": "vpc_id"}],
         ))
-        template = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
-        names = {p["name"] for p in template["spec"]["arguments"]["parameters"]}
-        self.assertEqual(names, {"intent", "volume"})
+        template = yaml.safe_load((PIPELINE / "workflowtemplate.yaml").read_text(encoding="utf-8"))
+        config = yaml.safe_load((CONTROLLER / "controller-config.yaml").read_text(encoding="utf-8"))
+        transport = config["workflow"]["parameters"]
+        inputs = {p["name"] for p in template["spec"]["arguments"]["parameters"]}
+        self.assertEqual(inputs, {transport["input"]["intent"]})
         templates = {item["name"]: item for item in template["spec"]["templates"]}
-        steps = [item["name"] for group in templates["reconcile"]["steps"] for item in group]
-        self.assertEqual(steps, ["prepare", "init", "validate", "plan", "opa", "decision",
-                                 "approval", "authorize", "apply", "verify"])
+        steps = lambda name: [item["name"] for group in templates[name]["steps"] for item in group]
+        self.assertEqual(steps("reconcile"), ["resolve", "prepare", "execute"])
+        self.assertEqual(steps("execute"), ["init", "validate", "plan", "opa", "decision",
+                                            "approval", "authorize", "apply", "verify"])
+        outputs = {p["globalName"] for t in templates.values()
+                   for p in t.get("outputs", {}).get("parameters", []) if "globalName" in p}
+        self.assertTrue(set(transport["output"].values()).issubset(outputs))
         self.assertEqual(templates["opa"]["container"]["command"], ["/opa"])
-        for name in ["prepare", "init", "validate", "plan", "apply", "verify"]:
+        self.assertNotIn("volumes", templates["resolve"])
+        for name in ["resolve", "prepare", "init", "validate", "plan", "apply", "verify"]:
             self.assertEqual(templates[name]["container"]["image"], "terraformstack-runner:local")
-
-    def test_controller_entrypoint(self):
-        self.assertTrue((CONTROLLER / "cmd/main.go").is_file())
-        self.assertTrue((CONTROLLER / "go.mod").is_file())
 
 
 if __name__ == "__main__":

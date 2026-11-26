@@ -1,0 +1,12 @@
+{
+  "repository": "https://github.com/DavidFerreira21/platform-engineering-poc.git",
+  "path": "foundation/stacks/simulator",
+  "context": {"entity": "entity-a", "environment": "simulator"},
+  "stackNamespace": "platform-system",
+  "resourceNamespace": "terraformstack-simulator",
+  "slots": ["simulator-network", "simulator-dependent"],
+  "configurationPath": "foundation/config",
+  "backend": {"path": "/state/terraform.tfstate"},
+  "policyProfile": "simulator",
+  "iac": "terraform"
+}

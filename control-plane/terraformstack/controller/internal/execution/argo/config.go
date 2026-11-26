@@ -12,27 +12,22 @@ type TemplateRef struct {
 }
 type InputParameters struct {
 	Intent string `json:"intent"`
-	Volume string `json:"volume"`
 }
 type OutputParameters struct {
-	Decision      string `json:"decision"`
-	Authorization string `json:"authorization"`
-	Approval      string `json:"approval"`
-	Result        string `json:"result"`
+	State          string `json:"state"`
+	Authorization  string `json:"authorization"`
+	Result         string `json:"result"`
+	ResolvedSource string `json:"resolvedSource"`
 }
 type Parameters struct {
 	Input  InputParameters  `json:"input"`
 	Output OutputParameters `json:"output"`
 }
-type Templates struct {
-	Policy   string `json:"policy"`
-	Approval string `json:"approval"`
-}
 type WorkflowConfig struct {
-	Namespace   string      `json:"namespace"`
-	TemplateRef TemplateRef `json:"templateRef"`
-	Parameters  Parameters  `json:"parameters"`
-	Templates   Templates   `json:"templates"`
+	Namespace          string      `json:"namespace"`
+	TemplateRef        TemplateRef `json:"templateRef"`
+	ServiceAccountName string      `json:"serviceAccountName"`
+	Parameters         Parameters  `json:"parameters"`
 }
 
 func validName(label, v string, ns bool) error {
@@ -67,20 +62,21 @@ func (w WorkflowConfig) Validate() error {
 	if e := validName("workflow.templateRef.name", w.TemplateRef.Name, false); e != nil {
 		return e
 	}
-	if e := distinct("workflow.parameters.input", w.Parameters.Input.Intent, w.Parameters.Input.Volume); e != nil {
+	if e := validName("workflow.serviceAccountName", w.ServiceAccountName, false); e != nil {
+		return e
+	}
+	if e := validName("workflow.parameters.input.intent", w.Parameters.Input.Intent, false); e != nil {
 		return e
 	}
 	p := w.Parameters.Output
-	if e := distinct("workflow.parameters.output", p.Decision, p.Authorization, p.Approval, p.Result); e != nil {
-		return e
-	}
-	return distinct("workflow.templates", w.Templates.Policy, w.Templates.Approval)
+	return distinct("workflow.parameters.output", p.State, p.Authorization, p.Result, p.ResolvedSource)
 }
 
 func (w WorkflowConfig) Snapshot() execution.Data {
-	return execution.Data{"namespace": w.Namespace, "templateRef": w.TemplateRef.Name,
-		"intent": w.Parameters.Input.Intent, "volume": w.Parameters.Input.Volume,
-		"decision": w.Parameters.Output.Decision, "authorization": w.Parameters.Output.Authorization,
-		"approvalResult": w.Parameters.Output.Approval, "result": w.Parameters.Output.Result,
-		"policyTemplate": w.Templates.Policy, "approvalTemplate": w.Templates.Approval}
+	return execution.Data{
+		"namespace": w.Namespace, "templateRef": w.TemplateRef.Name, "serviceAccountName": w.ServiceAccountName,
+		"intent": w.Parameters.Input.Intent, "state": w.Parameters.Output.State,
+		"authorization": w.Parameters.Output.Authorization, "result": w.Parameters.Output.Result,
+		"resolvedSource": w.Parameters.Output.ResolvedSource,
+	}
 }

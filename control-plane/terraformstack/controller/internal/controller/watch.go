@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"os"
 	"slices"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -16,14 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
-func LoadCatalog(path string) (Catalog, error) {
-	b, e := os.ReadFile(path)
-	if e != nil {
-		return Catalog{}, e
-	}
-	return readCatalog(b)
-}
 
 const dependencyIndex = "terraformstack.dependsOn"
 

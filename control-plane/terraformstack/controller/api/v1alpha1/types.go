@@ -11,13 +11,9 @@ var GroupVersion = schema.GroupVersion{Group: "platform.example.io", Version: "v
 var StackGVK = GroupVersion.WithKind("TerraformStack")
 
 type SourceRef struct {
-	Name    string `json:"name"`
-	Path    string `json:"path"`
-	Version string `json:"version,omitempty"`
-}
-type Target struct {
-	Entity      string `json:"entity"`
-	Environment string `json:"environment"`
+	Repository string `json:"repository"`
+	Path       string `json:"path"`
+	Version    string `json:"version,omitempty"`
 }
 type Dependency struct {
 	Name string `json:"name"`
@@ -29,13 +25,10 @@ type RetryPolicy struct {
 	MaxRetries  int    `json:"maxRetries,omitempty"`
 }
 type StackSpec struct {
-	SourceRef     SourceRef `json:"sourceRef"`
-	Target        Target    `json:"target"`
-	Configuration struct {
-		Version string `json:"version,omitempty"`
-	} `json:"configuration,omitempty"`
-	DependsOn []Dependency `json:"dependsOn,omitempty"`
-	Suspend   bool         `json:"suspend,omitempty"`
+	SourceRef SourceRef         `json:"sourceRef"`
+	Context   map[string]string `json:"context,omitempty"`
+	DependsOn []Dependency      `json:"dependsOn,omitempty"`
+	Suspend   bool              `json:"suspend,omitempty"`
 	Lifecycle struct {
 		Destroy                    bool `json:"destroy,omitempty"`
 		DestroyResourcesOnDeletion bool `json:"destroyResourcesOnDeletion,omitempty"`
