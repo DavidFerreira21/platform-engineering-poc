@@ -13,7 +13,28 @@ type Run struct {
 	Terminal  bool
 	Succeeded bool
 	Valid     bool
-	Result    Data
+	Result    Data // Diagnostic payload.
+	Signals   Signals
+}
+
+type Outcome string
+
+const (
+	OutcomeUnknown   Outcome = ""
+	OutcomeNoChanges Outcome = "NoChanges"
+	OutcomeVerified  Outcome = "Verified"
+	OutcomeBlocked   Outcome = "Blocked"
+	OutcomeCancelled Outcome = "Cancelled"
+)
+
+// Signals contains normalized operational observations. AuthorizationRequest
+// is opaque and must have been validated by the trusted adapter.
+type Signals struct {
+	AuthorizationRequest string
+	Waiting              bool
+	DriftDetected        bool
+	Outcome              Outcome
+	Reason               string
 }
 
 type Engine interface {
