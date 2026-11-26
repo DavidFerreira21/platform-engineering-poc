@@ -16,32 +16,53 @@ O catálogo seleciona fonte, destino, backend e identidade. O controller fixa os
 
 ## Pré-requisitos
 
-Hub `kind`, Argo CD e Argo Workflows instalados. CRD estabelecido pela [Etapa 04](04-terraformstack-crd.md). Execute os comandos na raiz do repositório.
+Hub `platform-management`, Argo CD e Argo Workflows instalados. CRD estabelecido pela Etapa 04. Execute os comandos na raiz do repositório. [Hub local](01-platform-management-cluster.md) · [Etapa 04](04-terraformstack-crd.md)
 
-## 1. Construir e carregar as imagens
+## 1. Construir ou reconstruir as imagens
 
-Confira o [contrato de integração](../control-plane/terraformstack/controller/controller-config.yaml) antes do build. Os nomes configurados devem corresponder ao WorkflowTemplate; Kustomize monta a configuração imutável no controller. O catálogo autoriza as stacks e o Workflow define os steps.
+Antes do primeiro sync, confira se o checkout corresponde à revisão que será sincronizada. Kustomize monta a configuração imutável no controller, e os nomes do contrato precisam corresponder ao WorkflowTemplate. [Contrato de integração](../control-plane/terraformstack/controller/controller-config.yaml)
+
+Use o mesmo bloco na primeira instalação e para reconstruir as imagens após atualizar o controller ou o runner. O build atualiza as tags no Docker. O `kind load` carrega essas imagens no nó do Hub.
 
 ```bash
-cluster="${HUB_KIND_NAME:-platform-management}"
-hub() { kubectl --context "kind-$cluster" "$@"; }
-
-docker build -t terraformstack-controller:local control-plane/terraformstack/controller
-docker build -t terraformstack-runner:local workflow-plane/terraform-executor
-kind load docker-image --name "$cluster" terraformstack-controller:local terraformstack-runner:local
-hub apply -f platform/hub/addons/bootstrap.yaml
+docker build -t terraformstack-controller:local control-plane/terraformstack/controller &&
+docker build -t terraformstack-runner:local workflow-plane/terraform-executor &&
+kind load docker-image --name platform-management \
+  terraformstack-controller:local terraformstack-runner:local
 ```
 
-Se o diff da Application do controller mostrar o catálogo sem hash de conteúdo, confira o build do overlay com `kubectl kustomize control-plane/terraformstack/overlays/kind`. Se houver erro de imagem, compare o nome e a tag da revisão sincronizada com as imagens carregadas no nó.
+Se o Deployment já estiver instalado e a imagem do controller tiver sido atualizada na mesma tag, reinicie o Deployment após o `kind load`. Os Pods já em execução continuam usando a imagem com que iniciaram. Para atualizar o runner na mesma tag, aguarde os Workflows em andamento concluírem para que cada execução use a mesma imagem em todos os steps.
+
+```bash
+kubectl --context kind-platform-management -n platform-system \
+  rollout restart deployment/terraformstack-controller &&
+kubectl --context kind-platform-management -n platform-system \
+  rollout status deployment/terraformstack-controller --timeout=120s
+```
+
+Em `ImagePullBackOff` com tag `:local`, confira o carregamento no nó com `docker exec platform-management-control-plane crictl images`. O comando abaixo confirma se a tag do Docker aponta para o controller Go. O resultado esperado é `["/manager"]`. Se precisar aplicar uma revisão de manifesto, prossiga para o sync dos componentes.
+
+```bash
+docker image inspect --format '{{json .Config.Entrypoint}}' terraformstack-controller:local
+```
 
 ## 2. Sincronizar os componentes
+
+Use o bootstrap do Hub para registrar as Applications. Se já estiverem cadastradas e a revisão atualizar apenas a imagem local, basta reconstruir, carregar e reiniciar o Deployment conforme o passo anterior.
+
+```bash
+hub() { kubectl --context kind-platform-management "$@"; }
+hub apply -f platform/hub/addons/bootstrap.yaml
+```
 
 No Argo CD, confira a revisão e o destino Hub antes de cada sync manual.
 
 1. **terraformstack-workflows** em `argo-workflows`. O diff deve mostrar o WorkflowTemplate, a ServiceAccount, o RBAC e os ConfigMaps imutáveis com scripts e Rego.
 2. **terraformstack-controller** em `platform-system`. O diff deve mostrar Deployment, catálogo, permissões, namespace do Simulator, PVCs e políticas de admissão.
 
-Para uma revisão ainda em branch, use Applications de preview com os mesmos projetos, paths e destinos e um SHA acessível ao Hub. Sincronize cada bloco por uma única Application. [Catálogo do Workflow](../platform/hub/addons/catalog/terraformstack-workflows.yaml) · [Catálogo do controller](../platform/hub/addons/catalog/terraformstack-controller.yaml)
+Se o catálogo aparecer sem hash no diff, confira o build do overlay com `kubectl kustomize control-plane/terraformstack/overlays/kind`.
+
+Para testar uma revisão publicada em branch, informe o SHA em **Sync → Revision** na própria Application de cada componente. Aguarde a operação terminar e confira o SHA no resultado do sync. O Argo CD pode mostrar `OutOfSync` enquanto compara com o destino `main` configurado no catálogo. [Catálogo do Workflow](../platform/hub/addons/catalog/terraformstack-workflows.yaml) · [Catálogo do controller](../platform/hub/addons/catalog/terraformstack-controller.yaml)
 
 ```bash
 hub -n platform-system rollout status deployment/terraformstack-controller --timeout=120s

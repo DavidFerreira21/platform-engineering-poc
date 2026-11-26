@@ -108,7 +108,18 @@ spec:
       container:
         image: openpolicyagent/opa:1.11.0-static
         command: [/opa]
-        args: [eval, --fail, --format=raw, --data, /platform/policy, --input, '/state/{{workflow.name}}/policy-input.json', data.terraformstack.decision]
+        # O ConfigMap expõe as mesmas regras em entradas visíveis e em ..data.
+        args:
+          - eval
+          - --fail
+          - --format=raw
+          - --ignore
+          - '..*'
+          - --data
+          - /platform/policy
+          - --input
+          - '/state/{{workflow.name}}/policy-input.json'
+          - data.terraformstack.decision
         volumeMounts:
           - {name: policy, mountPath: /platform/policy, readOnly: true}
           - {name: state, mountPath: /state, readOnly: true}

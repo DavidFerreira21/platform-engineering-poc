@@ -32,11 +32,44 @@ jobs:
           python3 -m pip install PyYAML
           kubectl kustomize workflow-plane/argo-workflows/terraformstack > /tmp/terraformstack.yaml
           python3 - <<'PY'
+          import json
+          from pathlib import Path
+          import subprocess
+          from tempfile import TemporaryDirectory
+
           import yaml
+
           docs = list(yaml.safe_load_all(open("/tmp/terraformstack.yaml")))
           cm = next(d for d in docs if d and d["kind"] == "ConfigMap" and d["metadata"]["name"].startswith("terraformstack-policy-"))
           wf = next(d for d in docs if d and d["kind"] == "WorkflowTemplate")
           assert set(cm["data"]) == {"decision.rego", "common.rego", "simulator.rego", "profiles.yaml"}
           assert cm["immutable"] is True
           assert next(v for v in wf["spec"]["volumes"] if v["name"] == "policy")["configMap"]["name"] == cm["metadata"]["name"]
+
+          opa = next(t["container"] for t in wf["spec"]["templates"] if t["name"] == "opa")
+          with TemporaryDirectory() as directory:
+              root = Path(directory)
+              policy = root / "policy"
+              version = policy / "..version"
+              version.mkdir(parents=True)
+              (policy / "..data").symlink_to(version.name, target_is_directory=True)
+              for name, content in cm["data"].items():
+                  (version / name).write_text(content, encoding="utf-8")
+                  (policy / name).symlink_to(Path("..data") / name)
+
+              state = root / "state"
+              run = state / "configmap-test"
+              run.mkdir(parents=True)
+              (run / "policy-input.json").write_text(json.dumps({
+                  "document": "{}",
+                  "context": json.dumps({"operation": "apply", "policyProfile": "simulator", "exitCode": 0}),
+              }), encoding="utf-8")
+
+              args = [arg.replace("{{workflow.name}}", run.name) for arg in opa["args"]]
+              result = subprocess.run([
+                  "docker", "run", "--rm", "--entrypoint", opa["command"][0],
+                  "--volume", f"{policy}:/platform/policy:ro", "--volume", f"{state}:/state:ro",
+                  opa["image"], *args,
+              ], stdout=subprocess.PIPE, text=True, check=True)
+              assert json.loads(result.stdout)["decision"] == "NoChanges"
           PY
