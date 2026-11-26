@@ -83,7 +83,7 @@ As duas primeiras Capabilities do roadmap são **`ObjectStorage` (S3)** e **`Dat
 
 **Não há `terraform apply` em todo reconcile da API Kubernetes.** A Etapa 06 exercita Terraform, OPA, aprovação e drift no Simulator. A Etapa 13 leva o apply aprovado à Network UAT. As Etapas 28–29 validam drift e políticas na AWS.
 
-Remover o CR do Git **não autoriza destroy automático**. Os detalhes de concorrência, plano imutável, aprovação, estado e retry estão no [ADR-0006](../adr/0006-terraformrun-and-application-ci.md) e serão aprofundados em `docs/flows/terraformstack.md`.
+A exclusão padrão do CR retém os recursos. O teardown habilitado explicitamente exige plano, política e aprovação. O fluxo detalha também concorrência, state e retry. [Fluxo do TerraformStack](terraformstack.md) · [ADR-0006](../adr/0006-terraformrun-and-application-ci.md)
 
 ## 6. Domain GitOps — aplicações das entidades
 

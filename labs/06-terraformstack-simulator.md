@@ -10,7 +10,7 @@ O Argo CD sincroniza a intenção em Git. O controller fixa as revisões de cód
 
 ## Por que fizemos assim
 
-O mesmo caminho de reconciliação atende o primeiro plan, as mudanças declaradas e a observação periódica do ambiente. Mantemos o state em um PVC por stack, com locking do backend local, e o plano binário em um diretório por execução. O OPA decide sobre o JSON derivado do plano. O apply revalida o hash, a política, a intenção e o efeito previsto antes de executar o binário salvo. O status registra a identidade da execução, a revisão, o resultado da política e o sinal de drift.
+O mesmo caminho de reconciliação atende o primeiro plan, as mudanças declaradas e a observação periódica do ambiente. Mantemos o state em um PVC por stack, com locking do backend local, e o plano binário em um diretório por execução. O OPA avalia o JSON derivado do plano. Antes do apply, a pipeline confere o hash do binário e compara o efeito previsto com um novo plan. A função `claim()` confere a intenção e a autorização vigentes no CR e marca `status.execution.applying: true`. O apply usa o binário salvo. [Autorização final do apply](../docs/flows/terraformstack.md#autorização-final-do-apply)
 
 O catálogo local autoriza os dois nomes do exercício, a raiz Terraform do repositório e o destino lógico `entity-a/simulator`. O Simulator lê Configuration com o perfil de dados `entity-a/uat`. O código Terraform das revisões aceitas é mantido pelo Platform Team. O Workflow usa uma versão imutável das regras Rego e o status publica seu SHA-256. [Contrato](../docs/flows/terraformstack.md) · [Política OPA](../workflow-plane/argo-workflows/terraformstack/policy.rego)
 
@@ -59,7 +59,7 @@ printf 'Bearer %s\n' "$(hub -n terraformstack-simulator create token "$approver"
 stack -o jsonpath='{.status.policy.hash}{"\n"}'
 ```
 
-Na [UI do Argo Workflows](https://workflows.localhost:8443), autentique com o token, selecione `argo-workflows`, abra o Workflow e o nó **approval**. No **Resume**, selecione `Approve` e informe o hash completo apresentado no status. Confira `status.policy.cidrs` para ver os CIDRs do plano antes e depois. Confira `Ready` e `network` com o novo valor. Repita com `Reject`, com hash incorreto e com a identidade somente leitura da Etapa 03. Cada tentativa que altera a decisão precisa de um Workflow novo, acionado por uma revisão aprovada. A resposta padrão do gate é `Reject`.
+Na [UI do Argo Workflows](https://workflows.localhost:8443), autentique com o token, selecione `argo-workflows`, abra o Workflow e o nó **approval**. No **Resume**, selecione `Approve` e informe o hash completo apresentado no status. Confira `status.policy.cidrs` para ver os CIDRs do plano antes e depois. Após o apply, confira `Ready / Verified` e o novo valor com a função `network`. Em ensaios separados, use `Reject` ou um hash incorreto e espere `ReconcileBlocked / ApprovalRejected`. Gere um Workflow novo por revisão aprovada após cada rejeição. Com a identidade somente leitura da Etapa 03, confira que a tentativa de retomar o gate é recusada. A resposta padrão do gate é `Reject`.
 
 ```bash
 docker exec "$cluster-control-plane" cat /var/local/terraformstack-audit/requests.jsonl |
@@ -115,7 +115,7 @@ Limpe primeiro as solicitações. Exclua o Workflow e os PVCs do Simulator apena
 
 ## O que observar
 
-- `status.observedGeneration`, `resolvedSource` e `execution.workflow` ligam intenção, commit e execução. O GitOps mostra a sincronização do CR. `lastCheckTime` e `lastDriftTime` mostram a observação do recurso pelo Terraform.
+- `status.observedGeneration`, `resolvedSource` e `execution.workflow` ligam intenção, commit e execução. O GitOps mostra a sincronização do CR. Leia a condição pelo par `type` e `reason`, como `ApprovalRequired / AwaitingApproval`. `lastCheckTime` e `lastDriftTime` registram a última tentativa concluída e a última detecção de drift. [Condições e diagnóstico](../docs/flows/terraformstack.md#6-status-e-diagnóstico)
 - `status.policy` guarda decisão, motivo, hash, resumo das ações, fase e identidade da aprovação. O log de auditoria do Hub confirma a identidade que retomou o gate. As evidências são o status, o ConfigMap e a ausência de mudança em um segundo plan.
 - Guarde revisão, ID ou digest de imagem e resultados do exercício. O PVC contém os planos e states locais.
 

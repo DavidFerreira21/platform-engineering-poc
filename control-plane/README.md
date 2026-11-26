@@ -11,13 +11,13 @@ O **Kubernetes API Server** é a API da plataforma para produtos técnicos Kuber
 | `Database` | Segunda Capability: **Aurora PostgreSQL**, dependente de conta UAT autorizada, VPC e controle de custo |
 | `Messaging`, `ComputeInstance` | Capabilities posteriores |
 
-Crossplane **não observa diretamente Git**. O **Argo CD central sincroniza CRs de Capability e, futuramente, `TerraformStack`** com a Kubernetes API do Hub. Crossplane reconcilia exclusivamente as Capabilities AWS de seu ownership; o TerraformStack Controller coordena os Workflows de Foundation/Entity Core. Os registros lógicos Domain/Environment não são CRs e exigem resolução confiável de destino e IAM; o Domain não escolhe uma role arbitrária. O Argo CD local mantém objetos Kubernetes de aplicações nos destinos autorizados.
+O Argo CD central sincroniza os CRs de Capability e `TerraformStack` com a Kubernetes API do Hub. Crossplane reconcilia as Capabilities de seu ownership. O TerraformStack Controller coordena os Workflows de Foundation e Entity Core. A plataforma valida destino e IAM a partir dos registros lógicos Domain e Environment. O Argo CD local mantém objetos Kubernetes de aplicações nos destinos autorizados.
 
 ## TerraformStack
 
-O Control Plane publica o CRD **`TerraformStack`** para expressar a **infraestrutura desejada** de Foundation e Entity Core. A [Etapa 05](../labs/05-terraformstack-runtime.md) exercita o controller com execução simulada. Na arquitetura-alvo, o Argo CD central sincroniza a solicitação, e o controller coordena os planos via Argo Workflows e Terraform Executor. Drift e reconciliação por políticas entram nas Etapas 22 e 23. `TerraformRun` é o nome opcional de uma execução isolada. [Guia da Etapa 04](../labs/04-terraformstack-crd.md)
+O Control Plane publica o CRD `TerraformStack` na Etapa 04. Na Etapa 05, instala o controller que resolve a intenção, agenda Workflows e publica o resultado no CR. Na Etapa 06, o Simulator executa Terraform real sobre um ConfigMap no `kind`, com OPA, aprovação, drift e destroy. Cada tentativa é representada por um Workflow. `TerraformRun` é um nome opcional para uma execução isolada. [Fluxo do TerraformStack](../docs/flows/terraformstack.md) · [Guia do Simulator](../labs/06-terraformstack-simulator.md)
 
-**Admission e políticas.** O CRD entra na Etapa 04. O controller e a pipeline entram na Etapa 05. O Simulator valida OPA e a reconciliação na Etapa 06, antes da validação AWS nas Etapas 28–29. [ADR-0006](../docs/adr/0006-terraformrun-and-application-ci.md)
+O primeiro apply de Network em UAT está previsto para a Etapa 13, com aprovação humana. As Etapas 28 e 29 validam drift e reconciliação por políticas na AWS. [Roadmap](../docs/learning-roadmap.md) · [ADR-0006](../docs/adr/0006-terraformrun-and-application-ci.md)
 
 A Etapa 07 instala o Crossplane Core no Hub via Argo CD e valida um XRD namespaced que compõe um ConfigMap local. As Capabilities AWS são exercitadas nas Etapas 18 e 19, após os clusters e a identidade do Provider AWS. [Guia da Etapa 07](../labs/07-crossplane-core.md)
 
