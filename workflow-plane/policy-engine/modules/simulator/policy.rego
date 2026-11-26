@@ -103,5 +103,3 @@ result := object.union(gate, {
     "drift": drift,
     "cidrs": cidrs,
 })
-
-expressao invalida
