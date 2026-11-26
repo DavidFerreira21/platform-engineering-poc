@@ -67,11 +67,14 @@ Para aprovar, o administrador do Hub provisiona uma ServiceAccount no namespace 
 ```bash
 approver=aprovador-david
 hub -n terraformstack-lab06b create serviceaccount "$approver"
+hub -n argo-workflows create rolebinding "$approver" \
+  --role=terraformstack-local-approvers \
+  --serviceaccount="terraformstack-lab06b:$approver"
 printf 'Bearer %s\n' "$(hub -n terraformstack-lab06b create token "$approver" --duration=30m)"
 stack -o jsonpath='{.status.policy.hash}{"\n"}'
 ```
 
-Na [UI do Argo Workflows](https://workflows.localhost:8443), autentique com o token, selecione `argo-workflows`, abra o Workflow e o nó **approval**. No **Resume**, selecione `Approve` e informe o hash completo apresentado no status. Confira `Ready` e `network` com o novo valor. Repita com `Reject`, com hash incorreto e com a identidade somente leitura da Etapa 03. Cada tentativa que altera a decisão precisa de um Workflow novo, acionado por uma revisão aprovada. A resposta padrão do gate é `Reject`.
+Na [UI do Argo Workflows](https://workflows.localhost:8443), autentique com o token, selecione `argo-workflows`, abra o Workflow e o nó **approval**. No **Resume**, selecione `Approve` e informe o hash completo apresentado no status. Confira `status.policy.cidrs` para ver os CIDRs do plano antes e depois. Confira `Ready` e `network` com o novo valor. Repita com `Reject`, com hash incorreto e com a identidade somente leitura da Etapa 03. Cada tentativa que altera a decisão precisa de um Workflow novo, acionado por uma revisão aprovada. A resposta padrão do gate é `Reject`.
 
 ```bash
 docker exec platform-management-control-plane cat /var/local/lab06b-audit/requests.jsonl |
@@ -84,7 +87,31 @@ for line in sys.stdin:
 
 Correlacione a entrada de auditoria bem-sucedida com o Workflow e o hash do plano. A política foi criada somente para o Hub descartável. Os eventos completos ficam no nó do `kind`.
 
-Para provar falha fechada, carregue uma imagem de executor de teste com Rego sintaticamente inválido e aponte temporariamente as imagens dos steps do WorkflowTemplate para essa tag. Sincronize uma nova revisão permitida e confira `PolicyError` sem alteração do ConfigMap. Restaure o template pela Application do runtime. Para provar integridade, altere um byte de `/state/<workflow>/plan.bin` num Pod de diagnóstico autorizado pelo administrador enquanto o gate aguarda aprovação. Aprove com o hash original e confirme a falha antes de apply. Remova o Pod de diagnóstico.
+Para provar falha fechada no Hub descartável, carregue uma imagem de executor com Rego sintaticamente inválido e aponte somente o step de plan para ela.
+
+```bash
+docker build -t terraformstack-executor:lab06b-policy-error - <<'DOCKER'
+FROM terraformstack-executor:lab06b
+USER 0
+RUN printf 'package {' > /app/policy.rego
+USER 10001:10001
+DOCKER
+kind load docker-image --name platform-management terraformstack-executor:lab06b-policy-error
+hub -n argo-workflows patch workflowtemplate terraformstack-local --type json \
+  -p='[{"op":"replace","path":"/spec/templates/1/container/image","value":"terraformstack-executor:lab06b-policy-error"}]'
+```
+
+Sincronize uma nova revisão com mudança no CIDR e confira `PolicyError` com o ConfigMap preservado. Restaure o template pelo sync da Application do runtime.
+
+Para provar integridade, monte o PVC `lab06b-network` em um Pod de diagnóstico temporário no namespace `argo-workflows`. Use a imagem do executor, comando `sleep 600`, `automountServiceAccountToken: false` e monte o PVC em `/state`. Enquanto o gate aguarda aprovação, altere o binário no volume.
+
+```bash
+hub -n argo-workflows exec lab06b-plan-diagnostic -- \
+  sh -c 'printf x >> "/state/$1/plan.bin"' sh "$(workflow)"
+hub -n argo-workflows delete pod lab06b-plan-diagnostic
+```
+
+Aprove com o hash original e confira a falha antes do apply. O retry configurado abre outro Workflow com um plano novo e aguarda outra aprovação.
 
 ## 3. Observar drift e reconciliação
 
@@ -111,14 +138,29 @@ Para testar dependência, libere `suspend` de `lab06b-dependent` com a Network a
 1. Com ambas as stacks ativas, solicite `spec.lifecycle.destroy: true` na Network. Confirme bloqueio pela dependência. Destrua a dependente primeiro ou retire sua dependência por uma revisão autorizada.
 2. Confira o destroy explícito da Network chegando ao gate. Aprove o hash, aguarde `Destroyed`, confirme a ausência do ConfigMap e a permanência do CR.
 3. Recrie a stack por uma revisão com `destroy: false`. Remova o CR com o comportamento padrão e confira retenção do ConfigMap e PVC. Sincronize novamente para retomar o mesmo state.
-4. Em outra execução, sincronize `destroyResourcesOnDeletion: true` antes de excluir o CR. Confirme `deletionTimestamp` e a pausa para aprovação. Ao negar, preserve o ConfigMap e o CR em exclusão. Ao aprovar em um ensaio separado, confirme a ausência do ConfigMap e a remoção do CR somente depois da verificação.
+4. Em outra execução, finalize o destroy da dependente e remova o CR dela antes do teste de cleanup da Network. Sincronize `destroyResourcesOnDeletion: true` na Network, confirme que a intenção está vigente e exclua o CR. Confirme `deletionTimestamp` e a pausa para aprovação. Ao negar, preserve o ConfigMap e o CR em exclusão. Ao aprovar em um ensaio separado, confirme a ausência do ConfigMap e a remoção do CR somente depois da verificação.
 
 Limpe primeiro as solicitações. Exclua o Workflow e os PVCs do 06B apenas quando não houver apply em execução e o state não for mais necessário. Para um ensaio de negativa com finalizer pendente, mantenha as evidências e descarte o Hub dedicado ao encerrar o exercício. Em um Hub compartilhado, aplique apenas o procedimento de recuperação autorizado para aquela stack.
 
 ## O que observar
 
 - `status.observedGeneration`, `resolvedSource` e `execution.workflow` ligam intenção, commit e execução. O GitOps mostra a sincronização do CR. `lastCheckTime` e `lastDriftTime` mostram a observação do recurso pelo Terraform.
-- `status.policy` guarda decisão, motivo, hash, resumo das ações e fase da aprovação. O log de auditoria do Hub confirma a identidade que retomou o gate. As evidências são o status, o ConfigMap e a ausência de mudança em um segundo plan.
+- `status.policy` guarda decisão, motivo, hash, resumo das ações, fase e identidade da aprovação. O log de auditoria do Hub confirma a identidade que retomou o gate. As evidências são o status, o ConfigMap e a ausência de mudança em um segundo plan.
 - Guarde revisão, ID ou digest de imagem e resultados do exercício. O PVC contém os planos e states locais.
+
+## Evidências do ensaio local
+
+Em 25/11/2026, o Hub `kind` com Kubernetes 1.35 recebeu pelo Argo CD os SHAs de uma prévia Git privada. O controller local em execução teve ID de imagem `sha256:6468df47cae38721e1f4191c38e2cb972467b36c0ee985fc1b4070885e20e32c`. O baseline dos manifestos de teste partiu de `e363da42a3cd2120be9b463a790bb20c79060944`. As revisões de alteração do CIDR ficaram no espelho local.
+
+| Cenário | Resultado observado |
+| :--- | :--- |
+| `AutoApply` | ConfigMap com CIDR `10.81.0.0/16` e valores herdados de DNS, NAT e endpoints |
+| `RequireApproval` | **Resume** no nó da UI aplicou `10.82.0.0/16` com o hash aprovado. O status e a auditoria registraram a identidade |
+| `Deny` e erro OPA | `PolicyDenied` bloqueou `0.0.0.0/0`. `PolicyError` registrou Rego inválido. Os dois cenários preservaram o ConfigMap |
+| Drift e idempotência | A checagem periódica detectou `10.83.0.0/16` e restaurou o baseline na mesma revisão. Sync repetido e reinício conservaram o Workflow que aguardava aprovação |
+| Concorrência e integridade | A revisão nova cancelou um gate obsoleto; o apply que já havia começado concluiu. Hash incorreto bloqueou aprovação. Plano adulterado falhou e o retry gerou outro plano |
+| Lifecycle | Suspensão e dependência ficaram visíveis no status. Destroy explícito removeu os dois ConfigMaps após aprovação. A exclusão padrão reteve o recurso. O cleanup opt-in aprovado liberou o finalizer; a negativa pela UI preservou o finalizer e o ConfigMap |
+
+`SimulatedPlanReady=True` confirmou a regressão do Lab 06. O runtime e o CRD passaram pelo dry-run na API. Os sete testes Rego passaram.
 
 [← Etapa 06](06-terraformstack-controller.md) · [Roteiro](../docs/learning-roadmap.md) · [Etapa 07 →](07-registro-ambientes-aws.md)

@@ -27,10 +27,6 @@ spec:
         - - name: approval
             template: approval
             when: '{{steps.plan.outputs.parameters.decision}} == RequireApproval'
-            arguments:
-              parameters:
-                - name: plan-hash
-                  value: '{{steps.plan.outputs.parameters.plan-hash}}'
         - - name: apply
             template: apply
             when: '{{steps.plan.outputs.parameters.decision}} == AutoApply'
@@ -58,6 +54,7 @@ spec:
       container:
         image: terraformstack-executor:lab06b
         imagePullPolicy: Never
+        command: [python, /app/executor.py]
         args: [plan]
         env:
           - name: INTENT
@@ -87,7 +84,6 @@ spec:
       suspend: {}
       inputs:
         parameters:
-          - name: plan-hash
           - name: approval
             default: Reject
             enum: [Reject, Approve]
@@ -116,6 +112,7 @@ spec:
       container:
         image: terraformstack-executor:lab06b
         imagePullPolicy: Never
+        command: [python, /app/executor.py]
         args: [apply]
         env:
           - name: INTENT

@@ -111,14 +111,8 @@ metadata:
   namespace: argo-workflows
 rules:
   - apiGroups: [argoproj.io]
+    resources: [workflows, workflowtemplates, cronworkflows]
+    verbs: [get, list, watch]
+  - apiGroups: [argoproj.io]
     resources: [workflows]
-    verbs: [get, list, watch, update]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: terraformstack-local-approvers
-  namespace: argo-workflows
-subjects:
-  - {kind: Group, name: "system:serviceaccounts:terraformstack-lab06b"}
-roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: terraformstack-local-approvers}
+    verbs: [update]

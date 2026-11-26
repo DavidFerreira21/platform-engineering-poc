@@ -13,6 +13,11 @@ spec:
   matchConditions:
     - name: aprovador-local
       expression: request.userInfo.username.startsWith('system:serviceaccount:terraformstack-lab06b:')
+  variables:
+    - name: actorLabels
+      expression: >-
+        ['workflows.argoproj.io/actor', 'workflows.argoproj.io/actor-email',
+         'workflows.argoproj.io/actor-preferred-username', 'workflows.argoproj.io/action']
   validations:
     - expression: >-
         request.namespace == 'argo-workflows' &&
@@ -42,9 +47,9 @@ spec:
     - expression: >-
         oldObject.metadata.labels.all(k, k in object.metadata.labels &&
           object.metadata.labels[k] == oldObject.metadata.labels[k] ||
-          k.startsWith('workflows.argoproj.io/action-')) &&
+          k in variables.actorLabels) &&
         object.metadata.labels.all(k, k in oldObject.metadata.labels ||
-          k.startsWith('workflows.argoproj.io/action-'))
+          k in variables.actorLabels)
       message: Os rótulos de identidade do Workflow são imutáveis.
   auditAnnotations:
     - key: aprovador

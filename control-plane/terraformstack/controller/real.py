@@ -66,6 +66,12 @@ def seconds(value):
 
 def intent(stack):
     metadata, spec = stack["metadata"], stack["spec"]
+    deleting = bool(metadata.get("deletionTimestamp"))
+    lifecycle = spec.get("lifecycle", {})
+    identity = {"stack": metadata["name"], "uid": metadata["uid"],
+                "generation": metadata["generation"], "deleting": deleting}
+    if deleting and not lifecycle.get("destroyResourcesOnDeletion"):
+        return {**identity, "operation": "retain"}
     source = spec["sourceRef"]
     if (metadata["name"] not in SLOTS or spec["target"] != {"entity": "entity-a", "environment": "uat"}
             or source["name"] != "foundation-stacks" or source["path"] != "foundation/lab06b/network"):
@@ -77,14 +83,9 @@ def intent(stack):
     configuration = pinned if configuration == "latest" else configuration
     if not SHA.fullmatch(revision) or not SHA.fullmatch(configuration):
         raise ValueError("Fonte e configuração exigem SHAs Git completos.")
-    deleting = bool(metadata.get("deletionTimestamp"))
-    lifecycle = spec.get("lifecycle", {})
     return {
-        "stack": metadata["name"], "uid": metadata["uid"], "generation": metadata["generation"],
-        "revision": revision, "configuration": configuration,
-        "operation": ("destroy" if lifecycle.get("destroyResourcesOnDeletion") else "retain")
-        if deleting else ("destroy" if lifecycle.get("destroy") else "apply"),
-        "deleting": deleting,
+        **identity, "revision": revision, "configuration": configuration,
+        "operation": "destroy" if deleting or lifecycle.get("destroy") else "apply",
     }
 
 
@@ -151,6 +152,9 @@ def result_of(workflow):
     for node in status.get("nodes", {}).values():
         if node.get("type") == "Suspend" and node.get("templateName") == "approval":
             result["approval"] = node.get("phase", "")
+            actor = workflow["metadata"].get("labels", {}).get("workflows.argoproj.io/actor")
+            if actor:
+                result["approvalActor"] = actor
             if node.get("message"):
                 result["approvalMessage"] = node["message"][:512]
     if outputs.get("apply-result"):
@@ -184,7 +188,7 @@ def reconcile(api, stack):
 
     try:
         data = intent(stack)
-        settings = spec.get("reconciliation", {})
+        settings = spec.get("reconciliation", {}) if data["operation"] != "retain" else {}
         drift_interval = seconds(settings["driftCheckInterval"]) if settings.get("driftCheckInterval") else None
         eligible = dependencies_ready(api, stack, data)
         if deleting:
@@ -254,10 +258,13 @@ def reconcile(api, stack):
         else:
             condition, reason = "Failed", "WorkflowFailed"
         drift_status = {"lastDriftTime": stamp()} if result.get("drift") and not run.get("drift") else {}
+        completed = {**run, "finishedAt": stamp(), "result": condition, "reason": reason,
+                     "drift": bool(result.get("drift"))}
+        if changed:
+            # O resultado anterior não torna a nova intenção Ready.
+            condition, reason = "ReconcilePending", "PreviousExecutionFinished"
         report(api, stack, condition, reason, run["workflow"],
-               execution={**run, "finishedAt": stamp(), "result": condition, "reason": reason,
-                          "drift": bool(result.get("drift"))},
-               policy=result, lastCheckTime=stamp(), **drift_status)
+               execution=completed, policy=result, lastCheckTime=stamp(), **drift_status)
         return
 
     if data["operation"] == "retain":

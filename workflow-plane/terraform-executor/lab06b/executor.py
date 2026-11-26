@@ -1,11 +1,14 @@
 """Planeja, avalia e aplica o plano salvo com identidade Kubernetes local."""
 
 import hashlib
+import ipaddress
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
+from time import sleep
 
 from kubernetes import client, config
 from kubernetes.client.exceptions import ApiException
@@ -45,6 +48,34 @@ def changes(plan):
             if item["change"]["actions"] != ["no-op"]]
 
 
+def planned_cidrs(document):
+    for resource in changes(document):
+        if resource["address"] == "kubernetes_config_map_v1.network":
+            result = {}
+            for phase in ("before", "after"):
+                try:
+                    snapshot = resource["change"][phase]
+                    network = json.loads(snapshot["data"]["network.json"])
+                    result[phase] = str(ipaddress.ip_network(network["vpc"]["cidr"]))
+                except (KeyError, TypeError, ValueError):
+                    continue
+            return result
+    return {}
+
+
+def drift_detected(plan):
+    for resource in plan.get("resource_drift", []):
+        if resource["address"] == "kubernetes_config_map_v1.network":
+            difference = resource["change"]
+            before, after = difference["before"], difference["after"]
+            if before is None or after is None:
+                return True
+            # O provider também atualiza metadados calculados pela API.
+            if before.get("data") != after.get("data"):
+                return True
+    return False
+
+
 def plan_json(root, path):
     return json.loads(command(["terraform", "show", "-json", str(path)], cwd=root, capture=True))
 
@@ -65,12 +96,13 @@ def terraform_plan(root, config_root, data, path):
 def evaluate(document, data, directory):
     input_path = directory / "policy-input.json"
     input_path.write_text(json.dumps({"changes": changes(document), "operation": data["operation"],
-                                      "slot": data["stack"], "drift": bool(document.get("resource_drift"))}))
+                                      "slot": data["stack"], "drift": drift_detected(document)}))
     try:
         raw = command(["opa", "eval", "--format=raw", "--data", str(POLICY), "--input",
                        str(input_path), "data.terraformstack.local.decision"], cwd=directory, capture=True)
         decision = json.loads(raw)
-        if decision["decision"] not in {"Deny", "AutoApply", "RequireApproval"} or not decision["reason"]:
+        valid_reason = isinstance(decision["reason"], str) and decision["reason"].strip()
+        if decision["decision"] not in {"Deny", "AutoApply", "RequireApproval"} or not valid_reason:
             raise ValueError("Decisão inválida.")
         if data["operation"] == "destroy" and decision["decision"] == "AutoApply":
             raise ValueError("Destroy exige gate.")
@@ -79,10 +111,10 @@ def evaluate(document, data, directory):
     return decision
 
 
-def claim(data, workflow):
+def claim(data, workflow, drift):
     config.load_incluster_config()
     api = client.CustomObjectsApi()
-    for _ in range(5):
+    for _ in range(15):
         stack = read(api, STACK, data["stack"])
         if not stack or intent(stack) != data or stack["spec"].get("suspend"):
             return False
@@ -91,6 +123,10 @@ def claim(data, workflow):
                 or run.get("applying") or not dependencies_ready(api, stack, data)
                 or (data["deleting"] and stack["status"].get("deletionIntent") != data)):
             return False
+        if drift and not run.get("drift"):
+            # O controller publica DriftDetected antes de liberar a correção.
+            sleep(1)
+            continue
         try:
             patch(api, stack, {"execution": {**run, "applying": True}})
             return True
@@ -139,8 +175,9 @@ def main():
                     if code == 0 and data["operation"] == "apply"
                     else evaluate(document, data, directory))
         record = {**decision, "hash": digest(saved), "policyDigest": digest(POLICY),
-                  "drift": bool(document.get("resource_drift")),
-                  "actions": [item["change"]["actions"] for item in changes(document)]}
+                  "drift": drift_detected(document),
+                  "actions": [item["change"]["actions"] for item in changes(document)],
+                  "cidrs": planned_cidrs(document)}
         (OUTPUT / "decision-record").write_text(json.dumps(record))
         (OUTPUT / "decision").write_text(record["decision"])
         (OUTPUT / "plan-hash").write_text(record["hash"])
@@ -148,7 +185,9 @@ def main():
         return
 
     hash_expected = os.environ["PLAN_HASH"]
-    if digest(saved) != hash_expected:
+    approved_plan = OUTPUT / "approved-plan.bin"
+    shutil.copyfile(saved, approved_plan)
+    if digest(approved_plan) != hash_expected:
         raise RuntimeError("Hash do plano salvo diverge.")
     if os.environ["DECISION"] == "RequireApproval":
         supplied_hash = os.environ["APPROVED_HASH"]
@@ -156,17 +195,18 @@ def main():
         if response != "Approve" or supplied_hash != hash_expected:
             (OUTPUT / "apply-result").write_text("Rejected")
             return
-    document = plan_json(root, saved)
+    document = plan_json(root, approved_plan)
     if evaluate(document, data, directory)["decision"] != os.environ["DECISION"]:
         raise RuntimeError("A política mudou desde o plan.")
     check = directory / "revalidate.bin"
     terraform_plan(root, config_root, data, check)
     if signature(document) != signature(plan_json(root, check)):
         raise RuntimeError("O destino ou o state mudou desde o plan.")
-    if not claim(data, workflow):
+    if not claim(data, workflow, drift_detected(document)):
         (OUTPUT / "apply-result").write_text("Cancelled")
         return
-    command(["terraform", "apply", "-no-color", "-input=false", "-lock-timeout=30s", str(saved)], cwd=root)
+    command(["terraform", "apply", "-no-color", "-input=false", "-lock-timeout=30s",
+             str(approved_plan)], cwd=root)
     verify(root, data)
     if terraform_plan(root, config_root, data, directory / "verify.bin") != 0:
         raise RuntimeError("Plan pós-apply ainda apresenta mudanças.")

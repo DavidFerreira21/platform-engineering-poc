@@ -24,6 +24,10 @@ class TerraformStackContractTest(unittest.TestCase):
         crd = yaml.safe_load(CRD.read_text(encoding="utf-8"))
         cls.schema = crd["spec"]["versions"][0]["schema"]["openAPIV3Schema"]
         Draft7Validator.check_schema(cls.schema)
+        # Em fieldValidation=Strict, a API rejeita campos fora do schema estrutural.
+        spec = cls.schema["properties"]["spec"]
+        spec["additionalProperties"] = False
+        spec["properties"]["configuration"]["additionalProperties"] = False
         cls.validator = Draft7Validator(cls.schema)
 
     def example(self, **spec_changes):
