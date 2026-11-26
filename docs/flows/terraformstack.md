@@ -133,3 +133,14 @@ O CRD reserva `timeout` e `healthChecks` para integração futura. O Workflow at
 ## Referências de arquitetura
 
 O contrato da POC se inspira no [Tofu Controller](https://github.com/flux-iac/tofu-controller) para reconciliação declarativa, no [HCP Terraform Operator](https://developer.hashicorp.com/validated-designs/terraform/user-guide/hcp-terraform-operator-for-kubernetes) para solicitação via API Kubernetes e no [Atlantis](https://www.runatlantis.io/guide) para gates de aprovação. A implementação do TerraformStack usa Argo CD para entregar a intenção e Argo Workflows para executar a pipeline.
+
+## Contrato Controller / Workflow
+
+O [controller-config.yaml](../../control-plane/terraformstack/controller/controller-config.yaml)
+parametriza a referência do WorkflowTemplate e os nomes de transporte, sem
+alterar a semântica da intenção, autorização e resultado. O Platform Team
+mantém o contrato, o catálogo confiável e o WorkflowTemplate em Git.
+ConfigMap imutável e snapshot por tentativa impedem reinterpretar saídas de
+execuções ativas com outro mapeamento. Drene execuções antes de alterar o
+contrato; namespaces e templates exigem revisão coordenada do RBAC, admission
+policies e GitOps. O consumidor não escolhe o WorkflowTemplate no CR.

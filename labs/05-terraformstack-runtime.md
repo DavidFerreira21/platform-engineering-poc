@@ -20,6 +20,8 @@ Hub `kind`, Argo CD e Argo Workflows instalados. CRD estabelecido pela [Etapa 04
 
 ## 1. Construir e carregar as imagens
 
+Confira o [contrato de integração](../control-plane/terraformstack/controller/controller-config.yaml) antes do build. Os nomes configurados devem corresponder ao WorkflowTemplate; Kustomize monta a configuração imutável no controller. O catálogo autoriza as stacks e o Workflow define os steps.
+
 ```bash
 cluster="${HUB_KIND_NAME:-platform-management}"
 hub() { kubectl --context "kind-$cluster" "$@"; }

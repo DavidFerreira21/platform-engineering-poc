@@ -27,7 +27,8 @@ func fixture(t *testing.T)(*Reconciler,*unstructured.Unstructured){
  o:=stackObject();o.SetName(name);o.SetNamespace("platform-system");o.SetUID(types.UID("test-uid"));o.SetGeneration(1);o.SetAnnotations(map[string]string{revision:strings.Repeat("a",40)})
  o.Object["spec"]=M{"sourceRef":M{"name":"foundation-stacks","path":"foundation/stacks/simulator"},"target":M{"entity":"entity-a","environment":"simulator"}}
  cl:=fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithStatusSubresource(stackObject(),workflowObject()).WithObjects(o).Build()
- r:=&Reconciler{Client:cl,Reader:cl,Catalog:c,StackNamespace:"platform-system",WorkflowNamespace:"argo-workflows",Now:func()time.Time{return fixed}}
+ config,e:=LoadConfig("../../controller-config.yaml");if e!=nil{t.Fatal(e)}
+ r:=&Reconciler{Integration:config.Workflow,Client:cl,Reader:cl,Catalog:c,StackNamespace:"platform-system",WorkflowNamespace:"argo-workflows",Now:func()time.Time{return fixed}}
  return r,o
 }
 func getStack(t *testing.T,r *Reconciler)*unstructured.Unstructured{t.Helper();o:=stackObject();if e:=r.Get(context.Background(),client.ObjectKey{Namespace:r.StackNamespace,Name:name},o);e!=nil{t.Fatal(e)};return o}
@@ -36,8 +37,8 @@ func tick(t *testing.T,r *Reconciler,n int)ctrl.Result{t.Helper();var result ctr
 func current(t *testing.T,r *Reconciler)*unstructured.Unstructured{t.Helper();w,e:=r.getWorkflow(context.Background(),str(getRun(t,r)["workflow"]));if e!=nil||w==nil{t.Fatalf("workflow: %v",e)};return w}
 func workflowStatus(t *testing.T,r *Reconciler,phase,decision,outcome,request string){
  t.Helper();w:=current(t,r);record,_:=json.Marshal(M{"decision":decision,"hash":"hash"})
- p:=[]any{M{"name":"decision-record","value":string(record)}}
- if outcome!=""{p=append(p,M{"name":"apply-result","value":outcome})};if request!=""{p=append(p,M{"name":"apply-request","value":request})}
+ p:=[]any{M{"name":r.Integration.Parameters.Output.Decision,"value":string(record)}}
+ if outcome!=""{p=append(p,M{"name":r.Integration.Parameters.Output.Result,"value":outcome})};if request!=""{p=append(p,M{"name":r.Integration.Parameters.Output.Authorization,"value":request})}
  w.Object["status"]=M{"phase":phase,"outputs":M{"parameters":p}}
  if e:=r.Status().Update(context.Background(),w);e!=nil{t.Fatal(e)}
 }
@@ -70,4 +71,34 @@ func TestEnvtestStatusCAS(t *testing.T){
  if e=c.Status().Update(context.Background(),o);e!=nil{t.Fatal(e)}
  stale.Object["status"]=M{"execution":M{"applying":false}}
  if e=c.Status().Update(context.Background(),stale);!apierrors.IsConflict(e){t.Fatalf("esperava conflito, obtido %v",e)}
+}
+
+func TestRenamedIntegration(t *testing.T){
+ r,_:=fixture(t)
+ r.Integration.TemplateRef.Name="custom-workflow"
+ r.Integration.Parameters.Input.Intent="request-json"
+ r.Integration.Parameters.Input.Volume="workspace"
+ r.Integration.Parameters.Output.Decision="policy-output"
+ r.Integration.Parameters.Output.Authorization="authorized-hash"
+ r.Integration.Parameters.Output.Result="verification"
+ tick(t,r,4)
+ w:=current(t,r);spec:=obj(w.Object["spec"])
+ if obj(spec["workflowTemplateRef"])["name"]!="custom-workflow"{t.Fatal(spec)}
+ inputs:=arr(obj(spec["arguments"])["parameters"])
+ if obj(inputs[0])["name"]!="request-json"||obj(inputs[1])["name"]!="workspace"{t.Fatal(inputs)}
+ workflowStatus(t,r,"Running","AutoApply","","hash");tick(t,r,1)
+ if getRun(t,r)["authorization"]!="hash"{t.Fatal("contrato renomeado não reconhecido")}
+}
+func TestIntegrationChangeBlocksActiveRun(t *testing.T){
+ r,_:=fixture(t);tick(t,r,4)
+ old:=getRun(t,r)["workflow"]
+ r.Integration.Parameters.Output.Decision="different-decision"
+ tick(t,r,1)
+ if reason(t,r)!="IntegrationChanged"||getRun(t,r)["workflow"]!=old{t.Fatal("execução não preservada")}
+}
+func TestRenamedPolicyFailure(t *testing.T){
+ r,_:=fixture(t);r.Integration.Templates.Policy="policy-check";tick(t,r,4)
+ w:=current(t,r);w.Object["status"]=M{"phase":"Failed","nodes":M{"policy":M{"templateName":"policy-check","phase":"Error"}}}
+ if e:=r.Status().Update(context.Background(),w);e!=nil{t.Fatal(e)};tick(t,r,1)
+ if reason(t,r)!="PolicyError"{t.Fatal(reason(t,r))}
 }

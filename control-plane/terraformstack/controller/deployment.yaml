@@ -21,7 +21,7 @@ spec:
         - name: controller
           image: terraformstack-controller:local
           imagePullPolicy: IfNotPresent
-          args: ["--leader-elect=true", "--workers=4"]
+          args: ["--config=/etc/terraformstack-config/controller-config.yaml"]
           ports:
             - {name: metrics, containerPort: 8080}
             - {name: health, containerPort: 8081}
@@ -33,6 +33,9 @@ spec:
           readinessProbe:
             httpGet: {path: /readyz, port: health}
           volumeMounts:
+            - name: controller-config
+              mountPath: /etc/terraformstack-config
+              readOnly: true
             - name: catalog
               mountPath: /etc/terraformstack
               readOnly: true
@@ -45,6 +48,9 @@ spec:
             seccompProfile:
               type: RuntimeDefault
       volumes:
+        - name: controller-config
+          configMap:
+            name: terraformstack-controller-config
         - name: catalog
           configMap:
             name: terraformstack-catalog

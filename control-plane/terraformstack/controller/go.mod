@@ -3,6 +3,7 @@ module github.com/DavidFerreira21/platform-engineering-poc/terraformstack
 go 1.24.0
 
 require (
+ sigs.k8s.io/yaml v1.4.0
  k8s.io/api v0.33.0
  k8s.io/apimachinery v0.33.0
  k8s.io/client-go v0.33.0

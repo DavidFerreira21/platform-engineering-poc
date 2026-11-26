@@ -22,3 +22,26 @@ go vet ./...
 O CI executa envtest com API Kubernetes/etcd e testes unitários. A Etapa 06 valida integração com Argo/OPA/Terraform em Kind.
 
 [Lab 05](../../../labs/05-terraformstack-runtime.md) · [Fluxo](../../../docs/flows/terraformstack.md)
+
+## Contrato de integração
+
+[controller-config.yaml](controller-config.yaml) é a configuração de instalação
+do Platform Team. Define namespaces, workers, Leader Election, referência do
+WorkflowTemplate, nomes de parâmetros de entrada/saída e referências aos
+templates de policy e aprovação. O catálogo continua sendo a fonte autorizada
+de identidades, backend, volumes e perfis OPA. O WorkflowTemplate controla a
+execução interna.
+
+A configuração é validada estritamente no startup (campos desconhecidos,
+nomes inválidos, duplicações e campos obrigatórios). Kustomize gera ConfigMap
+imutável e rollout por hash. Uma tentativa ativa guarda o snapshot do contrato;
+alterações incompatíveis bloqueiam reconciliação até restaurar a configuração.
+Drene execuções antes de mudar o contrato. Não é um mecanismo de revogação de
+um apply já autorizado.
+
+Os nomes podem mudar; os valores e semântica do protocolo permanecem fixos:
+intent JSON, volume, decisão OPA, hash de autorização, resultado de aprovação
+e verificação. O runner precisa respeitar o claim com resourceVersion. Não há
+plugins ou escolha de template pelo CR. Ao mudar namespaces ou template,
+ajuste também RBAC, admissão, destino GitOps e WorkflowTemplate; a configuração
+não concede permissões nem renomeia automaticamente objetos externos.
