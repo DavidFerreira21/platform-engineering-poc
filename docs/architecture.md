@@ -229,6 +229,8 @@ O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicaçã
 
 ## 9. Nascimento de uma entidade e ordem de implementação
 
+**Conectividade GitOps.** O Hub EKS adota Amazon EKS Capability for Argo CD como Argo CD central. Platform, UAT e PROD têm VPCs isoladas, NAT Gateway e APIs EKS privadas. Registro por ARN e Access Entries permite sincronização cross-account pela conectividade gerenciada AWS, sem Peering/TGW. O Hub local também deve ser registrado explicitamente. Argo CD local permanece no Management EKS; outros fluxos de rede não herdam essa conectividade. [ADR-0008](adr/0008-managed-argocd-connectivity.md)
+
 **Fluxo operacional alvo.** Foundation cria ou adota contas e rede → Entity Core prepara EKS e Argo CD local → manifests de Capabilities aprovados são reconciliados por Crossplane central → workloads de Domain Applications são entregues por Argo CD local.
 
 **Ordem incremental da POC.** Hub local → TerraformStack e primeira rede UAT → EKS, onboarding, Platform GitOps e Bridge → Capabilities com Crossplane → primeira aplicação FastAPI e esteira CI/CD → observabilidade, drift e isolamento → Experience Layer → Golden Path. O [Roadmap V2](learning-roadmap.md) organiza o trabalho em **8 fases e Etapas 00–35**. A UAT recebe os primeiros recursos reais; PCI e PROD exigem autorização específica e testes compatíveis com a infraestrutura realmente criada.
