@@ -9,7 +9,7 @@ O [diagrama do TerraformStack](terraformstack-flow.png) representa a arquitetura
 ## 1. Do Git ao Workflow
 
 1. O Git versiona o manifesto e os YAMLs de configuração. O Argo CD sincroniza o CR na API do Hub e injeta o SHA resolvido pela Application em `platform.example.io/revision`. O estado `Synced` indica que o manifesto foi entregue à API. [Application do Simulator](../../platform/hub/addons/catalog/terraformstack-simulator.yaml)
-2. O controller consulta os CRs em `platform-system` a cada dois segundos. Ele valida a intenção contra o catálogo, verifica as dependências e grava em `status.execution` a intenção resolvida e o nome do Workflow antes de criá-lo. Em seguida, cria ou acompanha aquele Workflow em `argo-workflows`. O CR permanece como a identidade da stack e cada Workflow representa uma tentativa. [Controller](../../control-plane/terraformstack/controller/controller.py)
+2. O controller Go usa Controller Runtime (padrão Kubebuilder), watches de TerraformStacks e Workflows, cache de informers e fila com rate limiting. Eventos de dependências e alterações de status ou revisão GitOps reativam a reconciliação; drift e retry usam RequeueAfter. Ele valida a intenção contra o catálogo, verifica as dependências e grava em `status.execution` a intenção resolvida e o nome do Workflow antes de criá-lo. Em seguida, cria ou acompanha aquele Workflow em `argo-workflows`. O CR permanece como a identidade da stack e cada Workflow representa uma tentativa. [Controller](../../control-plane/terraformstack/controller/internal/controller/reconciler.go)
 3. O Argo Workflows executa a pipeline governada. Terraform calcula o plano, OPA avalia as mudanças e o apply depende da decisão e da autorização para aquela execução. O controller lê os resultados do Workflow e atualiza o CR. `TerraformRun` fica reservado como nome opcional para uma execução individual. [WorkflowTemplate](../../workflow-plane/argo-workflows/terraformstack/workflowtemplate.yaml)
 
 ## 2. Contrato e resolução de revisões
@@ -38,7 +38,7 @@ spec:
 ```
 
 - `sourceRef.name` identifica uma fonte sob controle do Platform Team. `sourceRef.path` aponta para a raiz de uma stack Terraform completa. A combinação de fonte, raiz, destino lógico e nome do CR precisa constar no catálogo. O catálogo seleciona o repositório, o caminho das configurações, o backend, o PVC, as variáveis, o Policy Profile e a ServiceAccount. [Catálogo local](../../control-plane/terraformstack/overlays/kind/catalog.json)
-- `sourceRef.version` seleciona a revisão do código e `configuration.version` seleciona a dos YAMLs. Cada campo pode receber um SHA Git completo de 40 caracteres. Omissão ou `latest` usa o SHA de `platform.example.io/revision`. Quando falta um SHA válido para qualquer uma das duas referências, o controller bloqueia a intenção com `InvalidIntent`. O runner verifica o SHA de cada checkout antes do plan. [Resolução no controller](../../control-plane/terraformstack/controller/controller.py) · [Pipeline](../../workflow-plane/argo-workflows/terraformstack/pipeline.sh)
+- `sourceRef.version` seleciona a revisão do código e `configuration.version` seleciona a dos YAMLs. Cada campo pode receber um SHA Git completo de 40 caracteres. Omissão ou `latest` usa o SHA de `platform.example.io/revision`. Quando falta um SHA válido para qualquer uma das duas referências, o controller bloqueia a intenção com `InvalidIntent`. O runner verifica o SHA de cada checkout antes do plan. [Resolução no controller](../../control-plane/terraformstack/controller/internal/controller/reconciler.go) · [Pipeline](../../workflow-plane/argo-workflows/terraformstack/pipeline.sh)
 - O controller considera o UID, a geração e a revisão GitOps na intenção. Um commit que muda apenas YAML pode iniciar outro plan após o sync, porque a anotação muda mesmo com o mesmo `metadata.generation`.
 - A raiz Terraform consome o módulo genérico Configuration. O Simulator usa `network.yaml` com o perfil de dados `entity-a/uat` para o destino lógico `entity-a/simulator`. Os arquivos são compostos na ordem global → entidade → ambiente. A camada mais específica substitui escalares e listas, e objetos são mesclados recursivamente. [Raiz do Simulator](../../foundation/stacks/simulator/main.tf) · [Configuration](../../foundation/README.md#configuration)
 
@@ -72,7 +72,7 @@ Uma falha de avaliação do OPA ou uma decisão incompatível com o plano bloque
 3. A função `claim()` confere UID, geração, revisão GitOps, Workflow, intenção, estado de exclusão, suspensão e hash autorizado. Faz um patch condicional com `resourceVersion` para marcar `status.execution.applying: true`. Se a intenção mudar ou a autorização ficar fora de vigência, a execução encerra sem aplicar.
 4. Com o claim obtido, Terraform aplica a cópia verificada do binário original. O plano de revalidação serve para comparação. O step `verify` verifica o recurso e publica o resultado para o controller.
 
-O `claimName` do WorkflowTemplate identifica o PVC que os Pods montam. O `claim()` do script marca o início do apply no CR. [Pipeline](../../workflow-plane/argo-workflows/terraformstack/pipeline.sh) · [Controller](../../control-plane/terraformstack/controller/controller.py)
+O `claimName` do WorkflowTemplate identifica o PVC que os Pods montam. O `claim()` do script marca o início do apply no CR. [Pipeline](../../workflow-plane/argo-workflows/terraformstack/pipeline.sh) · [Controller](../../control-plane/terraformstack/controller/internal/controller/reconciler.go)
 
 ## 4. Gatilhos, drift e concorrência
 
@@ -84,9 +84,9 @@ O `claimName` do WorkflowTemplate identifica o PVC que os Pods montam. O `claim(
 
 No Simulator, o drift check usa os mesmos SHAs da intenção vigente. O OPA identifica mudanças externas no campo `resource_drift` do plan e decide se permite remediação. No ensaio, a edição direta do ConfigMap de `10.81.0.0/16` para `10.83.0.0/16` foi detectada e corrigida na mesma revisão Git. O controller registra `lastCheckTime` no fim da tentativa e conserva a última detecção em `lastDriftTime`. O acionamento manual dedicado por annotation, o jitter e a exposição da próxima checagem são evoluções planejadas. [Ensaio de drift](../../labs/06-terraformstack-simulator.md#3-observar-drift-e-reconciliação) · [Roadmap](../learning-roadmap.md#fase-6--observabilidade-operação-e-governança)
 
-Um sync repetido com a mesma intenção ou um reinício do controller conserva a execução ativa. Se chega uma nova revisão enquanto o Workflow espera aprovação, o controller encerra o Workflow anterior antes de agendar o novo. Se o apply já fez o claim, ele aguarda a conclusão da execução anterior. `suspend: true` impede novas execuções e cancela a ativa quando ela ainda não marcou o início do apply. [Reconciliação](../../control-plane/terraformstack/controller/controller.py)
+Um sync repetido com a mesma intenção ou um reinício do controller conserva a execução ativa. Se chega uma nova revisão enquanto o Workflow espera aprovação, o controller encerra o Workflow anterior antes de agendar o novo. Se o apply já fez o claim, ele aguarda a conclusão da execução anterior. `suspend: true` impede novas execuções e cancela a ativa quando ela ainda não marcou o início do apply. [Reconciliação](../../control-plane/terraformstack/controller/internal/controller/reconciler.go)
 
-O retry operacional cria outro Workflow com outro plano e, quando exigido, outra aprovação. A política aceita `None`, `Fixed` e `ExponentialBackoff`. O runtime efetivamente faz zero retries quando `maxRetries` é omitido. `PolicyDenied`, `PolicyError` e `ApprovalRejected` terminam em `ReconcileBlocked` e encerram a tentativa sem retry automático. [Contrato de retry](../../control-plane/terraformstack/crd/terraformstack.yaml) · [Controller](../../control-plane/terraformstack/controller/controller.py)
+O retry operacional cria outro Workflow com outro plano e, quando exigido, outra aprovação. A política aceita `None`, `Fixed` e `ExponentialBackoff`. O runtime efetivamente faz zero retries quando `maxRetries` é omitido. `PolicyDenied`, `PolicyError` e `ApprovalRejected` terminam em `ReconcileBlocked` e encerram a tentativa sem retry automático. [Contrato de retry](../../control-plane/terraformstack/crd/terraformstack.yaml) · [Controller](../../control-plane/terraformstack/controller/internal/controller/reconciler.go)
 
 ## 5. Dependências e destruição
 
@@ -102,7 +102,7 @@ A aprovação do PR autoriza a alteração da intenção no Git. A aprovação d
 
 ## 6. Status e diagnóstico
 
-O controller publica a condição corrente em `status.conditions`. Ela usa `status: "True"` para indicar a condição ativa, inclusive em `Failed` ou `ReconcileBlocked`. Leia `type` e `reason` juntos. Consulte a fase no objeto `Workflow` indicado em `status.execution.workflow`. [Schema de status](../../control-plane/terraformstack/crd/terraformstack.yaml) · [Condições do controller](../../control-plane/terraformstack/controller/controller.py)
+O controller publica a condição corrente em `status.conditions`, preservando condições anteriores com status False. A condição ativa usa True, inclusive em Failed ou ReconcileBlocked. Consulte por type e status, não pela posição na lista. Leia `type` e `reason` juntos. Consulte a fase no objeto `Workflow` indicado em `status.execution.workflow`. [Schema de status](../../control-plane/terraformstack/crd/terraformstack.yaml) · [Condições do controller](../../control-plane/terraformstack/controller/internal/controller/reconciler.go)
 
 | `type` | `reason` | Como interpretar |
 | --- | --- | --- |
@@ -117,7 +117,11 @@ O controller publica a condição corrente em `status.conditions`. Ela usa `stat
 
 Correlacione `status.observedGeneration` com a geração do CR e `status.resolvedSource.version` e `configurationVersion` com os SHAs esperados. `status.execution` guarda a intenção, a referência do Workflow e seu gatilho. `status.policy` registra a decisão, o motivo, o hash, o resumo das ações e a informação de aprovação capturada do Workflow. O binário, o JSON integral e o state ficam no volume. [Consultas do exercício](../../labs/06-terraformstack-simulator.md#o-que-observar)
 
-## 7. Evolução na AWS
+## 7. Operação do controller
+
+O manager usa quatro workers, Leader Election por Lease e duas réplicas, com apenas um líder ativo. A API Kubernetes conserva a intenção e o claim com resourceVersion; o controller lê o objeto diretamente antes de autorizar mudanças. Métricas do controller-runtime em :8080 e probes em :8081. A coleta Prometheus será integrada na fase de observabilidade. Catálogo imutável é atualizado por rollout. [Implementação Go](../../control-plane/terraformstack/controller/README.md)
+
+## 8. Evolução na AWS
 
 - **Etapas 10–12.** Reinstalar os blocos no Hub EKS, registrar UAT e validar identidade temporária do Pod, role autorizada na conta de destino e backend S3 com state segregado e locking. O destino é resolvido pelo cadastro da plataforma.
 - **Etapas 13–15.** Aplicar o plano aprovado da Network UAT e validar a dependência dos EKS. O primeiro apply na AWS exige aprovação humana.
@@ -129,3 +133,14 @@ O CRD reserva `timeout` e `healthChecks` para integração futura. O Workflow at
 ## Referências de arquitetura
 
 O contrato da POC se inspira no [Tofu Controller](https://github.com/flux-iac/tofu-controller) para reconciliação declarativa, no [HCP Terraform Operator](https://developer.hashicorp.com/validated-designs/terraform/user-guide/hcp-terraform-operator-for-kubernetes) para solicitação via API Kubernetes e no [Atlantis](https://www.runatlantis.io/guide) para gates de aprovação. A implementação do TerraformStack usa Argo CD para entregar a intenção e Argo Workflows para executar a pipeline.
+
+## Contrato Controller / Workflow
+
+O [controller-config.yaml](../../control-plane/terraformstack/controller/controller-config.yaml)
+parametriza a referência do WorkflowTemplate e os nomes de transporte, sem
+alterar a semântica da intenção, autorização e resultado. O Platform Team
+mantém o contrato, o catálogo confiável e o WorkflowTemplate em Git.
+ConfigMap imutável e snapshot por tentativa impedem reinterpretar saídas de
+execuções ativas com outro mapeamento. Drene execuções antes de alterar o
+contrato; namespaces e templates exigem revisão coordenada do RBAC, admission
+policies e GitOps. O consumidor não escolhe o WorkflowTemplate no CR.
