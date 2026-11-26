@@ -82,7 +82,7 @@ Esses YAMLs **não são manifests Kubernetes** e não devem ser sincronizados di
 
 ### Decisões complementares da arquitetura-alvo
 
-- **Contrato Terraform.** `TerraformStack` é o CRD Kubernetes próprio do Hub que representa **infraestrutura desejada** de Foundation/Entity Core. O Argo CD central sincroniza o manifesto; o controller coordena Argo Workflows/Terraform Executor para `plan` inicial e periódico, detecção de drift, classificação por Policy Engine (**auto apply / aprovação / bloqueio**) e atualização de status. **Não executar `apply` a cada reconcile**. `TerraformRun` permanece nome opcional de uma execução isolada, não um segundo CRD obrigatório. Ver [ADR-0006](adr/0006-terraformrun-and-application-ci.md).
+- **Contrato Terraform.** `TerraformStack` é o CRD Kubernetes próprio do Hub que representa **infraestrutura desejada** de Foundation/Entity Core. O Argo CD central sincroniza o manifesto; o controller Go, com controller-runtime e Leader Election, coordena Argo Workflows por um adapter interno para `plan` inicial e periódico, detecção de drift, classificação por Policy Engine (**auto apply / aprovação / bloqueio**) e atualização de status. **Não executar `apply` a cada reconcile**. `TerraformRun` permanece nome opcional de uma execução isolada, não um segundo CRD obrigatório. Ver [ADR-0006](adr/0006-terraformrun-and-application-ci.md).
 - **Domain Applications:** as squads manterão **código, GitHub Actions e manifests Kubernetes da aplicação em repositório próprio**, separado deste monorepo e previsto para uma etapa posterior. O pipeline faz build/testes/scans e publicação, propõe atualização declarativa GitOps; **Argo CD local** em cada Management EKS faz o deploy nos EKS PCI/Non-PCI autorizados. O workflow CI existente neste monorepo só valida a POC.
 - **Management EKS:** **Operators ainda a estudar**; usar **OpenTelemetry Collector/gateway** para encaminhar telemetria à camada central, não assumir Loki instalado dentro de todos os Management EKS.
 - **Observabilidade central:** **OpenTelemetry, Grafana, Loki e Tempo**; estratégia de métricas/Prometheus, retenção e fronteiras PCI a validar no laboratório.
@@ -101,7 +101,7 @@ Existem **três personas**, não quatro equipes para as quatro camadas de owners
 
 **Dois tipos de Capabilities:** **Infrastructure Capabilities** (Crossplane especializado, consumido pelo DevOps Federado) e **Application Capabilities** (padrões de runtime/build/deploy/telemetria, consumidos pelos desenvolvedores; **não implicam XRD Crossplane**). Um **Golden Path / Starter Kit** combina padrões e automações para uma jornada específica. Backstage, CLI e Git são canais alternativos; Backstage não é gateway obrigatório.
 
-**Aplicação de referência da POC: Python FastAPI + Jinja2/HTML/CSS.** A Etapa 18 valida um workload HTTP mínimo no Non-PCI. Na **Fase 5 (Etapas 22–25)**, o repositório da squad entrega a tela de registro e consulta de encomendas; a API persiste no **Aurora PostgreSQL** e publica um JSON de evidência no **S3**, ambos via Capabilities Crossplane. A esteira **GitHub Actions → ECR → atualização GitOps → Argo CD local** constrói e entrega a aplicação. A **Fase 7 (28–29)** estrutura a experiência e a **Fase 8 (30–31)** reutiliza a aplicação para comprovar o Golden Path com as três personas. [ADR-0007](adr/0007-personas-and-developer-experience.md)
+**Aplicação de referência da POC: Python FastAPI + Jinja2/HTML/CSS.** A Etapa 18 valida um workload HTTP mínimo no Non-PCI. Na **Fase 5 (Etapas 22–25)**, o repositório da squad entrega a tela de registro e consulta de encomendas; a API persiste no **Aurora PostgreSQL** e publica um JSON de evidência no **S3**, ambos via Capabilities Crossplane. A esteira **GitHub Actions → ECR → atualização GitOps → Argo CD local** constrói e entrega a aplicação. A **Fase 7 (32–33)** estrutura a experiência e a **Fase 8 (34–35)** reutiliza a aplicação para comprovar o Golden Path com as três personas. [ADR-0007](adr/0007-personas-and-developer-experience.md)
 
 ## 4. Quatro camadas de ownership
 
@@ -184,6 +184,8 @@ foundation/config/ ou core-infrastructure/ (Git)
 ```
 
 O Bootstrap Terraform central é reutilizado por configuração de Entity/Environment, com **state segregado**. Inicialmente pode rodar em um lab manual e auditável. **Argo CD não executa Terraform**. Criar conta AWS automaticamente é possibilidade futura, **não exige `AWSEnvironment` CRD/controller próprio agora**.
+
+O núcleo de reconciliação não interpreta diretamente objetos Argo. A interface interna de execução e o adapter Argo separam lifecycle, dependências e autorização da criação, leitura, cancelamento e observação de Workflows. Argo Workflows é a única integração suportada. WorkflowTemplate, runner e OPA são a implementação de referência da POC; devem respeitar o contrato e as políticas de segurança, sob controle do Platform Team. [ADR-0009](adr/0009-terraformstack-runtime.md).
 
 ### Evolução planejada do TerraformStack
 

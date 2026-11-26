@@ -37,15 +37,6 @@ func validName(label,v string,ns bool)error{
  if len(errors)>0{return fmt.Errorf("%s: %s",label,strings.Join(errors,", "))}
  return nil
 }
-func distinct(label string,values ...string)error{
- seen:=map[string]bool{}
- for _,v:=range values{
-  if e:=validName(label,v,false);e!=nil{return e}
-  if seen[v]{return fmt.Errorf("%s: nome duplicado %q",label,v)}
-  seen[v]=true
- }
- return nil
-}
 func(c Config) Validate()error{
  if e:=validName("controller.stackNamespace",c.Controller.StackNamespace,true);e!=nil{return e}
  if c.Controller.Workers<1||c.Controller.Workers>32{return fmt.Errorf("workers deve estar entre 1 e 32")}

@@ -73,7 +73,7 @@ A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership 
 ## 🔧 Decisões arquiteturais
 
 - **GitOps multicluster:** Argo CD autogerenciado no Hub `kind`; no Hub EKS, Amazon EKS Capability for Argo CD, com registro por ARN e Access Entries. As VPCs Platform, UAT e PROD permanecem isoladas, com NAT e sem Peering/TGW. Argo CD local mantém Domain Applications. [ADR-0008](docs/adr/0008-managed-argocd-connectivity.md)
-- **TerraformStack.** O CRD da Etapa 04 descreve a infraestrutura desejada e chega à API do Hub via Argo CD central. A Etapa 05 instala o controller e a pipeline canônica. A Etapa 06 exercita Terraform real, políticas e drift no Hub local com o Simulator. A primeira stack AWS exige aprovação humana na Etapa 13. As Etapas 28 e 29 validam drift e reconciliação por políticas na AWS. `TerraformRun` fica como nome opcional de uma execução individual. [ADR-0006](docs/adr/0006-terraformrun-and-application-ci.md)
+- **TerraformStack.** O CRD da Etapa 04 descreve a infraestrutura desejada e chega à API do Hub via Argo CD central. A Etapa 05 instala o controller Go (controller-runtime, Leader Election e watches) e a pipeline de referência do Argo Workflows. O controller concentra reconciliação e autorização; o adapter Argo traduz o contrato de execução. O runner, scripts e OPA pertencem à pipeline da POC. [Runtime](control-plane/terraformstack/controller/README.md). A Etapa 06 exercita Terraform real, políticas e drift no Hub local com o Simulator. A primeira stack AWS exige aprovação humana na Etapa 13. As Etapas 28 e 29 validam drift e reconciliação por políticas na AWS. `TerraformRun` fica como nome opcional de uma execução individual. [ADR-0006](docs/adr/0006-terraformrun-and-application-ci.md)
 - **Domain Applications:** código Python, testes, **GitHub Actions**, Dockerfile e manifests Kubernetes no **repositório separado da squad** (Fase 5). CI publica imagem no Amazon ECR e propõe atualização declarativa de digest; o Argo CD local entrega a aplicação nos EKS autorizados.
 - **Management EKS:** Argo CD local, Operators **a escolher** e OpenTelemetry Collector/gateway para logs e traces; backend central com **Grafana + Loki + Tempo**. Estratégia de métricas/Prometheus em validação.
 - **Ownership:** Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications.
@@ -82,7 +82,7 @@ A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership 
 
 ## ☁️ Estratégia AWS
 
-A POC usa um Hub `kind` descartável. A Etapa 06 prova o ciclo completo do TerraformStack com Terraform real sobre um ConfigMap, OPA, auto apply, aprovação, bloqueio, drift e destroy. [Guia do Lab 06](labs/06-terraformstack-simulator.md)
+A POC usa um Hub `kind` descartável. A Etapa 06 tem como aceite comprovar o ciclo completo do TerraformStack com Terraform real sobre um ConfigMap, OPA, auto apply, aprovação, bloqueio, drift e destroy. [Guia do Lab 06](labs/06-terraformstack-simulator.md)
 
 Depois do aceite local de TerraformStack e Crossplane, as Etapas 09–10 preparam a conta de plataforma, provisionam o Hub EKS Auto Mode e reinstalam os blocos do Git. As Etapas 11–12 preparam UAT e o executor. A primeira Network da spoke, Management EKS e Non-PCI entram nas Etapas 13–15. As Capabilities AWS entram após o smoke test. [Roteiro prático](docs/learning-roadmap.md)
 

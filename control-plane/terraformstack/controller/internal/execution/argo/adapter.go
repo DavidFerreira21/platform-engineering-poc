@@ -5,6 +5,7 @@ import (
  "encoding/json"
  "strings"
  "fmt"
+ "io"
  "github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/execution"
  apierrors "k8s.io/apimachinery/pkg/api/errors"
  "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -73,6 +74,8 @@ func decodeDecision(raw string,result *M)error{
  // Preserve integral JSON values when writing Kubernetes status.
  dec:=json.NewDecoder(strings.NewReader(raw));dec.UseNumber()
  if e:=dec.Decode(result);e!=nil{return e}
+ var extra any
+ if e:=dec.Decode(&extra);e!=io.EOF{return fmt.Errorf("resultado contém JSON adicional ou inválido")}
  for k,v:=range *result{(*result)[k]=normalizeValue(v)}
  return nil
 }

@@ -77,7 +77,7 @@ Backstage / CLI / pessoa → PR + validações + aprovação Git
 
 **Separação de responsabilidades:**
 - **Argo CD central:** sincroniza `TerraformStack` do Git para Kubernetes, **não executa Terraform nem cria workflows por conta própria**.
-- **TerraformStack Controller:** observa CRs, valida módulo/destino/permissões, dispara ou agenda verificações, controla concorrência/retries, acompanha o resultado da política avaliada no Workflow e atualiza status.
+- **TerraformStack Controller:** observa CRs, valida fonte/raiz e destino autorizados no catálogo, dispara ou agenda verificações, controla concorrência/retries, acompanha o resultado da política avaliada no Workflow e atualiza status.
 - **Argo Workflows:** orquestra plan, avaliação das políticas, gates/aprovação, apply e verificações.
 - **Terraform:** calcula e aplica mudanças no ConfigMap do Simulator. As raízes AWS entram nas etapas de Foundation e Entity Core.
 
@@ -109,7 +109,7 @@ spec:
     driftCheckInterval: 6h
 ```
 
-- `dependsOn`: antes de executar uma stack, conferir dependência `Ready` com `observedGeneration` atual. Resolver por nome estável, no mesmo namespace e Entity/Environment por padrão; rejeitar referências proibidas, dependências inexistentes e ciclos. Exemplo: EKS Management depende da stack de rede UAT. Dependência pronta **não autoriza** apply sem política e aprovação.
+- `dependsOn`: antes de executar uma stack, conferir dependência `Ready` com `observedGeneration` atual. Resolver por nome estável, no mesmo namespace e Entity/Environment por padrão; bloquear referências fora do destino e dependências inexistentes ou não prontas; diagnóstico explícito de ciclos ainda não implementado. Exemplo: EKS Management depende da stack de rede UAT. Dependência pronta **não autoriza** apply sem política e aprovação.
 - `driftCheckInterval` agenda um plan após o intervalo desde a última execução `Ready`. O status expõe `lastCheckTime` e `lastDriftTime`. A política do Simulator pode autorizar a correção. A Etapa 28 prevê jitter, exposição da próxima checagem e detecção sem remediação na AWS. A Etapa 29 valida a correção governada na AWS.
 - O controller agenda por `GitOps`, `DriftCheck` e `Retry`. O retry atual depende de falha operacional e da política de retry declarada. O acionamento manual dedicado por annotation permanece planejado.
 
@@ -142,7 +142,7 @@ A Etapa 06 valida primeiro o ciclo completo no `kind` com Terraform real, OPA, a
 - **Toda execução de apply na AWS exige aprovação humana explícita do plano** até a evolução prevista na Etapa 29. Auto apply só será avaliado com política versionada.
 - Validar schema, autorização, idempotência por generation/revisão, erros/retry, status e evidências. A Etapa 06 exercita a pipeline com o Simulator. A Etapa 13 aplica a rede UAT com state segregado, lock, plano imutável e aprovação vinculada a hash, revisão Git e destino. O mesmo fluxo de aprovação atende às stacks de EKS.
 
-O passo de política do Workflow executa OPA com regras Rego versionadas sobre `terraform show -json` do plano salvo. No aceite, um plano permitido chega à pausa de aprovação humana e um plano com abertura de SSH para `0.0.0.0/0` termina bloqueado antes do apply. Exercitar o caso bloqueado somente até a decisão. Erro de avaliação ou decisão ausente também bloqueia. Registrar motivo, revisão da política e hash do plano, mantendo o JSON em armazenamento restrito. Após aprovação, o executor aplica o mesmo plano binário.
+O passo de política do Workflow executa OPA com regras Rego versionadas sobre `terraform show -json` do plano salvo. No aceite, um plano permitido chega à pausa de aprovação humana e um plano do Simulator com CIDR `0.0.0.0/0` termina bloqueado antes do apply; regras AWS ainda serão implementadas. Exercitar o caso bloqueado somente até a decisão. Erro de avaliação ou decisão ausente também bloqueia. Registrar motivo, revisão da política e hash do plano, mantendo o JSON em armazenamento restrito. Após aprovação, o executor aplica o mesmo plano binário.
 
 ### Aprovação humana na Argo Workflows UI
 
@@ -151,7 +151,7 @@ O canal de aprovação é a UI do Argo Workflows. No Simulator, o step `approval
 **Requisitos para a integração AWS:**
 
 1. O `TerraformStack Controller` dispara um Workflow com identificação imutável da stack, `metadata.generation`, revisão Git da solicitação, versão da configuração, versão resolvida da stack e destino autorizado. O backend protege as operações Terraform com lock quando necessário, **sem manter o lock retido durante uma aprovação pendente**.
-2. O executor gera `terraform plan -out` com a configuração da revisão selecionada. Persiste o plano binário **em armazenamento privado e com prazo de validade**, associado ao hash SHA-256, ao state/serial, à revisão de configuração e à identidade do destino. Expõe apenas metadados não sensíveis para consulta.
+2. O executor gera `terraform plan -out` com a configuração da revisão selecionada. Persiste o plano binário **em armazenamento privado (retenção e validade operacional ainda a definir; não há expiração automática do gate local)**, associado ao hash SHA-256, ao state/serial, à revisão de configuração e à identidade do destino. Expõe apenas metadados não sensíveis para consulta.
 3. O passo de aprovação da UI usa um template `suspend: {}`, **sem `duration` que retome automaticamente**. Acesso ao Argo Server deve usar autenticação individual e autorização restrita a aprovadores, com trilha auditável de quem retomou o Workflow. Um simples `resume` não é autorização suficiente sem essa identidade verificável.
 4. Após o `resume`, um passo independente valida a identidade e a autorização do aprovador, o vínculo da decisão ao Workflow e ao hash do plano, as revisões da solicitação e da configuração, a `generation`, a validade do artefato, o state/lock efetivo no momento do apply e o destino. Qualquer falha, expiração ou mudança nesses vínculos **bloqueia o apply** e exige novo plan e nova aprovação.
 5. O executor aplica o arquivo de plano aprovado. Um plan adicional pode verificar a validade do plano aprovado antes do apply. O controller registra o resultado da verificação em `status`.
@@ -185,7 +185,7 @@ O status atual publica a condição ativa em `status.conditions` e os dados da t
 
 ## Relação com os demais componentes
 
-O código, a pipeline CI/CD **e os manifests Kubernetes da aplicação de exemplo** **não ficarão neste monorepo**; o repositório da aplicação de demonstração será definido e integrado em etapa posterior. GitHub Actions realizará build, tests, scans e publicação de imagem; a entrega será por alteração declarativa GitOps e **Argo CD local**, e não por deploy imperativo padrão da pipeline ao EKS. O workflow `.github/workflows/validate.yml` atual da POC continua exclusivo para validação de documentação e guias. As três personas e o modelo de Golden Paths são definidos no [ADR-0007](0007-personas-and-developer-experience.md).
+O código, a pipeline CI/CD **e os manifests Kubernetes da aplicação de exemplo** **não ficarão neste monorepo**; o repositório da aplicação de demonstração será definido e integrado em etapa posterior. GitHub Actions realizará build, tests, scans e publicação de imagem; a entrega será por alteração declarativa GitOps e **Argo CD local**, e não por deploy imperativo padrão da pipeline ao EKS. O workflow `.github/workflows/validate.yml` valida documentação, contratos, código Go, envtest e Terraform local; a validação do runner e OPA é complementar. Nenhum deles é CI/CD da aplicação. As três personas e o modelo de Golden Paths são definidos no [ADR-0007](0007-personas-and-developer-experience.md).
 
 **Domain Applications** permanecem independentes: GitHub Actions de uma aplicação de teste rodará em **outro repositório**; após build/test/scan/publicação, uma atualização de manifesto GitOps será revisada/aprovada e aplicada pelo **Argo CD local**. Nenhuma pipeline de aplicação é criada neste monorepo agora.
 
@@ -205,3 +205,5 @@ O código, a pipeline CI/CD **e os manifests Kubernetes da aplicação de exempl
 O guia da Etapa 04 descreve a instalação do CRD no Hub por GitOps. As operações AWS das etapas posteriores exigem autorização própria.
 
 [Arquitetura](../architecture.md) · [ADRs](README.md) · [Roadmap](../learning-roadmap.md)
+
+A implementação do runtime Go, a fronteira com Argo e o contrato configurável estão detalhados no [ADR-0009](0009-terraformstack-runtime.md).

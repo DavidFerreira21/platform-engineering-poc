@@ -24,10 +24,16 @@ jobs:
         with:
           go-version: '1.24.x'
           cache: false
+      - name: Normalizar código e dependências Go
+        working-directory: control-plane/terraformstack/controller
+        run: |
+          gofmt -w $(find . -name '*.go' -type f)
+          go mod tidy
+          git diff -- .
+          if [ -f go.sum ]; then cat go.sum; fi
       - name: Testar TerraformStack Controller
         working-directory: control-plane/terraformstack/controller
         run: |
-          go mod tidy
           go test -race ./...
           go vet ./...
           go build -o /tmp/terraformstack-controller ./cmd

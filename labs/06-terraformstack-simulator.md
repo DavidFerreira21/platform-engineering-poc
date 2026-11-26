@@ -16,7 +16,7 @@ O catálogo local autoriza os dois nomes do exercício, a raiz Terraform do repo
 
 ## 1. Preparar o Hub e sincronizar
 
-Reutilize o Hub com auditoria da [Etapa 01](01-platform-management-cluster.md) e o runtime da [Etapa 05](05-terraformstack-runtime.md). No Argo CD, abra **terraformstack-simulator**. Confira o destino `platform-system`, os dois CRs e a anotação `platform.example.io/revision` com o SHA resolvido. A dependente começa suspensa. Para um preview, fixe a Application no SHA de exercício acessível ao Hub. [Entrada do Simulator](../platform/hub/addons/catalog/terraformstack-simulator.yaml)
+Confirme os image IDs do controller e a atualização do runner conforme a Etapa 05 antes de iniciar. Reutilize o Hub com auditoria da [Etapa 01](01-platform-management-cluster.md) e o runtime da [Etapa 05](05-terraformstack-runtime.md). No Argo CD, abra **terraformstack-simulator**. Confira o destino `platform-system`, os dois CRs e a anotação `platform.example.io/revision` com o SHA resolvido. A dependente começa suspensa. Para um preview, fixe a Application no SHA de exercício acessível ao Hub. [Entrada do Simulator](../platform/hub/addons/catalog/terraformstack-simulator.yaml)
 
 ```bash
 cluster="${HUB_KIND_NAME:-platform-management}"
