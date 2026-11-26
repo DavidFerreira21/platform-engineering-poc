@@ -174,16 +174,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			}
 			result := w.Result
 			run["created"] = true
-			if yes(result["drift"]) && !yes(run["drift"]) {
+			if w.Signals.DriftDetected && !yes(run["drift"]) {
 				run["drift"] = true
 				return again(r.report(ctx, o, "DriftDetected", "ExternalChange", w.Name, M{"execution": run, "policy": result, "lastDriftTime": r.stamp()}))
 			}
-			request := str(result["applyRequest"])
-			if !changed && !suspended && eligible && !yes(run["cancelling"]) && request != "" && request == str(result["hash"]) && (result["decision"] == "AutoApply" || result["decision"] == "RequireApproval") {
+			request := w.Signals.AuthorizationRequest
+			if !changed && !suspended && eligible && !yes(run["cancelling"]) && request != "" {
 				run["authorization"] = request
 			}
 			kind, reason := "Reconciling", "Planning"
-			if result["approval"] == "Running" {
+			if w.Signals.Waiting {
 				kind, reason = "ApprovalRequired", "AwaitingApproval"
 			} else if yes(run["applying"]) {
 				reason = "Applying"
@@ -191,35 +191,33 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return done(r.report(ctx, o, kind, reason, w.Name, M{"execution": run, "policy": result}))
 		}
 		result := M{}
+		signals := execengine.Signals{}
 		if w != nil {
 			result = w.Result
+			signals = w.Signals
 		}
 		kind, reason := "Failed", "WorkflowFailed"
 		switch {
-		case yes(run["cancelling"]) || w == nil || result["outcome"] == "Cancelled":
+		case yes(run["cancelling"]) || w == nil || signals.Outcome == execengine.OutcomeCancelled:
 			kind, reason = "ReconcileBlocked", "Cancelled"
-		case result["outcome"] == "Rejected":
-			kind, reason = "ReconcileBlocked", "ApprovalRejected"
-		case result["decision"] == "Deny":
-			kind, reason = "ReconcileBlocked", "PolicyDenied"
-		case result["decision"] == "Error":
-			kind, reason = "ReconcileBlocked", "PolicyError"
-		case w != nil && w.Succeeded && result["decision"] == "NoChanges" && obj(run["intent"])["operation"] == "apply":
+		case signals.Outcome == execengine.OutcomeBlocked:
+			kind, reason = "ReconcileBlocked", signals.Reason
+		case w != nil && w.Succeeded && signals.Outcome == execengine.OutcomeNoChanges && obj(run["intent"])["operation"] == "apply":
 			kind, reason = "Ready", "NoChanges"
-		case w != nil && w.Succeeded && result["outcome"] == "Verified":
+		case w != nil && w.Succeeded && signals.Outcome == execengine.OutcomeVerified:
 			kind, reason = "Ready", "Verified"
 			if obj(run["intent"])["operation"] == "destroy" {
 				kind = "Destroyed"
 			}
 		}
 		values := M{"policy": result, "lastCheckTime": r.stamp()}
-		if yes(result["drift"]) && !yes(run["drift"]) {
+		if signals.DriftDetected && !yes(run["drift"]) {
 			values["lastDriftTime"] = r.stamp()
 		}
 		run["finishedAt"] = r.stamp()
 		run["result"] = kind
 		run["reason"] = reason
-		run["drift"] = yes(result["drift"])
+		run["drift"] = signals.DriftDetected
 		values["execution"] = run
 		if changed {
 			kind, reason = "ReconcilePending", "PreviousExecutionFinished"
