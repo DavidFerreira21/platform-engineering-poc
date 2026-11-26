@@ -31,11 +31,7 @@ spec:
   target:
     entity: entity-a
     environment: simulator
-  suspend: false
-  dependsOn:
-  - name: simulator-network
+  suspend: true
   reconciliation:
     retryPolicy:
       strategy: None
-  lifecycle:
-    destroy: true
