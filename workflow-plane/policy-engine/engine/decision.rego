@@ -6,7 +6,7 @@ import rego.v1
 plan := json.unmarshal(input.document)
 context := json.unmarshal(input.context)
 profile := object.get(context, "policyProfile", "")
-profiles := object.get(data, "profiles", {})
+profiles := data.profiles
 selected := object.get(profiles, profile, [])
 changes := [change |
     some change in object.get(plan, "resource_changes", [])
