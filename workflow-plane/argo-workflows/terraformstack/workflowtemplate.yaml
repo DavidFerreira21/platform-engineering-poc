@@ -93,7 +93,6 @@ spec:
       outputs:
         parameters:
           - {name: allowed, valueFrom: {path: /tmp/allowed}}
-          - {name: resolved-source, globalName: resolved-source, valueFrom: {path: /tmp/resolved-source}}
           - {name: execution-context, globalName: execution-context, valueFrom: {path: /tmp/execution-context}}
           - {name: execution-volume, globalName: execution-volume, valueFrom: {path: /tmp/execution-volume}}
           - {name: execution-result, globalName: execution-result, valueFrom: {path: /tmp/execution-result}}
@@ -121,6 +120,7 @@ spec:
       outputs:
         parameters:
           - {name: allowed, valueFrom: {path: /tmp/allowed}}
+          - {name: resolved-source, globalName: resolved-source, valueFrom: {path: /tmp/resolved-source}}
           - {name: execution-result, globalName: execution-result, valueFrom: {path: /tmp/execution-result}}
     - name: init
       volumes: *state

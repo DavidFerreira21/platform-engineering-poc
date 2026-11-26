@@ -48,8 +48,8 @@ Os steps Terraform usam a mesma imagem de runner com ferramentas, e o `pipeline.
 
 | Step | Comportamento |
 | --- | --- |
-| `resolve` | Verifica o perfil, fixa o SHA e publica o vínculo do destino e a seleção de PVC. |
-| `prepare` | Confere o vínculo no PVC, faz checkout do commit imutável e monta o arquivo de variáveis. |
+| `resolve` | Verifica o perfil, fixa o SHA e seleciona o PVC do destino. |
+| `prepare` | Confere o vínculo no PVC, publica a referência e o vínculo confirmados, faz checkout do commit imutável e monta o arquivo de variáveis. |
 | `init` e `validate` | Inicializam backend e providers e validam a configuração. |
 | `plan` | Gera o binário e o JSON do plano. Calcula SHA-256 do binário, do JSON e do contexto da decisão. |
 | `opa` e `decision` | Avaliam as ações propostas sobre o JSON e o contexto. A pipeline valida os hashes devolvidos e publica o estado operacional, a decisão, o hash do plano e o digest do pacote de políticas. |

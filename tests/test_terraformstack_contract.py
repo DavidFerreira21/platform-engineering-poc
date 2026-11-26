@@ -98,6 +98,8 @@ class TerraformStackContractTest(unittest.TestCase):
         self.assertTrue(set(transport["output"].values()).issubset(outputs))
         self.assertEqual(templates["opa"]["container"]["command"], ["/opa"])
         self.assertNotIn("volumes", templates["resolve"])
+        confirmed = {p.get("globalName") for p in templates["prepare"]["outputs"]["parameters"]}
+        self.assertIn(transport["output"]["resolvedSource"], confirmed)
         for name in ["resolve", "prepare", "init", "validate", "plan", "apply", "verify"]:
             self.assertEqual(templates[name]["container"]["image"], "terraformstack-runner:local")
 

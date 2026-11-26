@@ -25,7 +25,6 @@ block() {
 resolve() {
   local profile=/platform/profile/simulator.json slot repository path reference revision binding resolved
   : > /tmp/execution-result
-  : > /tmp/resolved-source
   : > /tmp/execution-context
   : > /tmp/execution-volume
   slot="$(value .intent.stack)"
@@ -78,8 +77,6 @@ resolve() {
   fi
   jq -c --arg revision "$revision" --arg binding "$binding" \
     '. + {revision:$revision, binding:$binding}' <<<"$resolved" > /tmp/execution-context
-  jq -cn --arg ref "$revision" --arg binding "$binding" \
-    '{reference:$ref, binding:$binding}' | envelope > /tmp/resolved-source
   printf '%s\n' "$slot" > /tmp/execution-volume
   printf '%s\n' true > /tmp/allowed
 }
@@ -179,10 +176,12 @@ claim() {
 case "$1" in
   prepare)
     : > /tmp/execution-result
+    : > /tmp/resolved-source
     if ! bind_state; then
       block StateBindingMismatch 'O volume já tem state sem vínculo ou pertence a outro destino.'
       exit 0
     fi
+    jq -c '{reference:.revision,binding}' <<<"$EXECUTION_CONTEXT" | envelope > /tmp/resolved-source
     mkdir "$workspace"
     checkout "$workspace/source" "$(bound .revision)"
     real_root="$(realpath -e "$root")"
