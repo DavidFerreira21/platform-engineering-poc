@@ -73,7 +73,7 @@ func (a *Adapter) Get(ctx context.Context, name, uid string) (*execution.Run, er
 	if e != nil {
 		return nil, e
 	}
-	return &execution.Run{Name: w.GetName(), Valid: a.valid(w, uid), Terminal: phase == "Succeeded" || phase == "Failed" || phase == "Error", Succeeded: phase == "Succeeded", Result: result}, nil
+	return &execution.Run{Name: w.GetName(), Valid: a.valid(w, uid), Terminal: phase == "Succeeded" || phase == "Failed" || phase == "Error", Succeeded: phase == "Succeeded", Result: result, Signals: signalsOf(result)}, nil
 }
 func (a *Adapter) Cancel(ctx context.Context, name, uid string) error {
 	w, e := a.Raw(ctx, name)
@@ -138,6 +138,35 @@ func resultOf(w *unstructured.Unstructured, integration WorkflowConfig) (M, erro
 		result["outcome"] = r
 	}
 	return result, nil
+}
+
+// signalsOf translates the existing reference pipeline's protocol.
+func signalsOf(result M) execution.Signals {
+	s := execution.Signals{
+		Waiting:       result["approval"] == "Running",
+		DriftDetected: result["drift"] == true,
+	}
+	switch {
+	case result["outcome"] == "Cancelled":
+		s.Outcome, s.Reason = execution.OutcomeCancelled, "Cancelled"
+	case result["outcome"] == "Rejected":
+		s.Outcome, s.Reason = execution.OutcomeBlocked, "ApprovalRejected"
+	case result["decision"] == "Deny":
+		s.Outcome, s.Reason = execution.OutcomeBlocked, "PolicyDenied"
+	case result["decision"] == "Error":
+		s.Outcome, s.Reason = execution.OutcomeBlocked, "PolicyError"
+	case result["decision"] == "NoChanges":
+		s.Outcome, s.Reason = execution.OutcomeNoChanges, "NoChanges"
+	case result["outcome"] == "Verified":
+		s.Outcome, s.Reason = execution.OutcomeVerified, "Verified"
+	}
+	request := str(result["applyRequest"])
+	if s.Outcome == execution.OutcomeUnknown && !s.Waiting && request != "" &&
+		request == str(result["hash"]) &&
+		(result["decision"] == "AutoApply" || result["decision"] == "RequireApproval") {
+		s.AuthorizationRequest = request
+	}
+	return s
 }
 
 func decodeDecision(raw string, result *M) error {
