@@ -11,10 +11,27 @@ spec:
     entity: entity-a
     environment: simulator
   reconciliation:
-    driftCheckInterval: 45s
+    driftCheckInterval: 10m
     retryPolicy:
       strategy: Fixed
       interval: 10s
       maxRetries: 1
-  lifecycle:
-    destroyResourcesOnDeletion: true
+---
+apiVersion: platform.example.io/v1alpha1
+kind: TerraformStack
+metadata:
+  name: simulator-dependent
+  namespace: platform-system
+spec:
+  sourceRef:
+    name: foundation-stacks
+    path: foundation/stacks/simulator
+  target:
+    entity: entity-a
+    environment: simulator
+  suspend: false
+  dependsOn:
+  - name: simulator-network
+  reconciliation:
+    retryPolicy:
+      strategy: None
