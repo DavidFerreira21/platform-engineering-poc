@@ -47,7 +47,7 @@ jobs:
           terraform -chdir=foundation/stacks/simulator test -no-color
       - name: Validar sintaxe dos scripts bash
         run: |
-          for file in platform/hub/scripts/*.sh workflow-plane/argo-workflows/terraformstack/pipeline.sh; do
+          for file in platform/hub/scripts/*.sh workflow-plane/argo-workflows/terraformstack/pipeline.sh foundation/stacks/simulator/verify.sh; do
             bash -n "$file"
           done
       - name: Validar YAML de exemplo e kind

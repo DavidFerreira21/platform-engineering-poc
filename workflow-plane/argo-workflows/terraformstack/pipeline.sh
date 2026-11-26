@@ -162,6 +162,9 @@ case "$1" in
       printf '%s\n' Cancelled > /tmp/apply-result
       exit 0
     fi
+    if [[ -f "$root/verify.sh" ]]; then
+      (cd "$root" && bash ./verify.sh)
+    fi
     if [[ "$(plan "$workspace/verify.bin")" != 0 ]]; then
       echo "Plan pós-apply ainda apresenta mudanças." >&2
       exit 1

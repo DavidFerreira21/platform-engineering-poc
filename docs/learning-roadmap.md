@@ -47,7 +47,7 @@ Preparar a conta de plataforma e provisionar o Hub EKS Auto Mode por bootstrap e
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
 | **09** | Foundation da conta de plataforma e módulos AWS | Conferir acesso humano, conta, região, backend e rede de plataforma. Completar os módulos Configuration, Network e EKS usados pelas raízes reutilizáveis e validar os planos |
-| **10** | Bootstrap externo e reinstalação do Hub EKS Auto Mode | Provisionar a rede e o Hub na conta de plataforma por execução autorizada com states separados. Publicar imagens por digest, preparar acesso e armazenamento, reinstalar os blocos do Git e repetir os dois aceites Kubernetes no EKS |
+| **10** | Bootstrap externo e reinstalação do Hub EKS Auto Mode | Provisionar a rede e o Hub na conta de plataforma por execução autorizada com states separados. Publicar imagens por digest, validar acesso ao Git e aos registries, preparar armazenamento e reinstalar os blocos do Git e repetir os dois aceites Kubernetes no EKS |
 | **11** | Registro de UAT | Validar o registro de destino, conta, região, acesso humano por IAM Identity Center e STS |
 | **12** | Identidade do executor e state | Provar a sessão temporária do Pod no Hub EKS, assunção da role UAT, bloqueio de destino indevido e operação do backend S3 com locking |
 | **13** | Network e primeiro apply da spoke UAT | Resolver revisões imutáveis e aplicar o mesmo plan aprovado. Verificar e disponibilizar ID da VPC e sub-redes para EKS |

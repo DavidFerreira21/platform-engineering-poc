@@ -5,3 +5,7 @@ nameReference:
       - kind: WorkflowTemplate
         group: argoproj.io
         path: spec/volumes/configMap/name
+images:
+  - kind: WorkflowTemplate
+    group: argoproj.io
+    path: spec/templates/container/image

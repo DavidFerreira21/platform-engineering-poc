@@ -119,6 +119,10 @@ Limpe primeiro as solicitações. Exclua o Workflow e os PVCs do Simulator apena
 - `status.policy` guarda decisão, motivo, hash, resumo das ações, fase e identidade da aprovação. O log de auditoria do Hub confirma a identidade que retomou o gate. As evidências são o status, o ConfigMap e a ausência de mudança em um segundo plan.
 - Guarde revisão, ID ou digest de imagem e resultados do exercício. O PVC contém os planos e states locais.
 
+## Evidências da pipeline consolidada
+
+O aceite em um Hub `kind` separado usou revisões de um espelho Git privado e os steps canônicos do Argo Workflows. O `AutoApply` criou o ConfigMap com `10.81.0.0/16`. O gate autorizado aplicou `10.82.0.0/16` e o `Deny` preservou esse valor diante da revisão com `0.0.0.0/0`. Um novo sync e o reinício do controller mantiveram o mesmo Workflow suspenso. A alteração externa para `10.83.0.0/16` foi corrigida na mesma revisão Git, sem novo sync.
+
 ## Evidências da versão anterior
 
 No ensaio anterior à consolidação da pipeline, em 25/11/2026, o Hub `kind` com Kubernetes 1.35 recebeu pelo Argo CD os SHAs de uma prévia Git privada. O controller local em execução teve ID de imagem `sha256:6468df47cae38721e1f4191c38e2cb972467b36c0ee985fc1b4070885e20e32c`. O baseline dos manifestos de teste partiu de `e363da42a3cd2120be9b463a790bb20c79060944`. As revisões de alteração do CIDR ficaram no espelho local.

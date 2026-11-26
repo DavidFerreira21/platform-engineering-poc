@@ -10,7 +10,7 @@ Construir a imagem do controller e o runner genérico. Publicar o WorkflowTempla
 
 ## Por que fizemos assim
 
-O catálogo fixa fonte, destino, backend e identidade. O controller resolve a intenção, coordena o lifecycle do Workflow e publica o estado no CR. O Argo Workflows torna visíveis os steps de preparação, init, validate, plan, OPA, aprovação, apply e verify. Os steps Terraform usam a imagem comum com ferramentas. OPA usa sua imagem oficial e monta as regras do Git. O manifest base do controller recebe valores específicos do cluster pelo overlay.
+O catálogo fixa fonte, destino, backend e identidade. O controller resolve a intenção, coordena o lifecycle do Workflow e publica o estado no CR. O Argo Workflows torna visíveis os steps de preparação, init, validate, plan, OPA, aprovação, apply e verify. Os steps Terraform usam a imagem comum com ferramentas. OPA usa sua imagem oficial e monta as regras do Git. O manifest base do controller recebe valores específicos do cluster pelo overlay. Um overlay pode promover o runner por digest via `images`. O step Verify executa `verify.sh` quando a raiz aprovada inclui uma verificação específica do recurso.
 
 ## Pré-requisitos
 
