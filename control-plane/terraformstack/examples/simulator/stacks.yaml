@@ -16,6 +16,8 @@ spec:
       strategy: Fixed
       interval: 10s
       maxRetries: 1
+  lifecycle:
+    destroy: true
 ---
 apiVersion: platform.example.io/v1alpha1
 kind: TerraformStack
