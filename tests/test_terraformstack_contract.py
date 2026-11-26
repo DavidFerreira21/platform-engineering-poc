@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Verifica o contrato v1alpha1 sem acesso a Kubernetes/AWS."""
 
-import ast
 from pathlib import Path
 import unittest
 
@@ -11,7 +10,7 @@ from jsonschema import Draft7Validator, ValidationError
 ROOT = Path(__file__).resolve().parents[1]
 CRD = ROOT / "control-plane/terraformstack/crd/terraformstack.yaml"
 SIMULATOR = ROOT / "control-plane/terraformstack/examples/simulator/stacks.yaml"
-CONTROLLER = ROOT / "control-plane/terraformstack/controller/controller.py"
+CONTROLLER = ROOT / "control-plane/terraformstack/controller"
 WORKFLOW = ROOT / "workflow-plane/argo-workflows/terraformstack/workflowtemplate.yaml"
 
 
@@ -105,8 +104,9 @@ class TerraformStackContractTest(unittest.TestCase):
         for name in ["prepare", "init", "validate", "plan", "apply", "verify"]:
             self.assertEqual(templates[name]["container"]["image"], "terraformstack-runner:local")
 
-    def test_controller_python_syntax(self):
-        ast.parse(CONTROLLER.read_text(encoding="utf-8"))
+    def test_controller_entrypoint(self):
+        self.assertTrue((CONTROLLER / "cmd/main.go").is_file())
+        self.assertTrue((CONTROLLER / "go.mod").is_file())
 
 
 if __name__ == "__main__":

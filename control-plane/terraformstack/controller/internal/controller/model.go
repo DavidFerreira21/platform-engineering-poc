@@ -34,6 +34,7 @@ func arr(v any) []any { a,_:=v.([]any);return a }
 func copyMap(m M) M { return runtime.DeepCopyJSON(m) }
 func canonical(v any) string { b,_:=json.Marshal(v);return string(b) }
 func equal(a,b any) bool {return canonical(a)==canonical(b)}
+func StackObject() *unstructured.Unstructured {return stackObject()}
 func stackObject() *unstructured.Unstructured {o:=&unstructured.Unstructured{};o.SetGroupVersionKind(api.StackGVK);return o}
 func stackList() *unstructured.UnstructuredList {o:=&unstructured.UnstructuredList{};o.SetGroupVersionKind(api.GroupVersion.WithKind("TerraformStackList"));return o}
 func specOf(o *unstructured.Unstructured) (api.StackSpec,error) {var s api.StackSpec;err:=runtime.DefaultUnstructuredConverter.FromUnstructured(obj(o.Object["spec"]),&s);return s,err}

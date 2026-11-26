@@ -95,10 +95,10 @@ data["vpc"]["cidr"] = "10.83.0.0/16"
 print(json.dumps({"data":{"network.json":json.dumps(data)}}))')"
 hub -n terraformstack-simulator patch configmap simulator-network --type merge -p "$payload"
 hub -n platform-system get terraformstack simulator-network -w \
-  -o custom-columns=GEN:.metadata.generation,WORKFLOW:.status.execution.workflow,GATILHO:.status.execution.trigger,CONDICAO:.status.conditions[0].type,DRIFT:.status.lastDriftTime
+  -o custom-columns=GEN:.metadata.generation,WORKFLOW:.status.execution.workflow,GATILHO:.status.execution.trigger,CONDICAO:.status.conditions[?(@.status=='True')].type,DRIFT:.status.lastDriftTime
 ```
 
-Sem novo commit ou sync, aguarde `DriftCheck` na mesma revisão, a condição `DriftDetected` ou o horário de drift persistido e o retorno do CIDR ao baseline. Confira o Workflow periódico e a próxima checagem sem mudanças. Um sync repetido na mesma revisão e o reinício do controller conservam o Workflow ativo. O intervalo padrão desta solicitação é 45 segundos.
+Sem novo commit ou sync, aguarde `DriftCheck` na mesma revisão, a condição `DriftDetected` ou o horário de drift persistido e o retorno do CIDR ao baseline. Confira o Workflow periódico e a próxima checagem sem mudanças. Um sync repetido na mesma revisão e o reinício do líder devem conservar o Workflow ativo. Identifique o holder da Lease, exclua somente o Pod líder e confirme que outro Pod assume e que o nome do Workflow não muda. O intervalo padrão desta solicitação é 45 segundos.
 
 No ensaio de concorrência, abra um gate e sincronize uma nova revisão antes de aprovar. Confira o Workflow antigo terminado e um novo hash e Workflow. Durante um apply já iniciado, sincronize uma segunda revisão e confira que ela aguarda a verificação da primeira. Use `status.execution.applying` como sinal para iniciar essa segunda sincronização.
 
@@ -119,23 +119,8 @@ Limpe primeiro as solicitações. Exclua o Workflow e os PVCs do Simulator apena
 - `status.policy` guarda decisão, motivo, hash, resumo das ações, fase e identidade da aprovação. O log de auditoria do Hub confirma a identidade que retomou o gate. As evidências são o status, o ConfigMap e a ausência de mudança em um segundo plan.
 - Guarde revisão, ID ou digest de imagem e resultados do exercício. O PVC contém os planos e states locais.
 
-## Evidências da pipeline consolidada
+## Evidências de aceite
 
-O aceite em um Hub `kind` separado usou revisões de um espelho Git privado e os steps canônicos do Argo Workflows. O `AutoApply` criou o ConfigMap com `10.81.0.0/16`. O gate autorizado aplicou `10.82.0.0/16` e o `Deny` preservou esse valor diante da revisão com `0.0.0.0/0`. Um novo sync e o reinício do controller mantiveram o mesmo Workflow suspenso. A alteração externa para `10.83.0.0/16` foi corrigida na mesma revisão Git, sem novo sync.
-
-## Evidências da versão anterior
-
-No ensaio anterior à consolidação da pipeline, em 25/11/2026, o Hub `kind` com Kubernetes 1.35 recebeu pelo Argo CD os SHAs de uma prévia Git privada. O controller local em execução teve ID de imagem `sha256:6468df47cae38721e1f4191c38e2cb972467b36c0ee985fc1b4070885e20e32c`. O baseline dos manifestos de teste partiu de `e363da42a3cd2120be9b463a790bb20c79060944`. As revisões de alteração do CIDR ficaram no espelho local.
-
-| Cenário | Resultado observado |
-| :--- | :--- |
-| `AutoApply` | ConfigMap com CIDR `10.81.0.0/16` e valores herdados de DNS, NAT e endpoints |
-| `RequireApproval` | **Resume** no nó da UI aplicou `10.82.0.0/16` com o hash aprovado. O status e a auditoria registraram a identidade |
-| `Deny` e erro OPA | `PolicyDenied` bloqueou `0.0.0.0/0`. `PolicyError` registrou Rego inválido. Os dois cenários preservaram o ConfigMap |
-| Drift e idempotência | A checagem periódica detectou `10.83.0.0/16` e restaurou o baseline na mesma revisão. Sync repetido e reinício conservaram o Workflow que aguardava aprovação |
-| Concorrência e integridade | A revisão nova cancelou um gate obsoleto; o apply que já havia começado concluiu. Hash incorreto bloqueou aprovação. Plano adulterado falhou e o retry gerou outro plano |
-| Lifecycle | Suspensão e dependência ficaram visíveis no status. Destroy explícito removeu os dois ConfigMaps após aprovação. A exclusão padrão reteve o recurso. O cleanup opt-in aprovado liberou o finalizer; a negativa pela UI preservou o finalizer e o ConfigMap |
-
-`SimulatedPlanReady=True` confirmou o antigo controller simulado naquele ensaio. O runtime e o CRD passaram pelo dry-run na API. Os sete testes Rego passaram.
+Execute todos os cenários desta etapa com o controller Go. Registre revisão Git, digest das imagens, status, Workflow e resultados. Não há aceite E2E desta revisão registrado.
 
 [← Etapa 05](05-terraformstack-runtime.md) · [Roteiro](../docs/learning-roadmap.md) · [Etapa 07 →](07-crossplane-core.md)

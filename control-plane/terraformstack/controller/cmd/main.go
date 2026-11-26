@@ -8,6 +8,7 @@ import (
  "github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/controller"
  ctrl "sigs.k8s.io/controller-runtime"
  "sigs.k8s.io/controller-runtime/pkg/cache"
+ "sigs.k8s.io/controller-runtime/pkg/client"
  "sigs.k8s.io/controller-runtime/pkg/healthz"
  "sigs.k8s.io/controller-runtime/pkg/log/zap"
  metrics "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -24,7 +25,7 @@ func main(){
  catalog,e:=controller.LoadCatalog(path);if e!=nil{logger.Error(e,"catálogo inválido");os.Exit(1)}
  lease:=15*time.Second;renew:=10*time.Second;retry:=2*time.Second
  manager,e:=ctrl.NewManager(ctrl.GetConfigOrDie(),ctrl.Options{
- Cache:cache.Options{DefaultNamespaces:map[string]cache.Config{stackNS:{},wfNS:{}}},
+ Cache:cache.Options{ByObject:map[client.Object]cache.ByObject{controller.StackObject():{Namespaces:map[string]cache.Config{stackNS:{}}},controller.WorkflowObject():{Namespaces:map[string]cache.Config{wfNS:{}}}}},
  LeaderElection:leader,LeaderElectionID:"terraformstack-controller.platform.example.io",LeaderElectionNamespace:stackNS,LeaseDuration:&lease,RenewDeadline:&renew,RetryPeriod:&retry,
  Metrics:metrics.Options{BindAddress:":8080"},HealthProbeBindAddress:":8081",
  })

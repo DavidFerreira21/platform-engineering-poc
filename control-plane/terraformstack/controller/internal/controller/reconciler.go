@@ -24,6 +24,7 @@ type Reconciler struct {
 }
 func (r *Reconciler) clock()time.Time{if r.Now!=nil{return r.Now().UTC()};return time.Now().UTC()}
 func (r *Reconciler) stamp()string{return r.clock().Format(time.RFC3339)}
+func WorkflowObject()*unstructured.Unstructured{return workflowObject()}
 func workflowObject()*unstructured.Unstructured{o:=&unstructured.Unstructured{};o.SetGroupVersionKind(workflowGVK);return o}
 func (r *Reconciler) getWorkflow(ctx context.Context,name string)(*unstructured.Unstructured,error){
  if name==""{return nil,nil};w:=workflowObject();e:=r.Reader.Get(ctx,client.ObjectKey{Namespace:r.WorkflowNamespace,Name:name},w);if apierrors.IsNotFound(e){return nil,nil};return w,e
