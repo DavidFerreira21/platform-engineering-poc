@@ -39,9 +39,11 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.13.5
-      - name: Validar o Simulator com provider simulado
+      - name: Validar Configuration e o Simulator
         run: |
           terraform fmt -diff -check -recursive foundation/modules/configuration foundation/stacks/simulator
+          terraform -chdir=foundation/modules/configuration init -backend=false -input=false
+          terraform -chdir=foundation/modules/configuration test -no-color
           terraform -chdir=foundation/stacks/simulator init -backend=false -input=false
           terraform -chdir=foundation/stacks/simulator validate -no-color
           terraform -chdir=foundation/stacks/simulator test -no-color

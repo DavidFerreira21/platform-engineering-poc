@@ -1,0 +1,6 @@
+ec2:
+  instance_type: t3.small
+  network:
+    endpoints:
+      private:
+        port: 8443
