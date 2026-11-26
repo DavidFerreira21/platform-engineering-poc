@@ -37,7 +37,7 @@ bash platform/hub/scripts/install-traefik.sh
 hub apply -f platform/hub/addons/bootstrap.yaml
 ```
 
-Na UI do Argo CD, abra **Applications → argo-workflows**. Se o controller, o Argo Server e a rota já estiverem disponíveis, confira o estado com os comandos abaixo. Para instalar ou publicar a interface, confira a versão do chart no catálogo e inspecione o **Diff**. Sincronize a Application quando o diff corresponder à instalação esperada. Um Job de pré-sincronização instala os CRDs completos. O controller executa Workflows no namespace `argo-workflows`. [Entrada do catálogo](../platform/hub/addons/catalog/argo-workflows.yaml)
+Na UI do Argo CD, abra **Applications → argo-workflows**. Se o controller, o Argo Server e a rota já estiverem disponíveis, confira o estado com os comandos abaixo. Para instalar ou publicar a interface, confira a versão do chart no catálogo e inspecione o **Diff**. Sincronize a Application e aguarde a operação terminar antes de executar as consultas. Um Job de pré-sincronização instala os CRDs completos. O controller executa Workflows no namespace `argo-workflows`. [Entrada do catálogo](../platform/hub/addons/catalog/argo-workflows.yaml)
 
 ```bash
 hub -n argocd get application argo-workflows
@@ -75,7 +75,7 @@ hub -n argo-workflows logs -l "workflows.argoproj.io/workflow=${run##*/}" -c mai
 
 O log esperado é `lab02b-workflow-ok`. O Pod usa a ServiceAccount `argo-workflow`, com permissões para o executor publicar resultados em `workflowtaskresults`. Cada submissão recebe um nome próprio.
 
-Na interface do Argo Workflows, abra **Workflows**, selecione a execução pelo nome retornado por `hub get "$run"` e abra **Logs** no nó `echo`. Se a execução não chegar a `Succeeded`, consulte `hub -n argo-workflows describe "$run"`, os eventos do Pod e os logs do controller.
+Na interface do Argo Workflows, selecione a execução pelo nome retornado por `hub -n argo-workflows get "$run"`. No grafo, clique no círculo do único nó, rotulado com o nome da execução. No painel do nó, abra **Logs** e confira a mensagem no container `main`. Se a execução não chegar a `Succeeded`, consulte `hub -n argo-workflows describe "$run"`, os eventos do Pod e os logs do controller.
 
 ## O que observar
 

@@ -62,7 +62,7 @@ No Argo CD, confira a revisão e o destino Hub antes de cada sync manual.
 
 Se o catálogo aparecer sem hash no diff, confira o build do overlay com `kubectl kustomize control-plane/terraformstack/overlays/kind`.
 
-Para uma revisão ainda em branch, use Applications de preview com os mesmos projetos, paths e destinos e um SHA acessível ao Hub. Sincronize cada bloco por uma única Application. [Catálogo do Workflow](../platform/hub/addons/catalog/terraformstack-workflows.yaml) · [Catálogo do controller](../platform/hub/addons/catalog/terraformstack-controller.yaml)
+Para testar uma revisão publicada em branch, informe o SHA em **Sync → Revision** na própria Application de cada componente. Aguarde a operação terminar e confira o SHA no resultado do sync. O Argo CD pode mostrar `OutOfSync` enquanto compara com o destino `main` configurado no catálogo. [Catálogo do Workflow](../platform/hub/addons/catalog/terraformstack-workflows.yaml) · [Catálogo do controller](../platform/hub/addons/catalog/terraformstack-controller.yaml)
 
 ```bash
 hub -n platform-system rollout status deployment/terraformstack-controller --timeout=120s
