@@ -1,0 +1,18 @@
+# Catálogo de perfis ativos, carregado pelo OPA como data.profiles.
+# Apenas perfis com módulos implementados podem entrar aqui.
+profiles:
+  simulator:
+    - common
+    - simulator
+
+# Exemplos FUTUROS (não ativar antes de implementar e testar os módulos):
+# network:
+#   - common
+#   - network
+# eks:
+#   - common
+#   - eks
+# network-xpto:
+#   - common
+#   - network
+#   - xpto

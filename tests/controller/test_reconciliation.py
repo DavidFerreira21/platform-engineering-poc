@@ -12,6 +12,7 @@ def test_intent_pins_revisions_and_catalog(cluster):
     stack = cluster.add()
     data = controller.intent(stack, cluster.catalog)
     assert data["revision"] == data["configuration"] == SHA
+    assert data["policyProfile"] == "simulator"
     assert data["serviceAccount"] == "terraformstack-executor"
     assert data["backend"]["path"] == "/state/terraform.tfstate"
 
@@ -221,3 +222,13 @@ def test_opa_error_overrides_decision(cluster):
     wf["status"]["nodes"] = {"opa": {"templateName": "opa", "phase": "Error"}}
     cluster.tick()
     assert cluster.condition()["reason"] == "PolicyError"
+
+
+@pytest.mark.parametrize("profile", [None, "", "../network"])
+def test_invalid_catalog_policy_profile(cluster, profile):
+    cluster.add()
+    slot = cluster.catalog["targets"]["entity-a/simulator"]["stacks"]["simulator-network"]
+    slot["policyProfile"] = profile
+    cluster.tick()
+    assert cluster.condition()["reason"] == "InvalidIntent"
+    assert not cluster.workflows

@@ -22,7 +22,8 @@
             "slot": "simulator-network",
             "namespace": "terraformstack-simulator"
           },
-          "serviceAccount": "terraformstack-executor"
+          "serviceAccount": "terraformstack-executor",
+          "policyProfile": "simulator"
         },
         "simulator-dependent": {
           "source": "foundation-stacks",
@@ -36,7 +37,8 @@
             "slot": "simulator-dependent",
             "namespace": "terraformstack-simulator"
           },
-          "serviceAccount": "terraformstack-executor"
+          "serviceAccount": "terraformstack-executor",
+          "policyProfile": "simulator"
         }
       }
     }

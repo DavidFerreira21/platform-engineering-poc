@@ -20,3 +20,5 @@ O Workflow Plane mantém processos, GitOps central, aprovação e execução. O 
 O Workflow Plane usa o Hub local. A integração com o Terraform Executor faz parte da [Fase 2 do roteiro](../docs/learning-roadmap.md#fase-2--control-plane-local).
 
 [← Início](../README.md) · [Arquitetura](../docs/architecture.md)
+
+**Policy Engine:** [módulos Rego e perfis YAML](policy-engine/README.md) compõem as regras por stack, selecionadas pelo catálogo confiável.

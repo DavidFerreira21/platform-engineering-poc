@@ -4,12 +4,11 @@ namespace: argo-workflows
 resources:
   - workflowtemplate.yaml
   - rbac.yaml
+  - ../../policy-engine
 configurations:
   - names.yaml
 configMapGenerator:
   - name: terraformstack-scripts
     files: [pipeline.sh]
-  - name: terraformstack-policy
-    files: [policy.rego]
 generatorOptions:
   immutable: true

@@ -10,7 +10,7 @@ Construir a imagem do controller e o runner genérico. Publicar o WorkflowTempla
 
 ## Por que fizemos assim
 
-O catálogo seleciona fonte, destino, backend e identidade. O controller fixa os SHAs de código e configuração, grava a referência da execução no CR e acompanha o Workflow. Os steps Terraform usam a imagem comum com ferramentas e executam o script montado. OPA usa sua imagem oficial e monta o Rego versionado. O overlay dá ao controller o catálogo do Hub e pode promover o runner por digest via `images`. O step `verify` executa `verify.sh` quando a raiz aprovada inclui uma verificação específica do recurso. [Fluxo da pipeline](../docs/flows/terraformstack.md#3-pipeline-e-aprovação)
+O catálogo seleciona fonte, destino, backend e identidade. O controller fixa os SHAs de código e configuração, grava a referência da execução no CR e acompanha o Workflow. Os steps Terraform usam a imagem comum com ferramentas e executam o script montado. OPA usa sua imagem oficial e monta o pacote versionado do [Policy Engine](../workflow-plane/policy-engine/README.md), com perfis selecionados pelo catálogo. O overlay dá ao controller o catálogo do Hub e pode promover o runner por digest via `images`. O step `verify` executa `verify.sh` quando a raiz aprovada inclui uma verificação específica do recurso. [Fluxo da pipeline](../docs/flows/terraformstack.md#3-pipeline-e-aprovação)
 
 ## Pré-requisitos
 

@@ -1,4 +1,4 @@
-package terraformstack
+package policy_modules.simulator
 
 import rego.v1
 
@@ -68,7 +68,7 @@ baseline_automatic if {
 
 default gate := {"decision": "Deny", "reason": "Mudança fora do contrato do Simulator"}
 
-gate := {"decision": "NoChanges", "reason": "Plan sem mudanças"} if {
+gate := {"decision": "NotApplicable", "reason": "Plan sem mudanças"} if {
     context.operation == "apply"
     context.exitCode == 0
     count(changes) == 0
@@ -97,10 +97,9 @@ cidrs := {phase: cidr |
     net.cidr_is_valid(cidr)
 }
 
-decision := object.union(gate, {
-    "documentHash": crypto.sha256(input.document),
-    "contextHash": crypto.sha256(input.context),
+# Cobertura explícita: somente endereços reconhecidos pelo módulo.
+result := object.union(gate, {
+    "covered": [change.address | some change in changes; change.address == network_address],
     "drift": drift,
-    "actions": [change.change.actions | some change in changes],
     "cidrs": cidrs,
 })

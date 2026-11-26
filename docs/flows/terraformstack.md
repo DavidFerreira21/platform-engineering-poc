@@ -37,7 +37,7 @@ spec:
       maxRetries: 1
 ```
 
-- `sourceRef.name` identifica uma fonte sob controle do Platform Team. `sourceRef.path` aponta para a raiz de uma stack Terraform completa. A combinação de fonte, raiz, destino lógico e nome do CR precisa constar no catálogo. O catálogo seleciona o repositório, o caminho das configurações, o backend, o PVC, as variáveis e a ServiceAccount. [Catálogo local](../../control-plane/terraformstack/overlays/kind/catalog.json)
+- `sourceRef.name` identifica uma fonte sob controle do Platform Team. `sourceRef.path` aponta para a raiz de uma stack Terraform completa. A combinação de fonte, raiz, destino lógico e nome do CR precisa constar no catálogo. O catálogo seleciona o repositório, o caminho das configurações, o backend, o PVC, as variáveis, o Policy Profile e a ServiceAccount. [Catálogo local](../../control-plane/terraformstack/overlays/kind/catalog.json)
 - `sourceRef.version` seleciona a revisão do código e `configuration.version` seleciona a dos YAMLs. Cada campo pode receber um SHA Git completo de 40 caracteres. Omissão ou `latest` usa o SHA de `platform.example.io/revision`. Quando falta um SHA válido para qualquer uma das duas referências, o controller bloqueia a intenção com `InvalidIntent`. O runner verifica o SHA de cada checkout antes do plan. [Resolução no controller](../../control-plane/terraformstack/controller/controller.py) · [Pipeline](../../workflow-plane/argo-workflows/terraformstack/pipeline.sh)
 - O controller considera o UID, a geração e a revisão GitOps na intenção. Um commit que muda apenas YAML pode iniciar outro plan após o sync, porque a anotação muda mesmo com o mesmo `metadata.generation`.
 - A raiz Terraform consome o módulo genérico Configuration. O Simulator usa `network.yaml` com o perfil de dados `entity-a/uat` para o destino lógico `entity-a/simulator`. Os arquivos são compostos na ordem global → entidade → ambiente. A camada mais específica substitui escalares e listas, e objetos são mesclados recursivamente. [Raiz do Simulator](../../foundation/stacks/simulator/main.tf) · [Configuration](../../foundation/README.md#configuration)
@@ -51,7 +51,7 @@ Os steps Terraform usam a mesma imagem de runner com ferramentas, e o `pipeline.
 | `prepare` | Busca os SHAs de código e configuração e monta o arquivo de variáveis. |
 | `init` e `validate` | Inicializam backend e providers e validam a configuração. |
 | `plan` | Gera o binário e o JSON do plano. Calcula SHA-256 do binário, do JSON e do contexto da decisão. |
-| `opa` e `decision` | Avaliam as ações propostas sobre o JSON e o contexto. A pipeline valida os hashes devolvidos e registra decisão, motivo, resumo e digest do Rego. |
+| `opa` e `decision` | Avaliam as ações propostas sobre o JSON e o contexto. A pipeline valida os hashes devolvidos e registra decisão, motivo, resumo, perfil, módulos e digest do pacote de políticas. |
 | `approval` | Abre um nó suspenso na UI quando a política retorna `RequireApproval`. |
 | `authorize` | Emite o hash como pedido de apply quando a decisão permite. No caminho manual, exige `Approve` e o hash correto. |
 | `apply` e `verify` | Revalidam e aplicam o binário salvo, executam o `verify.sh` da stack quando presente e exigem um plan pós-apply sem mudanças. |
@@ -63,7 +63,7 @@ Os steps Terraform usam a mesma imagem de runner com ferramentas, e o `pipeline.
 | `Deny` | Tentar configurar `0.0.0.0/0` ou mudar recursos fora do contrato do Simulator. | Encerra antes do apply e preserva o recurso. |
 | `NoChanges` | Plan regular sem diferenças. | Encerra a verificação sem apply. |
 
-Uma falha de avaliação do OPA ou uma decisão incompatível com o plano bloqueia o apply. No caminho manual, o aprovador autorizado abre o nó **approval**, seleciona **Resume**, escolhe `Approve` e informa o hash mostrado em `status.policy.hash`. O gate tem `Reject` como padrão. RBAC e admissão limitam a edição do Workflow ao gate ativo, e a auditoria do Hub registra quem retomou a execução. [Rego](../../workflow-plane/argo-workflows/terraformstack/policy.rego) · [Aprovação pela UI](../../labs/06-terraformstack-simulator.md#2-exercitar-as-decisões-opa-pelo-gitops) · [Admissão local](../../control-plane/terraformstack/overlays/kind/admission.yaml)
+Uma falha de avaliação do OPA ou uma decisão incompatível com o plano bloqueia o apply. No caminho manual, o aprovador autorizado abre o nó **approval**, seleciona **Resume**, escolhe `Approve` e informa o hash mostrado em `status.policy.hash`. O gate tem `Reject` como padrão. RBAC e admissão limitam a edição do Workflow ao gate ativo, e a auditoria do Hub registra quem retomou a execução. [Rego](../../workflow-plane/policy-engine/README.md) · [Aprovação pela UI](../../labs/06-terraformstack-simulator.md#2-exercitar-as-decisões-opa-pelo-gitops) · [Admissão local](../../control-plane/terraformstack/overlays/kind/admission.yaml)
 
 ### Autorização final do apply
 

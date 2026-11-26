@@ -28,6 +28,8 @@ Escrever os documentos **na voz do próprio projeto**, em português brasileiro 
 - **Applications:** Argo CD local do Management EKS aplica namespaces, policies e workloads em PCI/Non-PCI **somente se o isolamento permitir**.
 - **Topologia-alvo:** UAT e PROD são contas AWS separadas; cada uma inclui Management EKS, EKS PCI, EKS Non-PCI e AWS Runtime. EKS Auto Mode preferido, sob validação de custo/operadores/PCI. Hub é `kind` inicialmente. Sem MSK na primeira versão.
 
+- **Policy Engine:** módulos Rego reutilizáveis e perfis YAML em `workflow-plane/policy-engine/`; perfil selecionado exclusivamente no catálogo confiável da stack. Regras AWS futuras não devem ser ativadas sem implementação e testes. [Policy Engine](workflow-plane/policy-engine/README.md).
+
 ## Ownership e contratos
 
 **Foundation** é central (conta, landing zone, rede, IAM e Terraform Bootstrap). **Entity Core** é compartilhado, federado pode solicitar mas lifecycle de EKS é governado. **Domain Infrastructure** é federada e usa Crossplane para Capabilities AWS. **Domain Applications** é responsabilidade das squads: CI/CD em repositório de aplicação de teste separado (GitHub Actions) e deploy GitOps por Argo CD local.

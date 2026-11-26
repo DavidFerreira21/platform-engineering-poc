@@ -12,7 +12,7 @@ O Argo CD sincroniza a intenção em Git. O controller fixa as revisões de cód
 
 O mesmo caminho de reconciliação atende o primeiro plan, as mudanças declaradas e a observação periódica do ambiente. Mantemos o state em um PVC por stack, com locking do backend local, e o plano binário em um diretório por execução. O OPA avalia o JSON derivado do plano. Antes do apply, a pipeline confere o hash do binário e compara o efeito previsto com um novo plan. A função `claim()` confere a intenção e a autorização vigentes no CR e marca `status.execution.applying: true`. O apply usa o binário salvo. [Autorização final do apply](../docs/flows/terraformstack.md#autorização-final-do-apply)
 
-O catálogo local autoriza os dois nomes do exercício, a raiz Terraform do repositório e o destino lógico `entity-a/simulator`. O Simulator lê Configuration com o perfil de dados `entity-a/uat`. O código Terraform das revisões aceitas é mantido pelo Platform Team. O Workflow usa uma versão imutável das regras Rego e o status publica seu SHA-256. [Contrato](../docs/flows/terraformstack.md) · [Política OPA](../workflow-plane/argo-workflows/terraformstack/policy.rego)
+O catálogo local autoriza os dois nomes do exercício, a raiz Terraform do repositório e o destino lógico `entity-a/simulator`. O Simulator lê Configuration com o perfil de dados `entity-a/uat`. O código Terraform das revisões aceitas é mantido pelo Platform Team. O Workflow usa o perfil `simulator`, composto de `common` e `simulator`, em um pacote imutável; o status publica o perfil, os módulos e o SHA-256 do pacote. [Contrato](../docs/flows/terraformstack.md) · [Política OPA](../workflow-plane/policy-engine/README.md)
 
 ## 1. Preparar o Hub e sincronizar
 
