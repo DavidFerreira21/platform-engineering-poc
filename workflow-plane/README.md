@@ -8,6 +8,8 @@ O Workflow Plane mantém processos, GitOps central, aprovação e execução. O 
 | **Argo Workflows** | Orquestra a pipeline canônica, a avaliação OPA e o gate de aprovação. O Simulator usa esses steps na Etapa 06 |
 | **Terraform Executor** | Imagem genérica de ferramentas que executa os scripts de Terraform do WorkflowTemplate |
 
+No Hub `kind`, Argo CD central é autogerenciado. No Hub EKS, adotar EKS Capability for Argo CD para sincronização local e cross-account por ARN e Access Entries, sem rotas entre VPCs. [ADR-0008](../docs/adr/0008-managed-argocd-connectivity.md).
+
 `Entity`, `Environment` e `Domain` são registros lógicos no Git. Não exigem Environment Controller próprio ou XRD de Domain nesta fase. A criação de contas será reconsiderada no futuro quando houver necessidade de lifecycle automatizado. O **Argo CD local** roda em cada Management EKS autorizado, junto do Data Plane.
 
 ## Aplicações e execuções declarativas
