@@ -16,20 +16,5 @@ spec:
       strategy: Fixed
       interval: 10s
       maxRetries: 1
----
-apiVersion: platform.example.io/v1alpha1
-kind: TerraformStack
-metadata:
-  name: simulator-dependent
-  namespace: platform-system
-spec:
-  sourceRef:
-    name: foundation-stacks
-    path: foundation/stacks/simulator
-  target:
-    entity: entity-a
-    environment: simulator
-  suspend: true
-  reconciliation:
-    retryPolicy:
-      strategy: None
+  lifecycle:
+    destroyResourcesOnDeletion: true
