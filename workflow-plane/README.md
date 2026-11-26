@@ -24,3 +24,9 @@ O Workflow Plane usa o Hub local. A integração com o Terraform Executor faz pa
 [← Início](../README.md) · [Arquitetura](../docs/architecture.md)
 
 **Policy Engine:** [módulos Rego e perfis YAML](policy-engine/README.md) compõem as regras por stack, selecionadas pelo perfil de execução confiável.
+
+## Binário de IaC no Simulator
+
+O runner inclui Terraform 1.13.5 e OpenTofu 1.13.9. O perfil local seleciona `iac: terraform`. Os steps encaminham o binário selecionado em `IAC_BIN` para init, validate, geração e leitura do plano, revalidação, apply e verificação. O destroy usa o mesmo binário e as mesmas garantias.
+
+Para exercitar OpenTofu, use um perfil com `iac: tofu` e um PVC limpo dedicado à stack de teste. O vínculo persistido inclui a ferramenta. Mantenha separados os states, os planos salvos e os arquivos de lock de dependências dos dois CLIs. A POC usa somente o backend local neste exercício. [Perfil do Simulator](argo-workflows/terraformstack/simulator.json) · [Instalação oficial do OpenTofu em imagens](https://opentofu.org/docs/intro/install/docker/)

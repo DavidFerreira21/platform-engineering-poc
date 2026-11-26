@@ -44,7 +44,7 @@ spec:
 
 ## 3. Pipeline e aprovação
 
-Os steps Terraform usam a mesma imagem de runner com ferramentas, e o `pipeline.sh` define os comandos de cada step. Scripts e regras Rego são montados a partir de ConfigMaps imutáveis com nomes derivados do conteúdo. O OPA roda em sua própria imagem. O backend local usa um PVC por stack, com state em `/state/terraform.tfstate` e arquivos de cada tentativa em `/state/<workflow>`. O locking do Terraform protege cada operação e é liberado enquanto o Workflow aguarda aprovação. [Runner](../../workflow-plane/terraform-executor/Dockerfile) · [Kustomize](../../workflow-plane/argo-workflows/terraformstack/kustomization.yaml)
+Os steps Terraform usam a mesma imagem de runner com ferramentas, e o `pipeline.sh` define os comandos de cada step. Scripts e regras Rego são montados a partir de ConfigMaps imutáveis com nomes derivados do conteúdo. O OPA roda em sua própria imagem. O backend local usa um PVC por stack, com state em `/state/terraform.tfstate` e arquivos de cada tentativa em `/state/<workflow>`. O locking do backend protege cada operação e é liberado enquanto o Workflow aguarda aprovação. O perfil seleciona o CLI da tentativa, com Terraform como padrão. Testes com OpenTofu usam outro state. [Binário de IaC no Simulator](../../workflow-plane/README.md#binário-de-iac-no-simulator) [Runner](../../workflow-plane/terraform-executor/Dockerfile) · [Kustomize](../../workflow-plane/argo-workflows/terraformstack/kustomization.yaml)
 
 | Step | Comportamento |
 | --- | --- |

@@ -385,6 +385,46 @@ func TestEnvtestStatusCAS(t *testing.T) {
 	if e = c.Status().Update(context.Background(), stale); !apierrors.IsConflict(e) {
 		t.Fatalf("esperava conflito, obtido %v", e)
 	}
+
+	// A partir da mesma versão, claim e revogação disputam o status.
+	ctx := context.Background()
+	o.Object["status"] = M{"execution": M{"authorization": "token"}}
+	if err := c.Status().Update(ctx, o); err != nil {
+		t.Fatal(err)
+	}
+	cancel, applying := o.DeepCopy(), o.DeepCopy()
+	cancel.Object["status"] = M{"execution": M{"cancelling": true}}
+	patch, err := json.Marshal([]M{
+		{"op": "test", "path": "/metadata/resourceVersion", "value": o.GetResourceVersion()},
+		{"op": "add", "path": "/status/claim", "value": M{
+			"workflow": "test-wf", "intentHash": strings.Repeat("a", 64), "authorization": "token",
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	start, results := make(chan struct{}), make(chan error, 2)
+	go func() {
+		<-start
+		results <- c.Status().Update(ctx, cancel)
+	}()
+	go func() {
+		<-start
+		results <- c.Status().Patch(ctx, applying, client.RawPatch(types.JSONPatchType, patch))
+	}()
+	close(start)
+	first, second := <-results, <-results
+	if (first == nil) == (second == nil) {
+		t.Fatalf("esperava apenas um vencedor, obtidos %v e %v", first, second)
+	}
+	if err := c.Get(ctx, client.ObjectKeyFromObject(o), o); err != nil {
+		t.Fatal(err)
+	}
+	status := obj(o.Object["status"])
+	cancelled, claimed := yes(obj(status["execution"])["cancelling"]), len(obj(status["claim"])) != 0
+	if cancelled == claimed {
+		t.Fatalf("estado concorrente incompatível: %v", status)
+	}
 }
 
 func TestRenamedIntegration(t *testing.T) {
@@ -441,5 +481,25 @@ func TestUnclaimedVerifiedResult(t *testing.T) {
 	tick(t, r, 1)
 	if reason(t, r) != "InvalidExecutionContract" {
 		t.Fatal(reason(t, r))
+	}
+}
+
+func TestAuthorizationCannotChangeAfterGrant(t *testing.T) {
+	for _, changed := range []string{"", "changed-token"} {
+		t.Run(changed, func(t *testing.T) {
+			r, _ := fixture(t)
+			tick(t, r, 4)
+			workflowStatus(t, r, "Running", "Running", "", "hash")
+			tick(t, r, 1)
+			if getRun(t, r)["authorization"] != "hash" {
+				t.Fatal(getRun(t, r))
+			}
+			workflowStatus(t, r, "Running", "Running", "", changed)
+			tick(t, r, 2)
+			if getRun(t, r)["authorization"] != nil ||
+				obj(current(t, r).Object["spec"])["shutdown"] != "Terminate" {
+				t.Fatal(getRun(t, r))
+			}
+		})
 	}
 }
