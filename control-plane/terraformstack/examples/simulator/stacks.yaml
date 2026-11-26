@@ -16,6 +16,7 @@ spec:
       strategy: Fixed
       interval: 10s
       maxRetries: 1
+  suspend: true
 ---
 apiVersion: platform.example.io/v1alpha1
 kind: TerraformStack
@@ -29,9 +30,9 @@ spec:
   target:
     entity: entity-a
     environment: simulator
-  suspend: true
+  suspend: false
   dependsOn:
-    - name: simulator-network
+  - name: simulator-network
   reconciliation:
     retryPolicy:
       strategy: None
