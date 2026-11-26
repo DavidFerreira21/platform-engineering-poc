@@ -16,11 +16,12 @@ O catálogo local autoriza os dois nomes do exercício, a raiz Terraform do repo
 
 ## 1. Preparar o Hub e sincronizar
 
-Reutilize o Hub com auditoria da [Etapa 01](01-platform-management-cluster.md) e o runtime da [Etapa 05](05-terraformstack-runtime.md). No Argo CD, abra **terraformstack-simulator**. Confira o destino `platform-system`, os dois CRs e a anotação `platform.example.io/revision` com o SHA resolvido. A dependente começa suspensa. Para um preview, fixe a Application no SHA de exercício acessível ao Hub. [Entrada do Simulator](../platform/hub/addons/catalog/terraformstack-simulator.yaml)
+Reutilize o Hub `platform-management` da Etapa 01. Termine a instalação do runtime e confirme o rollout do controller antes do sync do Simulator. Se as imagens ainda precisarem ser carregadas ou atualizadas, execute o bloco de reconstrução da Etapa 05. [Hub local](01-platform-management-cluster.md) · [Reconstruir e carregar as imagens](05-terraformstack-runtime.md#1-construir-ou-reconstruir-as-imagens)
+
+No Argo CD, abra **terraformstack-simulator**. Confira o destino `platform-system`, os dois CRs e a anotação `platform.example.io/revision` com o SHA resolvido e faça o sync manual. A dependente começa suspensa. Para um preview, selecione o SHA de exercício acessível ao Hub. [Entrada do Simulator](../platform/hub/addons/catalog/terraformstack-simulator.yaml)
 
 ```bash
-cluster="${HUB_KIND_NAME:-platform-management}"
-hub() { kubectl --context "kind-$cluster" "$@"; }
+hub() { kubectl --context kind-platform-management "$@"; }
 hub -n platform-system rollout status deployment/terraformstack-controller --timeout=120s
 hub -n argo-workflows get workflowtemplate terraformstack
 stack() { hub -n platform-system get terraformstack simulator-network "$@"; }
@@ -35,7 +36,7 @@ hub -n argo-workflows get workflow "$(workflow)"
 network
 ```
 
-Se o Workflow ficar pendente, confira eventos dos Pods e dos PVCs. Para falha no plan, consulte a fase e os logs do Workflow. Confirme que o SHA publicado é acessível dentro do Hub e que os Pods podem obter o provider Kubernetes. Em `ImagePullBackOff`, confira as imagens locais carregadas no `kind` e a conectividade com o registry do OPA.
+Se o Workflow ficar pendente, confira eventos dos Pods e dos PVCs. Para falha no plan, consulte a fase e os logs do Workflow. Confirme que o SHA publicado é acessível dentro do Hub e que os Pods podem obter o provider Kubernetes. Em `ImagePullBackOff` de imagem com tag `:local`, repita o build e o carregamento no mesmo Hub. Para falha ao baixar a imagem do OPA, confira a conectividade com o registry. [Comandos de build e carregamento](05-terraformstack-runtime.md#1-construir-ou-reconstruir-as-imagens)
 
 ## 2. Exercitar as decisões OPA pelo GitOps
 
@@ -62,7 +63,7 @@ stack -o jsonpath='{.status.policy.hash}{"\n"}'
 Na [UI do Argo Workflows](https://workflows.localhost:8443), autentique com o token, selecione `argo-workflows`, abra o Workflow e o nó **approval**. No **Resume**, selecione `Approve` e informe o hash completo apresentado no status. Confira `status.policy.cidrs` para ver os CIDRs do plano antes e depois. Após o apply, confira `Ready / Verified` e o novo valor com a função `network`. Em ensaios separados, use `Reject` ou um hash incorreto e espere `ReconcileBlocked / ApprovalRejected`. Gere um Workflow novo por revisão aprovada após cada rejeição. Com a identidade somente leitura da Etapa 03, confira que a tentativa de retomar o gate é recusada. A resposta padrão do gate é `Reject`.
 
 ```bash
-docker exec "$cluster-control-plane" cat /var/local/terraformstack-audit/requests.jsonl |
+docker exec platform-management-control-plane cat /var/local/terraformstack-audit/requests.jsonl |
   python3 -c 'import json,sys
 for line in sys.stdin:
     event = json.loads(line)
@@ -70,9 +71,9 @@ for line in sys.stdin:
           event.get("responseStatus", {}).get("code"))'
 ```
 
-Correlacione a entrada de auditoria bem-sucedida com o Workflow e o hash do plano. A política foi criada somente para o Hub descartável. Os eventos completos ficam no nó do `kind`.
+Correlacione a entrada de auditoria bem-sucedida com o Workflow e o hash do plano. Os eventos completos ficam no nó do Hub `platform-management`. Se o arquivo estiver ausente, confira a opção de auditoria do API Server na Etapa 01. [Reexaminar o Hub existente](01-platform-management-cluster.md#etapa-6--reexaminar-o-hub-existente)
 
-Para provar falha fechada no Hub descartável, altere o Rego para uma expressão inválida em uma revisão de teste. Sincronize **terraformstack-workflows** nessa revisão e depois sincronize o Simulator com uma mudança de CIDR. Observe o step OPA falhar, o status indicar `PolicyError` e o ConfigMap preservar o valor anterior. Restaure o WorkflowTemplate com o sync da revisão válida. Os ConfigMaps de scripts e política são imutáveis e têm nomes derivados do conteúdo. Deixe a limpeza das versões antigas para depois que seus Workflows concluírem.
+Para provar falha fechada no Hub local, altere o Rego para uma expressão inválida em uma revisão de teste. Sincronize **terraformstack-workflows** nessa revisão e depois sincronize o Simulator com uma mudança de CIDR. Observe o step OPA falhar, o status indicar `PolicyError` e o ConfigMap preservar o valor anterior. Restaure o WorkflowTemplate com o sync da revisão válida. Os ConfigMaps de scripts e política são imutáveis e têm nomes derivados do conteúdo. Deixe a limpeza das versões antigas para depois que seus Workflows concluírem.
 
 Para provar integridade, monte o PVC `simulator-network` em um Pod de diagnóstico temporário no namespace `argo-workflows`. Use a imagem do executor, comando `sleep 600`, `automountServiceAccountToken: false` e monte o PVC em `/state`. Enquanto o gate aguarda aprovação, altere o binário no volume.
 
@@ -95,7 +96,7 @@ data["vpc"]["cidr"] = "10.83.0.0/16"
 print(json.dumps({"data":{"network.json":json.dumps(data)}}))')"
 hub -n terraformstack-simulator patch configmap simulator-network --type merge -p "$payload"
 hub -n platform-system get terraformstack simulator-network -w \
-  -o custom-columns=GEN:.metadata.generation,WORKFLOW:.status.execution.workflow,GATILHO:.status.execution.trigger,CONDICAO:.status.conditions[?(@.status=='True')].type,DRIFT:.status.lastDriftTime
+  -o 'custom-columns=GEN:.metadata.generation,WORKFLOW:.status.execution.workflow,GATILHO:.status.execution.trigger,CONDICAO:.status.conditions[?(@.status=="True")].type,DRIFT:.status.lastDriftTime'
 ```
 
 Sem novo commit ou sync, aguarde `DriftCheck` na mesma revisão, a condição `DriftDetected` ou o horário de drift persistido e o retorno do CIDR ao baseline. Confira o Workflow periódico e a próxima checagem sem mudanças. Um sync repetido na mesma revisão e o reinício do líder devem conservar o Workflow ativo. Identifique o holder da Lease, exclua somente o Pod líder e confirme que outro Pod assume e que o nome do Workflow não muda. O intervalo padrão desta solicitação é 45 segundos.
@@ -107,11 +108,11 @@ Para testar dependência, libere `suspend` de `simulator-dependent` com a Networ
 ## 4. Exercitar destroy e limpar
 
 1. Com ambas as stacks ativas, solicite `spec.lifecycle.destroy: true` na Network. Confirme bloqueio pela dependência. Destrua a dependente primeiro ou retire sua dependência por uma revisão autorizada.
-2. Confira o destroy explícito da Network chegando ao gate. Aprove o hash, aguarde `Destroyed`, confirme a ausência do ConfigMap e a permanência do CR.
+2. Confira o destroy explícito da Network chegando ao gate. Para testar a negativa, use `Reject` e confira que o ConfigMap permanece. Sincronize uma nova revisão para gerar outro plano. Aprove o hash, aguarde `Destroyed`, confirme a ausência do ConfigMap e a permanência do CR.
 3. Recrie a stack por uma revisão com `destroy: false`. Remova o CR com o comportamento padrão e confira retenção do ConfigMap e PVC. Sincronize novamente para retomar o mesmo state.
-4. Em outra execução, finalize o destroy da dependente e remova o CR dela antes do teste de cleanup da Network. Sincronize `destroyResourcesOnDeletion: true` na Network, confirme que a intenção está vigente e exclua o CR. Confirme `deletionTimestamp` e a pausa para aprovação. Ao negar, preserve o ConfigMap e o CR em exclusão. Ao aprovar em um ensaio separado, confirme a ausência do ConfigMap e a remoção do CR somente depois da verificação.
+4. Em outra execução, finalize o destroy da dependente e remova o CR dela antes do teste de cleanup da Network. Sincronize `destroyResourcesOnDeletion: true` na Network, confirme que a intenção está vigente e exclua o CR. Confira `deletionTimestamp` e a pausa para aprovação. Aprove o plano e confirme a remoção do ConfigMap e do CR após a verificação. Uma negativa nesse caminho mantém o CR pendente com o finalizer.
 
-Limpe primeiro as solicitações. Exclua o Workflow e os PVCs do Simulator apenas quando não houver apply em execução e o state não for mais necessário. Para um ensaio de negativa com finalizer pendente, mantenha as evidências e descarte o Hub dedicado ao encerrar o exercício. Em um Hub compartilhado, aplique apenas o procedimento de recuperação autorizado para aquela stack.
+Limpe primeiro as solicitações. Exclua apenas os Workflows e PVCs do Simulator depois que as execuções concluírem e o state puder ser descartado. Se um CR ficar pendente com finalizer, preserve as evidências e trate a recuperação daquela stack no mesmo Hub.
 
 ## O que observar
 
