@@ -8,7 +8,7 @@ Produto interno não equivale a um item no catálogo. A plataforma precisa defin
 
 ## Valor e adoção
 
-ObjectStorage é um produto quando possui contrato estável, segurança padrão, tempos esperados, documentação, acompanhamento e lifecycle, não apenas quando existe um bucket AWS.
+ObjectStorage será um produto quando possuir contrato estável, segurança padrão, tempos esperados, documentação, acompanhamento e lifecycle, não apenas quando existir um bucket AWS. O TerraformStack já exemplifica um produto interno para o Platform Team: API, documentação, testes e sinais operacionais. Ter um contrato implementado não comprova adoção ou satisfação.
 
 A adoção compulsória pode inflar métricas e esconder frustração. Avalie tempo de provisionamento, taxa de sucesso, satisfação e número de exceções. Uma Capability que elimina uma dependência concreta tem mais valor do que instalar quatro ferramentas sem nenhum consumidor. O backlog deve priorizar problemas observados, não entusiasmo com tecnologia.
 

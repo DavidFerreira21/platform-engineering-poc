@@ -2,7 +2,7 @@
 
 Uma base de conhecimento em **português brasileiro** para compreender os princípios da disciplina antes de começar os laboratórios.
 
-**24 artigos · 4 módulos · Conteúdo conceitual · Exemplos da POC**
+**34 artigos · 5 módulos · Conteúdo conceitual · Exemplos da POC**
 
 > **Como usar:** siga a sequência sugerida ou consulte um tema diretamente. Os artigos explicam os conceitos e suas implicações; a [trilha prática](../learning-roadmap.md) mostra como aplicá-los em Kubernetes e AWS.
 
@@ -14,6 +14,7 @@ Uma base de conhecimento em **português brasileiro** para compreender os princ�
 | 🛠️ **Produto e experiência** | Artigos 05–09 | Produto interno, self-service, Golden Paths, guardrails e Build/Buy/Adopt. |
 | 👥 **Times e descoberta** | Artigos 10–16 | Team Topologies, personas, discovery, TVP, métricas e charter. |
 | 🏗️ **Arquitetura e contratos** | Artigos 17–24 | Planes, reconciliação, isolamento, API-first, portal, catálogo e lifecycle. |
+| ⚙️ **Padrões de implementação e operação** | Artigos 25–34 | GitOps, orquestração, contratos de execução, idempotência, drift, configuração, identidade, observabilidade, testes e integração por outputs. |
 
 ## 🧭 Contexto e origem
 
@@ -59,11 +60,26 @@ Planes, reconciliação, isolamento, API-first, portal, catálogo e lifecycle.
 - **23** · [Catálogo de serviços e Capabilities](23-catalogo-e-capacidades.md)
 - **24** · [Lifecycle de produtos de plataforma](24-ciclo-de-vida-produtos.md)
 
+## ⚙️ Padrões de implementação e operação
+
+Princípios de arquitetura e operação aplicados na construção da POC. Os artigos diferenciam o que já foi exercitado no Hub local das integrações AWS planejadas.
+
+- **25** · [GitOps e fontes de verdade](25-gitops-e-fontes-de-verdade.md)
+- **26** · [Reconciliação e orquestração](26-reconciliacao-e-orquestracao.md)
+- **27** · [Contratos de execução e integrações desacopladas](27-contratos-e-integracoes.md)
+- **28** · [Idempotência, concorrência e recuperação](28-idempotencia-e-concorrencia.md)
+- **29** · [Drift, convergência e remediação](29-drift-e-convergencia.md)
+- **30** · [Configuração, state e vínculo de destino](30-configuracao-state-e-binding.md)
+- **31** · [Identidade, autorização e fronteiras de confiança](31-identidade-e-fronteiras-de-confianca.md)
+- **32** · [Observabilidade operacional e saúde dos recursos](32-observabilidade-de-recursos.md)
+- **33** · [Testes de contratos e evolução segura](33-testes-e-evolucao-segura.md)
+- **34** · [Integração por outputs e GitOps Bridge](34-gitops-bridge-e-outputs.md)
+
 ---
 
 ## 📚 Sobre o conteúdo
 
-Os temas iniciais utilizam como referência os capítulos 1–3 de *Platform Engineering in Practice*, de Zebb Wright (GitforGits, 2026). Os conceitos são apresentados e contextualizados para esta POC; os artigos não são traduções do livro.
+Os temas iniciais utilizam como referência os capítulos 1–3 de *Platform Engineering in Practice*, de Zebb Wright (GitforGits, 2026). Os conceitos são apresentados e contextualizados para esta POC; os artigos não são traduções do livro. O quinto módulo amplia o material com padrões de engenharia observados nas decisões, no código e nos laboratórios da POC, sem atribuí-los ao livro.
 
 O formato prioriza explicações bem desenvolvidas, comparações quando úteis, exemplos concretos e referências externas. Os artigos não incluem exercícios, objetivos formais ou resumos repetitivos.
 

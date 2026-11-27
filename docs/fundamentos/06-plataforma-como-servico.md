@@ -8,7 +8,7 @@ Consumir uma capacidade como serviço significa pedir um resultado por contrato 
 
 ## Self-service com governança
 
-O DevOps Federado solicita a Capability `ObjectStorage` por meio de um CR versionado no Git e consulta `Ready`/`NotReady`, sem operar diretamente o Provider AWS. Para ações permanentes, Backstage/CLI/AI-MCP podem abrir um PR.
+Na jornada-alvo, o DevOps Federado solicita `ObjectStorage` por um CR versionado no Git e consulta as condições publicadas, sem operar o Provider AWS. O Simulator já exercita esse padrão para o Platform Team com TerraformStack. Backstage, CLI e AI/MCP são possíveis canais para propor PRs, não caminhos para contornar identidade, revisão ou política.
 
 A maior parte das solicitações conformes deveria ser atendida automaticamente por validação de schema, identidade e políticas. Para ações excepcionalmente caras ou sensíveis, um gate autorizado é apropriado. Self-service não significa ausência de regras; significa que regras previsíveis foram incorporadas ao caminho do consumidor.
 

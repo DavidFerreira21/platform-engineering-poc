@@ -8,7 +8,7 @@ A complexidade intrínseca vem da tarefa em si: uma aplicação crítica realmen
 
 ## Como reconhecer a melhoria
 
-Com uma Capability Database, o consumidor descreve tamanho, disponibilidade e ambiente em vez de aprender configuração de VPC, IAM, Terraform e Provider.
+Em uma futura Capability Database, o consumidor descreve tamanho, disponibilidade e ambiente em vez de aprender configuração de VPC, IAM e Provider. Para o Platform Team, o TerraformStack reduz a necessidade de lembrar a sequência de execução, ao expor intenção, status e dependências. Cada persona recebe uma abstração diferente; esconder um risco operacional relevante não é reduzir carga cognitiva.
 
 Não basta diminuir a quantidade de campos em um formulário. Uma boa abstração diminui dúvidas, caminhos alternativos, dependência de especialistas e retrabalho. O indicador é conseguir executar uma tarefa frequente com menos interrupções, mantendo qualidade e capacidade de diagnóstico.
 

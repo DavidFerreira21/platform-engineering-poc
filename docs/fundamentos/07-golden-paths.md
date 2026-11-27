@@ -10,7 +10,7 @@ Um caminho recomendado conecta descoberta, escolha do produto, geração/valida�
 
 Golden Path de storage: selecionar ambiente e Domain, escolher perfil aprovado, gerar CR, abrir PR, observar reconciliação e obter endpoint/configuração permitida.
 
-Na POC, um Golden Path para ObjectStorage começa na necessidade de armazenar objetos, define perfil e ambiente, produz um Custom Resource revisado em Git, acompanha Ready/NotReady e mostra como encontrar evidências de erro e remover com segurança. Backstage pode facilitar o percurso mais tarde; o Golden Path já existe como contrato, documentação e automação antes de um portal.
+Na POC, um Golden Path para ObjectStorage começa na necessidade de armazenar objetos, define perfil e ambiente, produz um Custom Resource revisado em Git, acompanha Ready/NotReady e mostra como encontrar evidências de erro e remover com segurança. Backstage poderá facilitar o percurso mais tarde. Um Golden Path pode existir sem portal quando contrato, documentação, automação e suporte formam uma jornada completa. Na POC, a jornada integrada de aplicação é uma entrega das Etapas 34–35; o Simulator é uma fatia técnica anterior, não o Golden Path final.
 
 ## Leitura complementar
 

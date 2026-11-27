@@ -8,7 +8,7 @@ Entrevistas de descoberta devem partir de ocorrências recentes, não de opiniõ
 
 ## Da evidência ao backlog
 
-Para a POC, simule entrevista sobre criação de um bucket e registre dependências, políticas, diagnósticos e principais dores. Depois proponha critérios para ObjectStorage.
+A POC usa cenários fictícios; não há evidência de entrevistas reais ou de ganho de produtividade medido. Um exemplo de hipótese é reduzir a espera por storage com um contrato ObjectStorage. Para validá-la, registrar dependências, políticas, diagnósticos e tempo de espera antes e depois da entrega.
 
 Se vários consumidores relatam o mesmo atraso por provisionamento de storage, a hipótese não precisa ser 'instalar Backstage'. Pode ser 'disponibilizar ObjectStorage por contrato, com políticas automáticas e estado observável'. A implementação só será um sucesso se reduzir essa fricção.
 

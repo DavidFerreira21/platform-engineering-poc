@@ -10,7 +10,7 @@ Um controller recebe eventos e também reavalia periodicamente recursos sob sua 
 
 Na arquitetura-alvo, ao criar ObjectStorage, Crossplane observa o XR e seu recurso AWS até informar Ready. No laboratório inicial, o XR de demonstração reconcilia um ConfigMap local. Os registros de Entity, Environment e Domain são declarações lógicas no Git: não possuem loop de reconciliação próprio na primeira versão. Terraform realiza Foundation/EKS por execuções coordenadas pelo TerraformStack Controller; a integração de referência usa autorização habilitada.
 
-Em ObjectStorage, o Kubernetes API Server persiste o recurso, e Crossplane Compositions/Providers criam ou ajustam o bucket AWS. Um registro `environment.yaml` aponta um destino AWS, mas não é CRD nem provisiona conta. O Workflow Plane poderá orquestrar Terraform com gates e auditoria.
+Argo CD sincroniza Git com a API; não comprova o estado da infraestrutura externa. Crossplane reconcilia XRs continuamente; o TerraformStack agenda tentativas de execução e recebe resultados tipados do Workflow. O Terraform não mantém um loop próprio após o processo terminar. Um registro `environment.yaml` descreve o destino, mas não provisiona conta. Consulte [GitOps](25-gitops-e-fontes-de-verdade.md) e [reconciliação e orquestração](26-reconciliacao-e-orquestracao.md).
 
 ## Leitura complementar
 

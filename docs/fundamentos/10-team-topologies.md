@@ -8,7 +8,7 @@ Um time stream-aligned entrega valor em um fluxo de negócio; o enabling ajuda a
 
 ## Dependências e autonomia
 
-Na POC, considere um time consumidor fictício de aplicações e um time de plataforma mantenedor do contrato Database. Quem decide parâmetros de segurança e quem atende incidentes de provisionamento?
+A POC distingue Platform Team, DevOps Federado e Application Team. O primeiro mantém motores e guardrails; o federado opera intenções de Domain Infrastructure; o terceiro entrega e opera a aplicação. Essas personas não são um mapeamento obrigatório dos quatro tipos de Team Topologies: uma persona pode participar de vários modos de interação. Incidentes do motor cabem à plataforma; falhas de consumo e do produto exigem ownership explícito.
 
 Um time de plataforma saudável oferece produtos com interfaces e suporte previsíveis. Se cada mudança depende de uma conversa ad hoc com seus integrantes, o serviço ainda não foi operacionalizado de forma autônoma. O que importa é a direção do fluxo de valor e a redução de coordenação desnecessária.
 

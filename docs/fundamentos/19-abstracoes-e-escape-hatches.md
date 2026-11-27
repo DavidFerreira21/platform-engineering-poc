@@ -8,7 +8,7 @@ Uma abstração útil inclui decisões relevantes para o usuário e deixa de for
 
 ## Delimitação do produto
 
-Database oferece perfil small/medium e modo de disponibilidade, mas não exige definição de cada parâmetro Terraform. Um caso não previsto pode solicitar evolução do contrato.
+Um contrato Database pode oferecer perfis de tamanho e disponibilidade sem exigir detalhes internos. No TerraformStack, o Platform Team pode selecionar um Workflow cadastrado para variar a execução sem alterar o reconciler. Esse mecanismo não concede ao consumidor permissão para escolher qualquer template, role ou destino; a flexibilidade permanece governada.
 
 Para Database, campos como classe de serviço, ambiente, retenção e disponibilidade fazem sentido. A lista exata de subnets, provider-specific IDs e scripts Terraform normalmente não deveria aparecer no contrato público. A escolha final depende do que os consumidores realmente precisam.
 

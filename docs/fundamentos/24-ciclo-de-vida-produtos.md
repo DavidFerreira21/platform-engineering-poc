@@ -12,7 +12,7 @@ Adoção e satisfação são sinais importantes, mas métricas de operação tam
 
 ## Aplicação na POC
 
-A Capability ObjectStorage começa com um perfil simples e uma conta AWS. À medida que surgirem UAT e PROD, políticas adicionais e novas opções, registraremos decisões em ADRs, atualizaremos schemas com cuidado e manteremos um percurso de migração. Não devemos apagar recursos AWS reais apenas porque um exemplo Git foi removido — o comportamento de exclusão precisa ser deliberado.
+A futura Capability ObjectStorage começa em UAT com perfil restrito. O TerraformStack já oferece exemplos de evolução: seleção de integrações, autorização opcional e novos campos de status sem mudar o contrato do executor. Drenar tentativas e atualizar CRD/configuração/controller na mesma revisão preserva o state nas evoluções compatíveis; migrações incompatíveis exigem plano próprio. Registros de ADR, CI e evidências de execução têm funções diferentes. Não devemos apagar recursos AWS reais apenas porque um exemplo Git foi removido — o comportamento de exclusão precisa ser deliberado.
 
 ## Leitura complementar
 
@@ -21,4 +21,4 @@ A Capability ObjectStorage começa com um perfil simples e uma conta AWS. À med
 
 ---
 
-[Aula anterior](23-catalogo-e-capacidades.md) · [Índice](README.md) · [Roteiro prático](../learning-roadmap.md)
+[Aula anterior](23-catalogo-e-capacidades.md) · [Índice](README.md) · [Próxima aula](25-gitops-e-fontes-de-verdade.md)

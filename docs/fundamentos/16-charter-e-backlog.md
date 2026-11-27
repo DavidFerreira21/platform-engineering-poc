@@ -10,7 +10,7 @@ O charter formaliza para quem a plataforma existe, o que promete entregar, o que
 
 Na POC, o charter pode afirmar: entregar AWS self-service via Kubernetes API; início em storage; exclusão de criação automática de conta na fase 1; sucesso medido por reconciliação e recuperação.
 
-No início, entregaremos uma Capability ObjectStorage em AWS real, a partir de uma API Kubernetes e com reconciliação observável. A automação de criação de contas e a implementação integral de UAT/PROD ficam para fases posteriores. Essas escolhas deixam a experiência ensinável e o progresso mensurável.
+A sequência real começa pelo Hub local, TerraformStack e Crossplane local; depois segue para Foundation e Hub EKS, UAT, Capabilities AWS e aplicação. ObjectStorage é a primeira Capability AWS, não a primeira entrega técnica. A automação de criação de contas não é requisito inicial. A Experience Layer e o Golden Path integrado entram no fim da trilha, sem alterar as interfaces já testadas. [Roadmap](../learning-roadmap.md). Essas escolhas deixam a experiência ensinável e o progresso mensurável.
 
 ## Leitura complementar
 

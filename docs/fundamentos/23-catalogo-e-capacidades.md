@@ -6,13 +6,13 @@ Um catálogo útil precisa apresentar o resultado de cada opção, público aten
 
 ## Famílias versus produtos especializados
 
-Na POC, **Capability é uma família arquitetural**, não um CRD genérico. Os produtos concretos terão XRDs especializados, como `Database`, `ObjectStorage`, `ComputeInstance` e `Messaging`. Isso oferece contratos tipados e permite políticas adequadas para cada serviço. `Domain` é a unidade lógica de negócio, ownership e consumo de Capabilities e aplicações; `Environment` é o registro declarativo do destino UAT/PROD associado a uma conta AWS. Ambos são conceitos representados inicialmente por configuração Git, **não XRDs**.
+Na POC, **Capability é uma família arquitetural**, não um CRD genérico. Infrastructure Capabilities terão XRDs especializados, como `Database` e `ObjectStorage`; `ComputeInstance` e `Messaging` estão planejados. Application Capabilities são padrões de runtime, CI, deploy e telemetria, sem exigir XRD. Golden Paths combinam capacidades numa jornada. Isso oferece contratos tipados e permite políticas adequadas para cada serviço. `Domain` é a unidade lógica de negócio, ownership e consumo de Capabilities e aplicações; `Environment` é o registro declarativo do destino UAT/PROD associado a uma conta AWS. Ambos são conceitos representados inicialmente por configuração Git, **não XRDs**.
 
 Um catálogo poderá apontar para essas opções e suas versões. O portal não define a semântica do recurso nem executa a reconciliação; o API Server e seus controllers permanecem responsáveis por isso. Um produto pode ter múltiplos perfis suportados sem exigir um XRD novo para cada tamanho de banco.
 
 ## Aplicação na POC
 
-Antes de implementar Backstage, escrevemos a documentação de `ObjectStorage` com perfil aceito, permissões, comportamento de exclusão, resultado esperado e estados de erro. Posteriormente o catálogo pode mostrar essa informação e criar o manifesto por meio de um Golden Path.
+Antes de implementar Backstage, o catálogo deverá documentar o perfil aceito, permissões, comportamento de exclusão, resultado esperado e estados de erro de `ObjectStorage`. O catálogo de add-ons do Hub já organiza instalações da plataforma, mas não equivale ao catálogo de produtos para consumidores. Posteriormente o catálogo pode mostrar essa informação e criar o manifesto por meio de um Golden Path.
 
 ## Leitura complementar
 

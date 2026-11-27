@@ -8,7 +8,7 @@ Um painel da plataforma pode medir latência de reconciliação e disponibilidad
 
 ## Métricas de produto na POC
 
-Registre o tempo entre PR de ObjectStorage e status Ready, falhas por validação e facilidade de diagnóstico. Compare antes/depois em labs.
+O TerraformStack já publica duração de tentativas, condições e contadores de falhas. Isso mede comportamento operacional, não Developer Experience por si só. Uma medida de jornada pode incluir tempo entre PR, aprovação e Ready, número de intervenções e feedback do consumidor. No laboratório, não atribuir melhoria de DX a métricas sem baseline ou pesquisa com usuários.
 
 Para ObjectStorage, registre o tempo entre submissão do contrato e Ready, quantas falhas são recuperáveis pelo usuário e quantas exigem o operador. A velocidade só é um ganho se controles e observabilidade permanecerem adequados.
 
