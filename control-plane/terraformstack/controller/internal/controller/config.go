@@ -12,10 +12,10 @@ import (
 
 // Config é o contrato de instalação, mantido pelo Platform Team.
 type Config struct {
-	Controller ControllerConfig    `json:"controller"`
-	Workflow   argo.WorkflowConfig `json:"workflow,omitempty"`
-	DefaultWorkflow string `json:"defaultWorkflow,omitempty"`
-	Workflows []NamedWorkflow `json:"workflows,omitempty"`
+	Controller      ControllerConfig    `json:"controller"`
+	Workflow        argo.WorkflowConfig `json:"workflow,omitempty"`
+	DefaultWorkflow string              `json:"defaultWorkflow,omitempty"`
+	Workflows       []NamedWorkflow     `json:"workflows,omitempty"`
 }
 type NamedWorkflow struct {
 	Name string `json:"name"`
