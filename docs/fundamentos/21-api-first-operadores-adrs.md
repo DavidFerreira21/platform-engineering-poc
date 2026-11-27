@@ -10,7 +10,7 @@ A API Kubernetes expõe Custom Resources, e um CRD descreve a forma de um tipo. 
 
 Entity, Environment e Domain são registros lógicos do Git. As Infrastructure Capabilities são XRDs especializados do Crossplane; TerraformStack usa um CRD próprio, independente dos XRDs.
 
-`environment.yaml` registra conta/região; `domain.yaml` registra ownership. `ObjectStorage` é XRD/Composition reconciliado pelo Crossplane na Kubernetes API. Terraform prepara Foundation e EKS; Argo Workflows coordena etapas. Nem todo conceito precisa virar um controller ou CRD.
+`environment.yaml` registra conta/região; `domain.yaml` registra ownership. A futura API ObjectStorage será definida por XRD e Composition; o consumidor cria um XR, não o XRD. Na POC, o TerraformStack é um CRD com controller próprio que coordena Workflows via adapter Argo. Nem todo conceito precisa virar CRD. ADRs registram decisões, e testes e evidências registram o que de fato foi validado.
 
 ## Leitura complementar
 
