@@ -154,7 +154,9 @@ spec:
         object.status.?resolvedSource == oldObject.status.?resolvedSource &&
         object.status.?deletionIntent == oldObject.status.?deletionIntent &&
         object.status.?lastCheckTime == oldObject.status.?lastCheckTime &&
-        object.status.?lastDriftTime == oldObject.status.?lastDriftTime
+        object.status.?lastDriftTime == oldObject.status.?lastDriftTime &&
+        object.status.?driftPending == oldObject.status.?driftPending &&
+        object.status.?lastSuccessTime == oldObject.status.?lastSuccessTime
       message: O executor pode alterar somente status.claim.
     - expression: >-
         (!has(object.spec.suspend) || !object.spec.suspend) &&
