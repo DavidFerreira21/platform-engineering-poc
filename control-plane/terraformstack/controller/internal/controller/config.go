@@ -10,11 +10,16 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// Config é o contrato de instalação. Não permite alterar a semântica do
-// lifecycle, do resultado tipado ou da autorização.
+// Config é o contrato de instalação, mantido pelo Platform Team.
 type Config struct {
 	Controller ControllerConfig    `json:"controller"`
-	Workflow   argo.WorkflowConfig `json:"workflow"`
+	Workflow   argo.WorkflowConfig `json:"workflow,omitempty"`
+	DefaultWorkflow string `json:"defaultWorkflow,omitempty"`
+	Workflows []NamedWorkflow `json:"workflows,omitempty"`
+}
+type NamedWorkflow struct {
+	Name string `json:"name"`
+	argo.WorkflowConfig
 }
 type ControllerConfig struct {
 	StackNamespace string `json:"stackNamespace"`
@@ -61,5 +66,44 @@ func (c Config) Validate() error {
 	if c.Controller.LeaderElection == nil {
 		return fmt.Errorf("leaderElection obrigatório")
 	}
-	return c.Workflow.Validate()
+	_, _, err := c.Integrations()
+	return err
+}
+
+// Integrations resolves the installation allowlist and its default alias.
+func (c Config) Integrations() (string, map[string]argo.WorkflowConfig, error) {
+	if len(c.Workflows) == 0 {
+		if err := c.Workflow.Validate(); err != nil {
+			return "", nil, err
+		}
+		name := c.Workflow.TemplateRef.Name
+		if c.DefaultWorkflow != "" && c.DefaultWorkflow != name {
+			return "", nil, fmt.Errorf("defaultWorkflow não cadastrado")
+		}
+		return name, map[string]argo.WorkflowConfig{name: c.Workflow}, nil
+	}
+	if c.Workflow != (argo.WorkflowConfig{}) {
+		return "", nil, fmt.Errorf("workflow e workflows são mutuamente exclusivos")
+	}
+	configs := make(map[string]argo.WorkflowConfig, len(c.Workflows))
+	for _, w := range c.Workflows {
+		if err := validName("workflows.name", w.Name, false); err != nil {
+			return "", nil, err
+		}
+		if _, exists := configs[w.Name]; exists {
+			return "", nil, fmt.Errorf("workflow duplicado: %s", w.Name)
+		}
+		if err := w.Validate(); err != nil {
+			return "", nil, fmt.Errorf("workflow %s: %w", w.Name, err)
+		}
+		configs[w.Name] = w.WorkflowConfig
+	}
+	name := c.DefaultWorkflow
+	if name == "" && len(c.Workflows) == 1 {
+		name = c.Workflows[0].Name
+	}
+	if _, exists := configs[name]; !exists {
+		return "", nil, fmt.Errorf("defaultWorkflow deve identificar uma integração cadastrada")
+	}
+	return name, configs, nil
 }
