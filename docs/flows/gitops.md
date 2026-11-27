@@ -53,7 +53,7 @@ Perfis previstos:
 
 | Perfil | Escopo de add-ons |
 | --- | --- |
-| **Control Plane** | Argo CD central, Argo Workflows, Crossplane e controllers centrais |
+| **Hub (perfil físico central)** | Argo CD central e Argo Workflows (Workflow Plane), Crossplane e controllers (Control Plane), componentes de telemetria previstos (Observability Plane) |
 | **Management** | Argo CD local, componentes de gestão e telemetria |
 | **PCI** | Add-ons corporativos explicitamente aprovados para PCI |
 | **Non-PCI** | Add-ons corporativos do perfil padrão |
