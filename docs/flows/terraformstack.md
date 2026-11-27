@@ -4,13 +4,15 @@
 
 O `TerraformStack` declara a infraestrutura desejada de Foundation e Entity Core. Na Etapa 06, o aceite verifica o fluxo de ponta a ponta no Hub `kind`. O Terraform Stack Simulator usa o provider Kubernetes para gerenciar um ConfigMap com a configuração efetiva de Network. A integração com a AWS segue nas etapas do roadmap. [Guia do Simulator](../../labs/06-terraformstack-simulator.md)
 
-O [diagrama do TerraformStack](terraformstack-flow.png) representa a topologia-alvo na AWS. Os rótulos do PNG descrevem etapas conceituais. Consulte a seção de status deste guia para os campos e valores da API instalada.
+O diagrama mostra os caminhos de execução, política e drift validados no Simulator. O painel da conta AWS representa o destino das próximas fases. A seção de status descreve os campos e as condições da API instalada.
+
+![Fluxo do TerraformStack e reconciliação de drift](terraformstack-flow.png)
 
 ## 1. Do Git ao Workflow
 
 1. O Git versiona o manifesto e os YAMLs de configuração. O Argo CD sincroniza o CR na API do Hub e injeta o SHA resolvido pela Application em `platform.example.io/revision`. O estado `Synced` indica que o manifesto foi entregue à API. [Application do Simulator](../../platform/hub/addons/catalog/terraformstack-simulator.yaml)
 2. O controller Go usa Controller Runtime (padrão Kubebuilder), watches de TerraformStacks e Workflows, cache de informers e fila com rate limiting. Eventos de dependências e alterações de status ou revisão GitOps reativam a reconciliação; drift e retry usam RequeueAfter. Ele valida a estrutura da intenção, verifica as dependências e grava em `status.execution` a intenção declarada e o nome do Workflow antes de criá-lo. Em seguida, cria ou acompanha aquele Workflow em `argo-workflows`. O CR permanece como a identidade da stack e cada Workflow representa uma tentativa. [Controller](../../control-plane/terraformstack/controller/internal/controller/reconciler.go)
-3. O Argo Workflows executa a pipeline governada. Terraform calcula o plano, OPA avalia as mudanças e o apply depende da decisão e da autorização para aquela execução. O adapter Argo traduz os resultados e a fase do Workflow para a interface interna; o reconciliador decide as transições e atualiza o CR. `TerraformRun` fica reservado como nome opcional para uma execução individual. [WorkflowTemplate](../../workflow-plane/argo-workflows/terraformstack/workflowtemplate.yaml)
+3. O Argo Workflows executa a pipeline governada. Terraform calcula o plano, OPA avalia as mudanças e o apply depende da decisão e da autorização para aquela execução. O adapter Argo traduz os resultados e a fase do Workflow para a interface interna; o reconciliador decide as transições e atualiza o CR. [WorkflowTemplate](../../workflow-plane/argo-workflows/terraformstack/workflowtemplate.yaml)
 
 ## 2. Contrato e resolução de revisões
 

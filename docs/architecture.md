@@ -3,13 +3,13 @@
 [← Início](../README.md) · [Decisões atuais](adr/README.md) · [GitOps Flow](flows/gitops.md) · [Monorepo](repository-structure.md) · [Roadmap](learning-roadmap.md)
 
 > [!NOTE]
-> **Arquitetura-alvo, não implementada.** Um monorepo de laboratório simula ownership e autonomia federada. Nenhuma operação AWS está autorizada por este documento. Nomes de entidades e Domains são fictícios.
+> O Hub `kind` é a implementação inicial desta POC. O desenho descreve a topologia-alvo na AWS e o modelo de ownership que o monorepo exercita. Os exemplos usam entidades e Domains fictícios. Operações AWS exigem autorização por etapa.
 
 ## 1. Modelo arquitetural
 
 A POC demonstra uma plataforma **Kubernetes-native** de governança central e consumo federado. Existem duas dimensões distintas:
 
-- **Planos:** Experience Layer, Control Plane, Workflow Plane, Observability Plane e Data Plane. Os três planos técnicos centrais coexistem no **Platform Management Cluster**, em `kind` durante o desenvolvimento pontual e em um Hub EKS na conta da plataforma antes de provisionar os clusters das spokes.
+- **Planos:** Experience Layer, Control Plane, Workflow Plane, Observability Plane e Data Plane. O Hub `kind` hospeda os componentes centrais dos cenários locais. Na topologia-alvo, os três planos técnicos centrais ficam na conta da plataforma em torno do Hub EKS.
 - **Quatro camadas de ownership:** **Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications**. Elas classificam responsabilidade de mudança e lifecycle, **não** representam planos ou clusters adicionais.
 
 A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) é o contexto de uma conta AWS. O **Domain** é a unidade lógica de negócio, consumo, ownership e governança: possui Capabilities e aplicações em um ou mais Environments. **Capability** é o produto técnico provisionável, como `ObjectStorage`.
@@ -22,15 +22,17 @@ A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) �
 
 ![Diagrama de arquitetura de referência com Hub, contas AWS UAT/PROD, quatro camadas e três personas](arquitetura%20Plataform.png)
 
-[**Abrir diagrama em tamanho completo**](arquitetura%20Plataform.png) · O diagrama é **arquitetura-alvo**; não confirma recursos implantados. O contrato inicial `TerraformStack` está versionado na Etapa 04. A [Etapa 05](../labs/05-terraformstack-runtime.md) instala o controller e a pipeline. A Etapa 06 exercita política e drift no Simulator. GitHub Actions de aplicações opera fora do Hub.
+[Abrir diagrama em tamanho completo](arquitetura%20Plataform.png)
 
+As Etapas 01 a 06 foram reproduzidas no Hub `kind` a partir da `main`. O Argo CD sincroniza as solicitações do Simulator e o Workflow aplica alterações em ConfigMaps com Terraform ou OpenTofu. O guia e os manifests da Etapa 07 exercitam Crossplane Core com uma Composition local. A Etapa 08 prevê seu aceite GitOps completo. [Evidências do Simulator](../labs/06-terraformstack-simulator.md#evidências-de-aceite) · [Crossplane Core](../labs/07-crossplane-core.md) · [Roadmap](learning-roadmap.md).
 
+O Hub EKS, as spokes, o consumo de Capabilities AWS, o GitOps Bridge e a stack de telemetria central compõem a arquitetura-alvo. A Foundation mantém raízes reutilizáveis e utilitários versionados para as etapas AWS. A entrega das aplicações usará o repositório da squad e o Argo CD local. [Foundation](../foundation/README.md) · [GitOps Bridge](flows/gitops-bridge.md).
 
 | Plano | Responsabilidade |
 | :--- | :--- |
 | **Experience Layer** | Consumidores independentes: Backstage, CLI, PR GitOps, AI/MCP; Backstage não é gateway obrigatório |
-| **Control Plane** | Kubernetes API Server central, XRDs/Compositions/Providers de Capabilities, Crossplane e políticas |
-| **Workflow Plane** | Argo CD central, Argo Workflows, Terraform Executor, aprovações; GitHub Actions de aplicações em repositório separado |
+| **Control Plane** | Kubernetes API Server, Crossplane central, TerraformStack Controller, RBAC e admission Kubernetes |
+| **Workflow Plane** | Argo CD central, Argo Workflows, Terraform Executor e política OPA aplicada no Workflow |
 | **Observability Plane** | OpenTelemetry, Grafana, Loki, Tempo, métricas, eventos e auditoria |
 | **Data Plane** | Contas AWS das Entities, Core compartilhado, Domains, Management EKS com Argo CD local/Operators/gateway de logs e EKS PCI/Non-PCI |
 
@@ -82,7 +84,7 @@ Esses YAMLs **não são manifests Kubernetes** e não devem ser sincronizados di
 
 ### Decisões complementares da arquitetura-alvo
 
-- **Contrato Terraform.** `TerraformStack` é o CRD Kubernetes próprio do Hub que representa **infraestrutura desejada** de Foundation/Entity Core. O Argo CD central sincroniza o manifesto; o controller Go, com controller-runtime e Leader Election, coordena Argo Workflows por um adapter interno para `plan` inicial e periódico, detecção de drift, classificação por Policy Engine (**auto apply / aprovação / bloqueio**) e atualização de status. **Não executar `apply` a cada reconcile**. `TerraformRun` permanece nome opcional de uma execução isolada, não um segundo CRD obrigatório. Ver [ADR-0006](adr/0006-terraformrun-and-application-ci.md).
+- **Contrato Terraform.** `TerraformStack` é o CRD Kubernetes próprio do Hub que representa **infraestrutura desejada** de Foundation/Entity Core. O Argo CD central sincroniza o manifesto. O controller Go coordena a execução inicial, as checagens periódicas, as dependências e a autorização. A pipeline em Argo Workflows resolve Git, contexto e state, avalia o plano com OPA e aplica a alteração autorizada após o claim. O adapter entrega o resultado tipado ao controller, que atualiza o status do CR. [ADR-0009](adr/0009-terraformstack-runtime.md) · [Execution Contract](flows/terraformstack-execution-contract.md).
 - **Domain Applications:** as squads manterão **código, GitHub Actions e manifests Kubernetes da aplicação em repositório próprio**, separado deste monorepo e previsto para uma etapa posterior. O pipeline faz build/testes/scans e publicação, propõe atualização declarativa GitOps; **Argo CD local** em cada Management EKS faz o deploy nos EKS PCI/Non-PCI autorizados. O workflow CI existente neste monorepo só valida a POC.
 - **Management EKS:** **Operators ainda a estudar**; usar **OpenTelemetry Collector/gateway** para encaminhar telemetria à camada central, não assumir Loki instalado dentro de todos os Management EKS.
 - **Observabilidade central:** **OpenTelemetry, Grafana, Loki e Tempo**; estratégia de métricas/Prometheus, retenção e fronteiras PCI a validar no laboratório.
@@ -177,11 +179,11 @@ foundation/config/ ou core-infrastructure/ (Git)
   → validação de intenção + PR/aprovação
   → Argo CD central → Kubernetes API / TerraformStack CR
   → TerraformStack Controller → Argo Workflows
-  → Pipeline: resolução de Git, contexto e state → plan → Policy Engine
-  → auto apply / aprovação / bloqueio
-  → autorização do controller e claim → apply do plano aprovado
-  → verificação e status → AWS Foundation / EKS
-  → nova verificação periódica de drift (sem apply incondicional)
+  → Pipeline: resolução de Git, contexto e state → plan → OPA e decisão
+     ├─ NoChanges → resultado sem alteração
+     ├─ AutoApply ou aprovação → autorização e claim → apply → verify
+     └─ Bloqueio → status ReconcileBlocked
+  → resultado tipado e nova checagem conforme o intervalo de drift
 ```
 
 O Bootstrap Terraform central é reutilizado por configuração de Entity/Environment, com **state segregado**. Inicialmente pode rodar em um lab manual e auditável. **Argo CD não executa Terraform**. Criar conta AWS automaticamente é possibilidade futura, **não exige `AWSEnvironment` CRD/controller próprio agora**.
@@ -190,11 +192,11 @@ O controller encaminha a fonte declarada e o mapa de contexto. A interface de ex
 
 ### Evolução planejada do TerraformStack
 
-1. **Etapas 04–08.** Instalar o TerraformStack e validar sua pipeline com o Simulator. Validar o fluxo Crossplane separadamente no Hub local.
+1. **Etapas 04–06.** O TerraformStack e a pipeline passaram pelo aceite local com o Simulator. Crossplane segue as Etapas 07–08 com recurso Kubernetes próprio.
 2. **Etapas 09–10.** Preparar Foundation e provisionar o Hub EKS Auto Mode por bootstrap externo. Reinstalar os mesmos blocos via Git e repetir os aceites no EKS.
 3. **Etapas 11–13.** Preparar UAT e o backend. Gerar, aprovar e aplicar o mesmo plano da rede da spoke.
 
-O schema inicial do CRD é validado na Etapa 04 e o Policy Engine é exercitado localmente na Etapa 06 e em AWS na Etapa 29. O Argo CD central sincroniza o CR Kubernetes. Argo Workflows executa os passos de plan, aprovação e apply.
+No Simulator, a alteração verificada chega a um ConfigMap no `kind`. A integração das raízes AWS ao mesmo contrato de execução entra nas Etapas 12–13. As Etapas 28–29 exercitam drift e políticas em UAT.
 
 ### Domain Infrastructure: Argo CD central + Crossplane
 
@@ -232,15 +234,15 @@ O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicaçã
 
 ## 9. Nascimento de uma entidade e ordem de implementação
 
-**Conectividade GitOps.** O Hub EKS adota Amazon EKS Capability for Argo CD como Argo CD central. Platform, UAT e PROD têm VPCs isoladas, NAT Gateway e APIs EKS privadas. Registro por ARN e Access Entries permite sincronização cross-account pela conectividade gerenciada AWS, sem Peering/TGW. O Hub local também deve ser registrado explicitamente. Argo CD local permanece no Management EKS; outros fluxos de rede não herdam essa conectividade. [ADR-0008](adr/0008-managed-argocd-connectivity.md)
+**Conectividade GitOps.** O Hub EKS adota Amazon EKS Capability for Argo CD como Argo CD central. Platform, UAT e PROD têm VPCs isoladas, NAT Gateway e APIs EKS privadas. Registro por ARN e Access Entries permite sincronização cross-account pela conectividade gerenciada AWS, sem Peering/TGW. O próprio Hub EKS também requer registro por ARN. Argo CD local permanece no Management EKS. Essa conectividade gerenciada se limita à sincronização de APIs pelo Argo CD central. [ADR-0008](adr/0008-managed-argocd-connectivity.md)
 
 **Fluxo operacional alvo.** Foundation cria ou adota contas e rede → Entity Core prepara EKS e Argo CD local → manifests de Capabilities aprovados são reconciliados por Crossplane central → workloads de Domain Applications são entregues por Argo CD local.
 
-**Ordem incremental da POC.** Hub local → TerraformStack e primeira rede UAT → EKS, onboarding, Platform GitOps e Bridge → Capabilities com Crossplane → primeira aplicação FastAPI e esteira CI/CD → observabilidade, drift e isolamento → Experience Layer → Golden Path. O [Roadmap V2](learning-roadmap.md) organiza o trabalho em **8 fases e Etapas 00–35**. A UAT recebe os primeiros recursos reais; PCI e PROD exigem autorização específica e testes compatíveis com a infraestrutura realmente criada.
+**Ordem incremental da POC.** Hub local → TerraformStack e Crossplane locais → Foundation e Hub EKS → Network UAT → EKS dos Environments, onboarding, Platform GitOps e Bridge → Capabilities com Crossplane → primeira aplicação FastAPI e esteira CI/CD → observabilidade, drift e isolamento → Experience Layer → Golden Path. O [Roadmap V2](learning-roadmap.md) organiza o trabalho em **8 fases e Etapas 00–35**. A UAT recebe os primeiros recursos reais; PCI e PROD exigem autorização específica e testes compatíveis com a infraestrutura realmente criada.
 
 ## 10. Decisões vigentes e pontos abertos
 
-**Atualização:** o CRD TerraformStack está versionado na Etapa 04. A Etapa 05 instala o controller e a pipeline. O Simulator exercita a reconciliação por políticas na Etapa 06. GitHub Actions das aplicações opera no repositório da squad. OpenTelemetry, Grafana, Loki e Tempo compõem a stack-alvo. Os Operators locais ainda serão selecionados.
+**Em aberto.** A arquitetura prevê o Argo CD local nos Management EKS e reserva a seleção dos Operators para os respectivos add-ons. Métricas, retenção e fronteiras PCI serão verificadas com a stack de telemetria prevista no roadmap.
 
 **Fechado:** Domain como unidade lógica de consumo/ownership, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas (incluindo **Domain Applications**), monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência.
 

@@ -15,10 +15,10 @@ O Argo CD central sincroniza os CRs de Capability e `TerraformStack` com a Kuber
 
 ## TerraformStack
 
-O Control Plane publica o CRD `TerraformStack` na Etapa 04. Na Etapa 05, instala o controller que resolve a intenção, agenda Workflows e publica o resultado no CR. Na Etapa 06, o Simulator executa Terraform real sobre um ConfigMap no `kind`, com OPA, aprovação, drift e destroy. Cada tentativa é representada por um Workflow. `TerraformRun` é um nome opcional para uma execução isolada. [Fluxo do TerraformStack](../docs/flows/terraformstack.md) · [Guia do Simulator](../labs/06-terraformstack-simulator.md)
+O Control Plane publica o CRD `TerraformStack` na Etapa 04. Na Etapa 05, instala o controller que valida a intenção declarada, agenda os Workflows e autoriza a execução. A pipeline resolve Git, contexto e state. Cada tentativa é representada por um Workflow, e o controller atualiza o status do CR a partir dos outputs tipados. A Etapa 06 comprova o fluxo no Simulator. [Fluxo do TerraformStack](../docs/flows/terraformstack.md) · [Guia do Simulator](../labs/06-terraformstack-simulator.md)
 
 O primeiro apply de Network em UAT está previsto para a Etapa 13, com aprovação humana. As Etapas 28 e 29 validam drift e reconciliação por políticas na AWS. [Roadmap](../docs/learning-roadmap.md) · [ADR-0006](../docs/adr/0006-terraformrun-and-application-ci.md)
 
-A Etapa 07 instala o Crossplane Core no Hub via Argo CD e valida um XRD namespaced que compõe um ConfigMap local. As Capabilities AWS são exercitadas nas Etapas 18 e 19, após os clusters e a identidade do Provider AWS. [Guia da Etapa 07](../labs/07-crossplane-core.md)
+A Etapa 07 instala o Crossplane Core no Hub via Argo CD e valida um XRD namespaced que compõe um ConfigMap local. A Etapa 19 valida a identidade do Provider AWS. As Etapas 20 e 21 exercitam `ObjectStorage` e `Database` na AWS. [Guia da Etapa 07](../labs/07-crossplane-core.md)
 
 [← Início](../README.md) · [Arquitetura](../docs/architecture.md)

@@ -18,7 +18,7 @@ O **AWS Runtime** engloba Core Infrastructure (recursos compartilhados) e Domain
 - **Federated DevOps Team:** ponte entre plataforma e squad; responsável por propor e gerenciar Capabilities de **Domain Infrastructure** (Database, ObjectStorage, Messaging e upgrades) via manifests no monorepo.
 - **Application Team:** código e ciclo de **Domain Applications** num repositório próprio; consome Golden Paths/Starter Kits sem precisar conhecer os motores internos.
 
-**App mínima de demonstração (preferência Python + Flask):** primeiro executar **smoke test no EKS após Argo CD local (Etapa 16)**; após observabilidade, segurança e construção da **Developer Experience (Etapa 26)**, reutilizá-la no **Golden Path / integração final (Etapa 28)** com GitHub Actions e telemetria. **Não há necessidade de desenvolver aplicação complexa ou gerador completo de Starter Kits**. O conceito de Golden Path continua válido para evolução futura. O DevOps Federado solicita Database e ObjectStorage para o Domain no Golden Path. [ADR-0007](../docs/adr/0007-personas-and-developer-experience.md)
+**Aplicação de demonstração.** O smoke test HTTP do Non-PCI entra na Etapa 18. Nas Etapas 22 a 25, a squad implementa o registro de recebimento de encomendas com FastAPI, Jinja2, Aurora PostgreSQL e evidência JSON no S3. O Golden Path reutiliza essa aplicação nas Etapas 34 e 35 com a solicitação federada de Capabilities, CI em GitHub Actions, Argo CD local e telemetria. [ADR-0007](../docs/adr/0007-personas-and-developer-experience.md)
 
 ## Organização proposta
 

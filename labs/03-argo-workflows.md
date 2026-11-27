@@ -73,7 +73,7 @@ hub -n argo-workflows get pods -l "workflows.argoproj.io/workflow=${run##*/}"
 hub -n argo-workflows logs -l "workflows.argoproj.io/workflow=${run##*/}" -c main
 ```
 
-O log esperado é `lab02b-workflow-ok`. O Pod usa a ServiceAccount `argo-workflow`, com permissões para o executor publicar resultados em `workflowtaskresults`. Cada submissão recebe um nome próprio.
+Procure `lab02b-workflow-ok` entre as mensagens do executor. O Pod usa a ServiceAccount `argo-workflow`, com permissões para o executor publicar resultados em `workflowtaskresults`. Cada submissão recebe um nome próprio.
 
 Na interface do Argo Workflows, selecione a execução pelo nome retornado por `hub -n argo-workflows get "$run"`. No grafo, clique no círculo do único nó, rotulado com o nome da execução. No painel do nó, abra **Logs** e confira a mensagem no container `main`. Se a execução não chegar a `Succeeded`, consulte `hub -n argo-workflows describe "$run"`, os eventos do Pod e os logs do controller.
 

@@ -17,6 +17,8 @@ A POC é montada em **oito fases e 36 etapas (00–35)**. Cada etapa instala um 
 | **7 — Experience Layer** | 32–33 | Personas, permissões, catálogo e Starter Kit |
 | **8 — Golden Path ponta a ponta** | 34–35 | Solicitação federada e entrega integrada da aplicação |
 
+As Etapas 01 a 06 foram reproduzidas na `main` no Hub `kind` `platform-management`. A Etapa 07 tem guia e manifests para smoke test local. O aceite GitOps do Crossplane na Etapa 08 e as entregas AWS a partir da Etapa 09 seguem no roteiro. [Evidências do Simulator](../labs/06-terraformstack-simulator.md#evidências-de-aceite).
+
 ## Fase 1 — Base do Hub local
 
 | Etapa | Entrega | Evidência |
@@ -34,7 +36,7 @@ Concluir o ciclo TerraformStack antes do Crossplane. Cada reconciliador gerencia
 | :--- | :--- | :--- |
 | **04** | [API do TerraformStack](../labs/04-terraformstack-crd.md) | CRD `v1alpha1` estabelecido e schema validado na API |
 | **05** | [Controller e pipeline do TerraformStack](../labs/05-terraformstack-runtime.md) | Controller Go e adapter Argo, configuração e perfil local imutáveis, runner e WorkflowTemplate instalados via GitOps; duas réplicas saudáveis, Lease e RBAC verificados |
-| **06** | [Terraform Stack Simulator](../labs/06-terraformstack-simulator.md) | GitOps, Terraform real, decisão OPA, aprovação, drift, retry, concorrência e destroy comprovados no ConfigMap e no status |
+| **06** | [Terraform Stack Simulator](../labs/06-terraformstack-simulator.md) | GitOps, Terraform real, três decisões OPA, aprovação auditada, claim, drift, retry e destroy comprovados no ConfigMap e no status. OpenTofu validado com state próprio |
 | **07** | [Crossplane Core e smoke test](../labs/07-crossplane-core.md) | Core disponível, Function saudável, XRD estabelecido e Composition local observável |
 | **08** | Crossplane de ponta a ponta no `kind` | Argo CD sincroniza XR e o Crossplane cria, atualiza e remove um ConfigMap distinto do Simulator. Conferir schema, `Synced`, `Ready`, ownership, re-sync e permissões |
 
@@ -65,7 +67,7 @@ Usar o [modelo de Environment](../foundation/environment.example.yaml) e o regis
 
 Validar a identidade de origem dos Pods do Hub EKS e a role autorizada de UAT usando STS. Preparar backend S3 e locks por destino e stack. Conferir autorização, região e custo antes das operações AWS. A etapa termina com identidade e backend verificados.
 
-**Plan e apply da Etapa 13.** Usar as [raízes Terraform](../foundation/stacks/README.md) e a mesma pipeline do Simulator. A pipeline resolve fonte, destino, backend e identidade pelo cadastro autorizado. A revisão GitOps e os SHAs efetivos ligam o plano à configuração. O OPA encaminha um plano permitido à aprovação humana e bloqueia violações ou erro de avaliação. Os cenários de auto apply e remediação de drift na AWS entram na Etapa 29.
+**Plan e apply da Etapa 13.** Usar as raízes Terraform e o contrato de execução validado no Simulator. A integração AWS precisa de perfil de execução para resolver fonte, destino, backend e identidade pelo cadastro autorizado. A revisão GitOps e os SHAs efetivos ligam o plano à configuração. O OPA encaminha um plano permitido à aprovação humana e bloqueia violações ou erro de avaliação. Os cenários de auto apply e remediação de drift na AWS entram na Etapa 29. [Raízes Terraform](../foundation/stacks/README.md) · [Contrato de execução](flows/terraformstack-execution-contract.md).
 
 **Marco da fase.** O Hub EKS conduz o TerraformStack de UAT. Management e Non-PCI passam pelo GitOps, e o smoke test confirma a entrega antes da aplicação de negócio. A definição de perfil e os testes de isolamento governam o avanço de PCI e PROD.
 
