@@ -17,9 +17,32 @@ import (
 type Reconciler struct {
 	client.Client
 	Reader         client.Reader // Leitura consistente antes de decisões de autorização.
-	Engine         execengine.Engine
+	Engine         execengine.Engine // Single integration for embedding and tests.
+	Engines        map[string]execengine.Engine
+	DefaultWorkflow string
 	StackNamespace string
 	Now            func() time.Time
+}
+
+// resolveEngine uses only installation-authorized aliases. It never mutates the
+// reconciler: concurrent stacks may use different integrations.
+func (r *Reconciler) resolveEngine(name string) (string, execengine.Engine, error) {
+	if len(r.Engines) == 0 && name == "" && r.Engine != nil {
+		return "", r.Engine, r.Engine.Validate()
+	}
+	if name == "" {
+		name = r.DefaultWorkflow
+	}
+	engine, ok := r.Engines[name]
+	if !ok || engine == nil {
+		return name, nil, fmt.Errorf("integração de Workflow não cadastrada: %s", name)
+	}
+	return name, engine, engine.Validate()
+}
+
+func authorizationRequired(snapshot M) bool {
+	enabled, explicit := snapshot["authorizationRequired"].(bool)
+	return !explicit || enabled
 }
 
 func (r *Reconciler) clock() time.Time {
@@ -69,7 +92,7 @@ func (r *Reconciler) report(ctx context.Context, o *unstructured.Unstructured, k
 	o.Object["status"] = status
 	e := r.Status().Update(ctx, o)
 	if e == nil {
-		log.FromContext(ctx).Info("transição TerraformStack", "stack", o.GetName(), "condition", kind, "reason", reason)
+		log.FromContext(ctx).Info("transição TerraformStack", "stack", o.GetName(), "workflowRef", str(obj(status["execution"])["workflowRef"]), "condition", kind, "reason", reason)
 	}
 	return e
 }
@@ -78,9 +101,6 @@ func done(e error) (ctrl.Result, error)  { return ctrl.Result{}, e }
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	if req.Namespace != r.StackNamespace {
 		return done(nil)
-	}
-	if e := r.Engine.Validate(); e != nil {
-		return done(e)
 	}
 	o := stackObject()
 	if e := r.Reader.Get(ctx, req.NamespacedName, o); e != nil {
@@ -105,11 +125,40 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		e = fmt.Errorf("intenção de exclusão diverge do snapshot")
 	}
 	active := len(run) > 0 && str(run["finishedAt"]) == ""
+	desiredRef := ""
+	if s.WorkflowRef != nil {
+		desiredRef = s.WorkflowRef.Name
+	}
+	desiredName, desiredEngine, desiredErr := r.resolveEngine(desiredRef)
+	// Retain removes only the finalizer; it does not require an executor.
+	if !active && e == nil && d["operation"] != string(execengine.Retain) && desiredErr != nil {
+		return done(r.report(ctx, o, "ReconcileBlocked", "UnknownWorkflow", "Integração solicitada não cadastrada ou inválida.", M{}))
+	}
+	engine := desiredEngine
+	selectedName := desiredName
+	requiresAuthorization := true
+	if active {
+		selectedName = str(run["workflowRef"])
+		if selectedName == "" {
+			selectedName = str(obj(obj(run["intent"])["workflowRef"])["name"])
+		}
+		// Legacy attempts without an alias can only use the current default
+		// and must still match their persisted integration snapshot.
+		var selectionErr error
+		selectedName, engine, selectionErr = r.resolveEngine(selectedName)
+		if selectionErr != nil {
+			return done(r.report(ctx, o, "ReconcileBlocked", "IntegrationChanged", "Integração da tentativa indisponível; restaurar configuração anterior.", M{}))
+		}
+		requiresAuthorization = authorizationRequired(engine.Snapshot())
+	}
 	applying := claimed(status, run)
+	// Without the handshake there is no reliable apply-start boundary.
+	// Never terminate an existing execution solely because the intent changed.
+	canCancel := requiresAuthorization && !applying
 	var request execengine.Request
 	var w *execengine.Run
 	if active {
-		if saved := obj(run["integration"]); len(saved) > 0 && !equal(saved, r.Engine.Snapshot()) {
+		if saved := obj(run["integration"]); len(saved) > 0 && !equal(saved, engine.Snapshot()) {
 			return done(r.report(ctx, o, "ReconcileBlocked", "IntegrationChanged", "Contrato alterado durante execução; restaurar configuração anterior.", M{}))
 		}
 		var err error
@@ -117,39 +166,39 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if err != nil {
 			return done(err)
 		}
-		w, err = r.Engine.Get(ctx, request)
+		w, err = engine.Get(ctx, request)
 		if err != nil {
 			return done(err)
 		}
 		if w != nil && !w.Valid {
-			if !applying {
+			if canCancel {
 				delete(run, "authorization")
 			}
 			return done(r.report(ctx, o, "ReconcileBlocked", "InvalidExecution", "A identidade da execução diverge da solicitação.", M{"execution": run}))
 		}
 	}
 
-	if e != nil {
-		if active && w != nil && !w.Phase.Terminal() && !applying {
+	if e != nil && !(active && !requiresAuthorization && w != nil) {
+		if active && w != nil && !w.Phase.Terminal() && canCancel {
 			// Persistir cancelamento antes de encerrar o Workflow: disputa CAS com claim.
 			if !yes(run["cancelling"]) {
 				run["cancelling"] = true
 				delete(run, "authorization")
 				return again(r.report(ctx, o, "ReconcileBlocked", "InvalidIntent", e.Error(), M{"execution": run}))
 			}
-			if err := r.Engine.Cancel(ctx, request); err != nil {
+			if err := engine.Cancel(ctx, request); err != nil {
 				return done(err)
 			}
 		}
 		return done(r.report(ctx, o, "ReconcileBlocked", "InvalidIntent", e.Error(), M{}))
 	}
-	if deleting && status["deletionIntent"] == nil {
+	if e == nil && deleting && status["deletionIntent"] == nil {
 		status = copyMap(status)
 		status["deletionIntent"] = d
 		o.Object["status"] = status
 		return again(r.Status().Update(ctx, o))
 	}
-	if !deleting && !slices.Contains(o.GetFinalizers(), finalizer) {
+	if e == nil && !deleting && !slices.Contains(o.GetFinalizers(), finalizer) {
 		o.SetFinalizers(append(o.GetFinalizers(), finalizer))
 		return again(r.Update(ctx, o))
 	}
@@ -160,39 +209,51 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	dependency := dependencyReason(all.Items, o, s, str(d["operation"]))
 	eligible := dependency == ""
-	changed := !equal(d, run["intent"])
+	changed := !equal(d, run["intent"]) || desiredErr != nil || (str(run["workflowRef"]) != "" && desiredName != str(run["workflowRef"]))
 	suspended := s.Suspend
 	if active {
 		switch {
 		case w == nil:
-			if yes(run["created"]) || applying {
+			if yes(run["created"]) || yes(run["launchAttempted"]) || applying {
 				return done(r.report(ctx, o, "Failed", "ExecutionMissing", "Execução removida; investigar Pods e state.", M{}))
 			}
 			if !changed && !suspended && eligible && !yes(run["cancelling"]) {
-				err := r.Engine.Create(ctx, request)
+				if !requiresAuthorization {
+					// Write ahead before submitting: if submission is ambiguous or
+					// the Workflow disappears, fail closed instead of replaying it.
+					run["launchAttempted"] = true
+					if err := r.report(ctx, o, "Reconciling", "Submitting", request.Workflow, M{"execution": run}); err != nil {
+						return done(err)
+					}
+				}
+				err := engine.Create(ctx, request)
 				if apierrors.IsAlreadyExists(err) {
 					return again(nil)
 				}
 				return again(err)
 			}
-		case !w.Phase.Terminal() && (changed || suspended || !eligible || yes(run["cancelling"])) && !applying:
+		case !w.Phase.Terminal() && (changed || suspended || !eligible || yes(run["cancelling"])) && canCancel:
 			if !yes(run["cancelling"]) {
 				run["created"], run["cancelling"] = true, true
 				delete(run, "authorization")
 				return again(r.report(ctx, o, "ReconcilePending", "Cancelling", request.Workflow, M{"execution": run}))
 			}
-			return done(r.Engine.Cancel(ctx, request))
+			return done(engine.Cancel(ctx, request))
 		}
 
 		contractError := w != nil && (w.ContractError || !resolutionCurrent(run, w))
 		if w != nil && !w.Phase.Terminal() && contractError {
-			if !applying && !yes(run["cancelling"]) {
+			if canCancel && !yes(run["cancelling"]) {
 				run["created"], run["cancelling"], run["invalidContract"] = true, true, true
 				delete(run, "authorization")
 				return again(r.report(ctx, o, "ReconcileBlocked", "InvalidExecutionContract", request.Workflow, M{"execution": run}))
 			}
-			if !applying {
-				return done(r.Engine.Cancel(ctx, request))
+			if canCancel {
+				return done(engine.Cancel(ctx, request))
+			}
+			if !requiresAuthorization {
+				run["invalidContract"] = true
+				return done(r.report(ctx, o, "ReconcileBlocked", "InvalidExecutionContract", request.Workflow, M{"execution": run}))
 			}
 		}
 		values := M{"execution": run, "result": diagnostics(w)}
@@ -216,7 +277,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			switch {
 			case applying:
 				phase, reason = execengine.Applying, "Applying"
-			case !contractError && !changed && !suspended && eligible && w.Phase == execengine.AuthorizationRequested && w.Authorization != "":
+			case requiresAuthorization && !contractError && !changed && !suspended && eligible && w.Phase == execengine.AuthorizationRequested && w.Authorization != "":
 				run["authorization"] = w.Authorization
 				phase, reason = execengine.AuthorizationRequested, "AuthorizationRequested"
 			case phase == execengine.Waiting:
@@ -279,7 +340,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 	next := execution(d, run, trigger, attempt)
-	next["integration"] = r.Engine.Snapshot()
+	next["integration"] = desiredEngine.Snapshot()
+	if desiredName != "" {
+		next["workflowRef"] = desiredName
+	}
 	resolved := obj(status["resolvedSource"])
 	if binding := str(resolved["binding"]); binding != "" {
 		next["binding"] = binding
@@ -331,7 +395,7 @@ func terminalResult(run M, w *execengine.Run, applying, contractError bool) (str
 		switch {
 		case w.Result.Outcome == execengine.NoChanges && !applying && obj(run["intent"])["operation"] == string(execengine.Apply):
 			return "Ready", "NoChanges", execengine.Succeeded
-		case w.Result.Outcome == execengine.Verified && applying && w.Authorization == str(run["authorization"]):
+		case w.Result.Outcome == execengine.Verified && ((authorizationRequired(obj(run["integration"])) && applying && w.Authorization == str(run["authorization"])) || (!authorizationRequired(obj(run["integration"])) && !applying && w.Authorization == "" && w.Resolution != nil)):
 			kind := "Ready"
 			if obj(run["intent"])["operation"] == string(execengine.Destroy) {
 				kind = "Destroyed"
