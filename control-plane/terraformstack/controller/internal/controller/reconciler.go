@@ -16,8 +16,7 @@ import (
 
 type Reconciler struct {
 	client.Client
-	Reader          client.Reader     // Leitura consistente antes de decisões de autorização.
-	Engine          execengine.Engine // Single integration for embedding and tests.
+	Reader          client.Reader // Leitura consistente antes de decisões de autorização.
 	Engines         map[string]execengine.Engine
 	DefaultWorkflow string
 	StackNamespace  string
@@ -27,9 +26,6 @@ type Reconciler struct {
 // resolveEngine uses only installation-authorized aliases. It never mutates the
 // reconciler: concurrent stacks may use different integrations.
 func (r *Reconciler) resolveEngine(name string) (string, execengine.Engine, error) {
-	if len(r.Engines) == 0 && name == "" && r.Engine != nil {
-		return "", r.Engine, r.Engine.Validate()
-	}
 	if name == "" {
 		name = r.DefaultWorkflow
 	}
