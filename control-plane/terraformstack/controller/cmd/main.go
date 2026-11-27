@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/controller"
+	"github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/execution"
 	"github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/execution/argo"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -28,13 +29,24 @@ func main() {
 		logger.Error(e, "configuração inválida")
 		os.Exit(1)
 	}
-	stackNS, wfNS := config.Controller.StackNamespace, config.Workflow.Namespace
+	stackNS := config.Controller.StackNamespace
+	defaultWorkflow, integrations, e := config.Integrations()
+	if e != nil {
+		logger.Error(e, "integrações inválidas")
+		os.Exit(1)
+	}
+	workflowNamespaces := map[string]cache.Config{}
+	watchedNamespaces := map[string]bool{}
+	for _, integration := range integrations {
+		workflowNamespaces[integration.Namespace] = cache.Config{}
+		watchedNamespaces[integration.Namespace] = true
+	}
 	workers, leader := config.Controller.Workers, *config.Controller.LeaderElection
 	lease := 15 * time.Second
 	renew := 10 * time.Second
 	retry := 2 * time.Second
 	manager, e := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Cache:          cache.Options{ByObject: map[client.Object]cache.ByObject{controller.StackObject(): {Namespaces: map[string]cache.Config{stackNS: {}}}, argo.WorkflowObject(): {Namespaces: map[string]cache.Config{wfNS: {}}}}},
+		Cache:          cache.Options{ByObject: map[client.Object]cache.ByObject{controller.StackObject(): {Namespaces: map[string]cache.Config{stackNS: {}}}, argo.WorkflowObject(): {Namespaces: workflowNamespaces}}},
 		LeaderElection: leader, LeaderElectionID: "terraformstack-controller.platform.example.io", LeaderElectionNamespace: stackNS, LeaseDuration: &lease, RenewDeadline: &renew, RetryPeriod: &retry,
 		Metrics: metrics.Options{BindAddress: ":8080"}, HealthProbeBindAddress: ":8081",
 	})
@@ -42,9 +54,12 @@ func main() {
 		logger.Error(e, "manager")
 		os.Exit(1)
 	}
-	engine := &argo.Adapter{Client: manager.GetClient(), Reader: manager.GetAPIReader(), Config: config.Workflow}
-	r := &controller.Reconciler{Client: manager.GetClient(), Reader: manager.GetAPIReader(), StackNamespace: stackNS, Engine: engine}
-	if e = r.SetupWithManager(manager, workers, argo.WorkflowObject(), engine.WatchHandler(stackNS)); e != nil {
+	engines := make(map[string]execution.Engine, len(integrations))
+	for name, integration := range integrations {
+		engines[name] = &argo.Adapter{Client: manager.GetClient(), Reader: manager.GetAPIReader(), Config: integration}
+	}
+	r := &controller.Reconciler{Client: manager.GetClient(), Reader: manager.GetAPIReader(), StackNamespace: stackNS, Engines: engines, DefaultWorkflow: defaultWorkflow}
+	if e = r.SetupWithManager(manager, workers, argo.WorkflowObject(), argo.WatchHandlerForNamespaces(stackNS, watchedNamespaces)); e != nil {
 		logger.Error(e, "controller")
 		os.Exit(1)
 	}
