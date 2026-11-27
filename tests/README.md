@@ -16,7 +16,14 @@ go mod tidy -diff
 go test -race ./...
 ```
 
-O CI executa os testes unitários e o envtest em cada PR e push na main. A validação do runner e OPA é complementar. Os testes não substituem o Simulator do Lab 06: a atomicidade do claim do runner, a persistência real da API e a execução OPA/Terraform precisam de validação de integração.
+A CI executa testes unitários e envtest em PRs e pushes na main. O envtest verifica a disputa concorrente pelo `resourceVersion`. O runner também passa por testes de resolução de branch, tag, SHA e vínculo de destino em um repositório descartável.
+
+```bash
+docker build -t terraformstack-runner:local workflow-plane/terraform-executor
+python3 tests/test_terraformstack_resolution.py
+```
+
+A [Etapa 06](../labs/06-terraformstack-simulator.md) verifica o efeito do Workflow, do OPA, do claim e da ferramenta de IaC no Hub.
 
 ---
 
