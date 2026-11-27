@@ -8,6 +8,8 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/go-logr/logr"
+
 	"github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/execution"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -85,7 +87,7 @@ func (a *Adapter) Create(ctx context.Context, req execution.Request) error {
 	}
 	err = a.Client.Create(ctx, w)
 	if err == nil {
-		log.FromContext(ctx).Info("workflow created", "event", "execution.created", "workflow", req.Workflow, "intentHash", req.IntentHash)
+		a.logger(ctx, req).Info("workflow created", "event", "execution.created")
 	}
 	return err
 }
@@ -108,16 +110,24 @@ func (a *Adapter) valid(w *unstructured.Unstructured, req execution.Request) boo
 	return err == nil && str(obj(params[0])["value"]) == string(expected)
 }
 
+func (a *Adapter) logger(ctx context.Context, req execution.Request) logr.Logger {
+	return log.FromContext(ctx).WithValues("component", "argo-adapter", "workflow", req.Workflow,
+		"intentHash", req.IntentHash, "workflowNamespace", a.Config.Namespace,
+		"workflowTemplate", a.Config.TemplateRef.Name, "authorizationRequired", a.Config.RequiresAuthorization())
+}
+
 func (a *Adapter) Get(ctx context.Context, req execution.Request) (*execution.Run, error) {
 	w, err := a.Raw(ctx, req.Workflow)
 	if err != nil || w == nil {
 		return nil, err
 	}
 	if !a.valid(w, req) {
-		log.FromContext(ctx).Info("workflow identity invalid", "event", "execution.identity.invalid", "workflow", req.Workflow, "intentHash", req.IntentHash)
+		a.logger(ctx, req).V(1).Info("workflow identity invalid", "event", "execution.identity.invalid")
 		return &execution.Run{}, nil
 	}
-	return observeWithAuthorization(w, a.Config.Parameters.Output, req, a.Config.RequiresAuthorization()), nil
+	return observeWithDiagnostic(w, a.Config.Parameters.Output, req, a.Config.RequiresAuthorization(), func(reason, output string) {
+		a.logger(ctx, req).V(1).Info("execution contract invalid", "event", "execution.contract.invalid", "reason", reason, "output", output)
+	}), nil
 }
 
 func (a *Adapter) Cancel(ctx context.Context, req execution.Request) error {
@@ -136,7 +146,7 @@ func (a *Adapter) Cancel(ctx context.Context, req execution.Request) error {
 	spec["shutdown"] = "Terminate"
 	err = a.Client.Patch(ctx, w, client.MergeFromWithOptions(old, client.MergeFromWithOptimisticLock{}))
 	if err == nil {
-		log.FromContext(ctx).Info("workflow termination requested", "event", "execution.cancel.requested", "workflow", req.Workflow, "intentHash", req.IntentHash)
+		a.logger(ctx, req).Info("workflow termination requested", "event", "execution.cancel.requested")
 	}
 	return err
 }
@@ -173,6 +183,10 @@ func observe(w *unstructured.Unstructured, names OutputParameters, req execution
 }
 
 func observeWithAuthorization(w *unstructured.Unstructured, names OutputParameters, req execution.Request, authorizationRequired bool) *execution.Run {
+	return observeWithDiagnostic(w, names, req, authorizationRequired, func(string, string) {})
+}
+
+func observeWithDiagnostic(w *unstructured.Unstructured, names OutputParameters, req execution.Request, authorizationRequired bool, diagnostic func(string, string)) *execution.Run {
 	status := obj(w.Object["status"])
 	native := str(status["phase"])
 	phase := execution.Running
@@ -230,7 +244,7 @@ func observeWithAuthorization(w *unstructured.Unstructured, names OutputParamete
 	}
 	if raw := outputs[names.Authorization]; raw != "" {
 		if !authorizationRequired {
-			return invalid()
+			return invalid("UnexpectedAuthorization", names.Authorization)
 		}
 		var approval execution.Authorization
 		if !decode(raw, &approval) || approval.Identity != req.Identity ||
@@ -255,7 +269,7 @@ func observeWithAuthorization(w *unstructured.Unstructured, names OutputParamete
 			}
 		case execution.Verified:
 			if out.Resolution == nil || (authorizationRequired && out.Authorization == "") || (terminal && native != "Succeeded") {
-				return invalid()
+				return invalid("InconsistentVerified", names.Result)
 			}
 			if terminal {
 				out.Phase = execution.Succeeded
