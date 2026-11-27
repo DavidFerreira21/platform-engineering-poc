@@ -8,12 +8,14 @@ import (
 	"github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/controller"
 	"github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/execution"
 	"github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/execution/argo"
+	"github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/observability"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	metrics "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 func main() {
@@ -48,7 +50,7 @@ func main() {
 	manager, e := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Cache:          cache.Options{ByObject: map[client.Object]cache.ByObject{controller.StackObject(): {Namespaces: map[string]cache.Config{stackNS: {}}}, argo.WorkflowObject(): {Namespaces: workflowNamespaces}}},
 		LeaderElection: leader, LeaderElectionID: "terraformstack-controller.platform.example.io", LeaderElectionNamespace: stackNS, LeaseDuration: &lease, RenewDeadline: &renew, RetryPeriod: &retry,
-		Metrics: metrics.Options{BindAddress: ":8080"}, HealthProbeBindAddress: ":8081",
+		Metrics: metricsserver.Options{BindAddress: ":8080"}, HealthProbeBindAddress: ":8081",
 	})
 	if e != nil {
 		logger.Error(e, "manager")
@@ -58,7 +60,9 @@ func main() {
 	for name, integration := range integrations {
 		engines[name] = &argo.Adapter{Client: manager.GetClient(), Reader: manager.GetAPIReader(), Config: integration}
 	}
-	r := &controller.Reconciler{Client: manager.GetClient(), Reader: manager.GetAPIReader(), StackNamespace: stackNS, Engines: engines, DefaultWorkflow: defaultWorkflow}
+	metrics.Registry.MustRegister(observability.NewHealthCollector(manager.GetCache(), stackNS))
+	observer := &observability.Observer{Metrics: observability.NewMetrics(metrics.Registry), Recorder: manager.GetEventRecorderFor("terraformstack-controller")}
+	r := &controller.Reconciler{Observer: observer, Client: manager.GetClient(), Reader: manager.GetAPIReader(), StackNamespace: stackNS, Engines: engines, DefaultWorkflow: defaultWorkflow}
 	if e = r.SetupWithManager(manager, workers, argo.WorkflowObject(), argo.WatchHandlerForNamespaces(stackNS, watchedNamespaces)); e != nil {
 		logger.Error(e, "controller")
 		os.Exit(1)
@@ -71,6 +75,7 @@ func main() {
 		logger.Error(e, "readyz")
 		os.Exit(1)
 	}
+	logger.Info("controller configured", "event", "controller.configured", "stackNamespace", stackNS, "defaultWorkflow", defaultWorkflow, "integrations", len(integrations), "workers", workers, "leaderElection", leader)
 	if e = manager.Start(ctrl.SetupSignalHandler()); e != nil {
 		logger.Error(e, "manager encerrado")
 		os.Exit(1)
