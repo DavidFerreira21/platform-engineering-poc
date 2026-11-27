@@ -6,17 +6,17 @@ Reconciliar uma stack Terraform real no Hub local e comprovar pelo status do `Te
 
 ## O que será feito
 
-O Argo CD sincroniza a intenção em Git. O controller fixa as revisões de código e configuração e abre um Workflow. O Terraform grava o mapa efetivo de Network no campo `network.json` de um ConfigMap no namespace `terraformstack-simulator`. O exercício usa a hierarquia de Configuration de `entity-a/uat` e identidade Kubernetes local.
+O Argo CD sincroniza a intenção em Git. O controller abre um Workflow e a pipeline fixa o commit de código e configuração. O Terraform grava o mapa efetivo de Network no campo `network.json` de um ConfigMap no namespace `terraformstack-simulator`. O exercício usa a hierarquia de Configuration de `entity-a/uat` e identidade Kubernetes local.
 
 ## Por que fizemos assim
 
-O mesmo caminho de reconciliação atende o primeiro plan, as mudanças declaradas e a observação periódica do ambiente. Mantemos o state em um PVC por stack, com locking do backend local, e o plano binário em um diretório por execução. O OPA avalia o JSON derivado do plano. Antes do apply, a pipeline confere o hash do binário e compara o efeito previsto com um novo plan. A função `claim()` confere a intenção e a autorização vigentes no CR e marca `status.execution.applying: true`. O apply usa o binário salvo. [Autorização final do apply](../docs/flows/terraformstack.md#autorização-final-do-apply)
+O mesmo caminho de reconciliação atende o primeiro plan, as mudanças declaradas e a observação periódica do ambiente. Mantemos o state em um PVC por stack, com locking do backend local, e o plano binário em um diretório por execução. O OPA avalia o JSON derivado do plano. Antes do apply, a pipeline confere o hash do binário e compara o efeito previsto com um novo plan. A função `claim()` confere a intenção e a autorização vigentes no CR e registra `status.claim` por atualização condicional. O apply usa o binário salvo. [Autorização final do apply](../docs/flows/terraformstack.md#autorização-final-do-apply)
 
-O catálogo local autoriza os dois nomes do exercício, a raiz Terraform do repositório e o destino lógico `entity-a/simulator`. O Simulator lê Configuration com o perfil de dados `entity-a/uat`. O código Terraform das revisões aceitas é mantido pelo Platform Team. O Workflow usa o perfil `simulator`, composto de `common` e `simulator`, em um pacote imutável; o status publica o perfil, os módulos e o SHA-256 do pacote. [Contrato](../docs/flows/terraformstack.md) · [Política OPA](../workflow-plane/policy-engine/README.md)
+O perfil local da pipeline autoriza os dois nomes do exercício, a raiz Terraform do repositório e o destino lógico `entity-a/simulator`. O Simulator lê Configuration com o perfil de dados `entity-a/uat`. O código Terraform das revisões aceitas é mantido pelo Platform Team. O Workflow usa o perfil `simulator`, composto de `common` e `simulator`, em um pacote imutável; o status publica a decisão, o hash do plano e o SHA-256 do pacote. [Contrato](../docs/flows/terraformstack.md) · [Política OPA](../workflow-plane/policy-engine/README.md)
 
 ## Pré-requisitos
 
-Runtime da Etapa 05 instalado. Execute os comandos na raiz do repositório e no mesmo terminal, com Python 3 para as consultas de configuração e auditoria. Os cenários GitOps usam commits publicados no repositório Git do catálogo. [Etapa 05](05-terraformstack-runtime.md) · [Catálogo local](../control-plane/terraformstack/overlays/kind/catalog.json)
+Runtime da Etapa 05 instalado. Execute os comandos na raiz do repositório e no mesmo terminal, com Python 3 para as consultas de configuração e auditoria. Os cenários GitOps usam commits publicados no repositório autorizado pelo perfil. [Etapa 05](05-terraformstack-runtime.md) · [Perfil local](../workflow-plane/argo-workflows/terraformstack/simulator.json)
 
 ## 1. Preparar o Hub e sincronizar
 
@@ -68,8 +68,8 @@ git rev-parse HEAD
 | Cenário | Decisão esperada | Evidência |
 | :--- | :--- | :--- |
 | Primeiro sync com `10.81.0.0/16` | `AutoApply` | `Ready` após apply e verificação. O ConfigMap também contém os defaults de DNS, NAT e endpoints |
-| Revisão com `10.82.0.0/16` | `RequireApproval` | `ApprovalRequired`. O ConfigMap mantém o CIDR anterior enquanto a aprovação está pendente |
-| Revisão com `0.0.0.0/0` | `Deny` | `ReconcileBlocked`, motivo `PolicyDenied` e ConfigMap preservado |
+| Revisão com `10.82.0.0/16` | `RequireApproval` | `ExecutionWaiting / Waiting`. O ConfigMap mantém o CIDR anterior enquanto a aprovação está pendente |
+| Revisão com `0.0.0.0/0` | `Deny` | `ReconcileBlocked`, com diagnóstico `PolicyDenied` em `status.result.reason` e ConfigMap preservado |
 
 Para aprovar, o administrador do Hub provisiona uma ServiceAccount no namespace de teste com nome individual. Cada aprovador usa apenas seu token temporário. A política de admissão limita a edição ao gate ativo do Simulator.
 
@@ -81,13 +81,13 @@ hub -n argo-workflows create rolebinding "$approver" \
   --serviceaccount="terraformstack-simulator:$approver"
 printf 'Bearer %s\n' "$(hub -n terraformstack-simulator create token "$approver" --duration=30m)"
 hub -n platform-system wait terraformstack/simulator-network \
-  --for=condition=ApprovalRequired --timeout=180s
-stack -o jsonpath='{.status.policy.hash}{"\n"}'
+  --for=condition=ExecutionWaiting --timeout=180s
+stack -o jsonpath='{.status.result.details.planHash}{"\n"}'
 ```
 
-Na UI do Argo Workflows, autentique com o token e selecione `argo-workflows`. Abra o Workflow indicado por `workflow` e clique no nó **approval** no grafo. Use **Resume** no painel desse nó. No formulário, selecione `Approve` no campo `approval`, informe o hash completo em `approved-hash` e confirme com **OK**. Confira `status.policy.cidrs` para ver os CIDRs antes e depois. Após o apply, confira `Ready / Verified` e o novo valor com a função `network`. [UI do Argo Workflows](https://workflows.localhost:8443)
+Na UI do Argo Workflows, autentique com o token e selecione `argo-workflows`. Abra o Workflow indicado por `workflow` e clique no nó **approval** no grafo. Use **Resume** no painel desse nó. No formulário, selecione `Approve` no campo `approval`, informe o hash completo em `approved-hash` e confirme com **OK**. Compare a alteração proposta no Git com o CIDR observado pela função `network`. Após o apply, confira `Ready / Verified` e o novo valor com a função `network`. [UI do Argo Workflows](https://workflows.localhost:8443)
 
-Experimente o Resume com a identidade somente leitura da Etapa 03 enquanto o gate estiver aberto. A UI deve recusar a operação e manter o gate pendente. Para testar `Reject` e hash incorreto, volte a propor `10.81.0.0/16` depois de aplicar `10.82.0.0/16`. Cada resposta encerra a tentativa com `ReconcileBlocked / ApprovalRejected`. Para repetir com o mesmo CIDR, publique outro commit com `git commit --allow-empty -m "Repete o cenário de aprovação do Simulator"` e sincronize o novo SHA. A resposta padrão do gate é `Reject`.
+Experimente o Resume com a identidade somente leitura da Etapa 03 enquanto o gate estiver aberto. A UI deve recusar a operação e manter o gate pendente. Para testar `Reject` e hash incorreto, volte a propor `10.81.0.0/16` depois de aplicar `10.82.0.0/16`. Cada resposta encerra a tentativa com `ReconcileBlocked / ExecutionBlocked` e diagnóstico `ApprovalRejected`. Para repetir com o mesmo CIDR, publique outro commit com `git commit --allow-empty -m "Repete o cenário de aprovação do Simulator"` e sincronize o novo SHA. A resposta padrão do gate é `Reject`.
 
 ```bash
 docker exec platform-management-control-plane cat /var/local/terraformstack-audit/requests.jsonl |
@@ -172,7 +172,7 @@ No ensaio de concorrência, abra um gate e sincronize uma nova revisão antes de
 
 ```bash
 hub -n platform-system wait terraformstack/simulator-network \
-  --for='jsonpath={.status.execution.applying}=true' --timeout=180s
+  --for='jsonpath={.status.execution.phase}=Applying' --timeout=180s
 ```
 
 Para observar retry operacional, sincronize outra revisão de teste com o CIDR de baseline. Aguarde o controller publicar o nome do Workflow dessa revisão. Encurte o deadline do Pod de `plan` para provocar uma falha. A exclusão de um Pod ainda pendente pode fazer o Argo recriá-lo na mesma tentativa.
@@ -199,6 +199,10 @@ Confira a falha do primeiro Workflow e, após o intervalo de 10 segundos, outro 
 
 Para testar dependência, libere `suspend` de `simulator-dependent` com a Network ainda suspensa e confira `DependencyBlocked`. Na revisão que retoma a Network, use `reconciliation.driftCheckInterval: 10m` na Network para dar tempo à primeira execução da dependente. Uma checagem periódica coloca a Network em `Reconciling` temporariamente e pode cancelar uma execução dependente antes do apply. Aguarde `Ready` nas duas stacks e confira o state e o ConfigMap próprios da dependente. Restaure o intervalo de 45 segundos após o exercício.
 
+Para testar um ciclo, suspenda temporariamente as duas solicitações, configure cada stack como dependência da outra e entregue uma revisão com as duas ativas. O controller registra `ReconcilePending / DependencyCycle`. Retire a dependência da Network antes de continuar.
+
+Para testar a proteção do destino, use uma revisão com um contexto diferente de `entity-a/simulator`. Observe `ReconcileBlocked / ExecutionBlocked` com diagnóstico `ContextNotAllowed`, antes de montar o state. Um vínculo divergente produz `BindingChanged` ou `StateBindingMismatch`, conforme a verificação que detectar a divergência. Preserve o PVC e restaure o perfil aprovado antes de gerar outro plano.
+
 ## 4. Exercitar destroy e limpar
 
 Faça as alterações no manifesto das solicitações e sincronize cada SHA pela mesma Application do Simulator. [Manifesto das stacks](../control-plane/terraformstack/examples/simulator/stacks.yaml)
@@ -221,8 +225,8 @@ Para o passo 4, após habilitar o teardown e confirmar a revisão, solicite a ex
 ```bash
 hub -n platform-system delete terraformstack simulator-network --wait=false
 hub -n platform-system wait terraformstack/simulator-network \
-  --for=condition=ApprovalRequired --timeout=180s
-stack -o jsonpath='{.metadata.deletionTimestamp}{"\n"}{.status.policy.hash}{"\n"}'
+  --for=condition=ExecutionWaiting --timeout=180s
+stack -o jsonpath='{.metadata.deletionTimestamp}{"\n"}{.status.result.details.planHash}{"\n"}'
 ```
 
 Depois da aprovação, aguarde a conclusão do teardown.
@@ -244,12 +248,37 @@ hub -n terraformstack-simulator delete serviceaccount "$approver"
 
 ## O que observar
 
-- `status.observedGeneration`, `resolvedSource` e `execution.workflow` ligam intenção, commit e execução. O GitOps mostra a sincronização do CR. Leia a condição pelo par `type` e `reason`, como `ApprovalRequired / AwaitingApproval`. `lastCheckTime` e `lastDriftTime` registram a última tentativa concluída e a última detecção de drift. [Condições e diagnóstico](../docs/flows/terraformstack.md#6-status-e-diagnóstico)
-- `status.policy` guarda decisão, motivo, hash, resumo das ações, fase e identidade da aprovação. O log de auditoria do Hub confirma a identidade que retomou o gate. As evidências são o status, o ConfigMap e a ausência de mudança em um segundo plan.
+- `status.observedGeneration`, `resolvedSource` e `execution.workflow` ligam intenção, commit e execução. O GitOps mostra a sincronização do CR. Leia a condição pelo par `type` e `reason`, como `ExecutionWaiting / Waiting`. `lastCheckTime` e `lastDriftTime` registram a última tentativa concluída e a última detecção de drift. [Condições e diagnóstico](../docs/flows/terraformstack.md#6-status-e-diagnóstico)
+- `status.result` guarda resultado, diagnósticos e detalhes como a decisão e o hash do plano. `status.claim` relaciona intenção, Workflow e autorização. O log de auditoria do Hub confirma a identidade que retomou o gate. As evidências são o status, o ConfigMap e a ausência de mudança em um segundo plan.
 - Um Workflow pode terminar em `Succeeded` após registrar `Deny` ou uma rejeição. Nesses casos, o CR exibe `ReconcileBlocked` e o ConfigMap preserva o último valor aplicado.
 - Guarde revisão, ID ou digest de imagem e resultados do exercício. O PVC contém os planos e states locais.
 
+## 5. Executar o mesmo fluxo com OpenTofu
+
+O runner da Etapa 05 inclui o OpenTofu. Use a stack dependente e um PVC vazio para manter os ensaios separados. Conclua o destroy Terraform da dependente, exclua seu CR e remova seus Workflows concluídos antes de excluir o PVC. Os Pods desses Workflows podem manter a proteção do PVC ativa. Sincronize **terraformstack-controller** para recriar o PVC vazio.
+
+Em uma revisão de teste, defina `iac` como `tofu` no perfil do Simulator. Suspenda a Network, remova o `dependsOn` da dependente e ative a dependente. Sincronize **terraformstack-workflows** e depois **terraformstack-simulator** com essa revisão. Confira no Workflow o primeiro apply, a mudança de CIDR com aprovação e o destroy explícito aprovado da dependente. Use `status.resolvedSource.binding` para correlacionar as tentativas no mesmo state. [Perfil de execução](../workflow-plane/argo-workflows/terraformstack/simulator.json) · [Runner e isolamento](../workflow-plane/README.md#binário-de-iac-no-simulator)
+
+Após o destroy verificado, remova os recursos do ensaio conforme a seção anterior e sincronize o WorkflowTemplate da revisão padrão com `iac: terraform`.
+
 ## Evidências de aceite
+
+### Contrato atual
+
+O aceite usou o Hub `kind` `platform-management` com as revisões da refatoração do [PR #58](https://github.com/DavidFerreira21/platform-engineering-poc/pull/58). Os cenários versionaram somente dados do Simulator e as mudanças aplicadas foram ConfigMaps locais.
+
+| Cenário | Resultado observado |
+| --- | --- |
+| GitOps e drift | O primeiro apply criou o baseline. O plan periódico retornou `NoChanges` sem claim. A alteração externa para `10.83.0.0/16` foi detectada e corrigida no commit já fixado. |
+| Política e UI | O Resume autorizado aplicou `10.82.0.0/16` e apareceu na auditoria. Rejeição, hash incorreto, negativa do OPA e erro de Rego preservaram esse valor. A identidade somente leitura não tinha permissão de atualizar Workflows. |
+| Outputs e integridade | Outputs ausentes, inválidos e contraditórios terminaram em `InvalidExecutionContract`. A adulteração do binário falhou antes do claim. O retry usou a mesma referência e o mesmo vínculo e exigiu outra aprovação. |
+| Idempotência e cancelamento | O sync repetido e a troca de líder conservaram o gate. Um novo commit terminou a espera obsoleta antes de criar o próximo Workflow. Uma revisão que chegou após o claim aguardou o apply e a verificação anteriores. A admissão recusou claim sem autorização. |
+| Origem e destino | O Workflow recusou repositório e contexto fora do perfil antes de preparar o volume. Uma mudança de vínculo foi recusada com `BindingChanged` e o ConfigMap foi preservado. |
+| Dependências e destroy explícito | O controller detectou o ciclo, aguardou a Network ficar pronta e provisionou a dependente com state próprio. O destroy da Network só alcançou o gate depois do destroy verificado da dependente. A rejeição preservou o ConfigMap. A aprovação subsequente removeu o ConfigMap e manteve o CR em `Destroyed`. |
+| Retain, vínculo do PVC e finalizer | A exclusão padrão preservou o ConfigMap e o PVC. Recriar o CR com um perfil incompatível retornou `StateBindingMismatch`. Restaurar o perfil retomou o state com `NoChanges`. O destroy opt-in na exclusão removeu o ConfigMap e liberou o finalizer após aprovação e verificação. |
+| OpenTofu 1.13.9 | Com PVC novo, o Simulator passou por plan JSON, OPA, apply automático, atualização de CIDR aprovada, revalidação, verify e destroy aprovado. O backend local recusou um plan concorrente durante apply em testes separados com Terraform e OpenTofu. |
+
+### Revisão anterior
 
 Em 26/11/2026, recriamos o Hub `platform-management` e seguimos as Etapas 01 a 06. O WorkflowTemplate foi sincronizado a partir de `e7245bd`. Para os testes de dependência e teardown, reconstruímos o controller com a correção `77e4b77`. O Kubernetes registrou o ImageID `sha256:17fb6897534d9569ab8333c09581468eed856306eca44dc860a9fa1a5ec5d6af` no controller e `sha256:8e9155c8134166b516c7d27bc2eab74c40aec79f961a19fb06d185f57eb46a67` no runner.
 

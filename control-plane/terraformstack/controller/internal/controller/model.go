@@ -4,13 +4,12 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"regexp"
-	"slices"
-	"strconv"
-	"strings"
 	"time"
 
 	api "github.com/DavidFerreira21/platform-engineering-poc/terraformstack/api/v1alpha1"
+	execengine "github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/execution"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -19,13 +18,6 @@ const revision = "platform.example.io/revision"
 const finalizer = "platform.example.io/terraformstack-cleanup"
 
 type M = map[string]any
-type Catalog struct {
-	Sources map[string]struct {
-		Repository string
-		Paths      []string
-	}
-	Targets map[string]struct{ Stacks map[string]M }
-}
 
 func obj(v any) M {
 	m, _ := v.(map[string]any)
@@ -68,8 +60,7 @@ func specOf(o *unstructured.Unstructured) (api.StackSpec, error) {
 	return s, err
 }
 
-var shaPattern = regexp.MustCompile("^[0-9a-f]{40}$")
-var profilePattern = regexp.MustCompile("^[a-z][a-z0-9-]*$")
+var pathPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_./-]*$`)
 var durationPattern = regexp.MustCompile("^([0-9]+[smh])+$")
 
 func duration(v string) (time.Duration, error) {
@@ -89,60 +80,53 @@ func fallback(v, d string) string {
 	return v
 }
 
-// Resolve exclusivamente dados autorizados no catálogo. A intenção serializada
-// é o contrato compartilhado com o runner, inclusive nomes e tipos JSON.
-func Intent(o *unstructured.Unstructured, c Catalog) (M, error) {
-	s, e := specOf(o)
-	if e != nil {
-		return nil, e
+// Intent registra a intenção declarativa. Referências e contexto são opacos.
+func Intent(o *unstructured.Unstructured) (M, error) {
+	s, err := specOf(o)
+	if err != nil {
+		return nil, err
 	}
 	deleting := !o.GetDeletionTimestamp().IsZero()
-	d := M{"stack": o.GetName(), "uid": string(o.GetUID()), "generation": o.GetGeneration(), "deleting": deleting}
-	if deleting && !s.Lifecycle.DestroyResourcesOnDeletion {
-		d["operation"] = "retain"
-		return d, nil
+	op := execengine.Apply
+	switch {
+	case deleting && !s.Lifecycle.DestroyResourcesOnDeletion:
+		op = execengine.Retain
+	case deleting || s.Lifecycle.Destroy:
+		op = execengine.Destroy
 	}
-	source, ok := c.Sources[s.SourceRef.Name]
-	slot := c.Targets[s.Target.Entity+"/"+s.Target.Environment].Stacks[o.GetName()]
-	if !ok || slot == nil || !slices.Contains(source.Paths, s.SourceRef.Path) || str(slot["source"]) != s.SourceRef.Name || str(slot["path"]) != s.SourceRef.Path {
-		return nil, fmt.Errorf("fonte ou destino fora do catálogo")
+	if op != execengine.Retain && (s.SourceRef.Repository == "" ||
+		len(s.SourceRef.Path) > 512 || !pathPattern.MatchString(s.SourceRef.Path) || !fs.ValidPath(s.SourceRef.Path)) {
+		return nil, fmt.Errorf("fonte ou caminho inválido")
 	}
-	profile := str(slot["policyProfile"])
-	if !profilePattern.MatchString(profile) {
-		return nil, fmt.Errorf("Policy Profile ausente ou inválido")
+	s.SourceRef.Version = fallback(s.SourceRef.Version, "latest")
+	if s.Context == nil {
+		s.Context = map[string]string{}
 	}
-	pinned := o.GetAnnotations()[revision]
-	rev := fallback(s.SourceRef.Version, "latest")
-	cfg := fallback(s.Configuration.Version, "latest")
-	if rev == "latest" {
-		rev = pinned
+	intent := &execengine.Intent{
+		Stack: o.GetName(), Namespace: o.GetNamespace(), UID: string(o.GetUID()),
+		Generation: o.GetGeneration(), RevisionAnnotation: o.GetAnnotations()[revision],
+		Deleting: deleting, SourceRef: s.SourceRef, Context: s.Context, Operation: op,
 	}
-	if cfg == "latest" {
-		cfg = pinned
-	}
-	if !shaPattern.MatchString(rev) || !shaPattern.MatchString(cfg) {
-		return nil, fmt.Errorf("fonte e configuração exigem SHAs Git completos")
-	}
-	for _, k := range []string{"backend", "variables", "volume", "serviceAccount", "configurationPath"} {
-		if slot[k] == nil {
-			return nil, fmt.Errorf("campo obrigatório ausente no catálogo: %s", k)
-		}
-		d[k] = slot[k]
-	}
-	d["revision"] = rev
-	d["configuration"] = cfg
-	d["revisionAnnotation"] = pinned
-	d["source"] = s.SourceRef.Name
-	d["repository"] = source.Repository
-	d["path"] = s.SourceRef.Path
-	d["target"] = M{"entity": s.Target.Entity, "environment": s.Target.Environment}
-	d["policyProfile"] = profile
-	d["operation"] = "apply"
-	if deleting || s.Lifecycle.Destroy {
-		d["operation"] = "destroy"
-	}
-	return d, nil
+	return runtime.DefaultUnstructuredConverter.ToUnstructured(intent)
 }
+
+func requestFor(run M) (execengine.Request, error) {
+	req := execengine.Request{
+		Identity:        execengine.Identity{Workflow: str(run["workflow"]), IntentHash: str(run["intentHash"])},
+		PinnedReference: str(run["pinnedReference"]),
+		Binding:         str(run["binding"]),
+	}
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj(run["intent"]), &req.Intent)
+	return req, err
+}
+
+func claimed(status, run M) bool {
+	claim := obj(status["claim"])
+	token := str(run["authorization"])
+	return token != "" && claim["authorization"] == token &&
+		claim["workflow"] == run["workflow"] && claim["intentHash"] == run["intentHash"]
+}
+
 func retryDelay(p api.RetryPolicy, attempt int64) (time.Duration, error) {
 	if p.Strategy == "None" || attempt >= int64(p.MaxRetries) {
 		return 0, nil
@@ -168,7 +152,7 @@ func retryDelay(p api.RetryPolicy, attempt int64) (time.Duration, error) {
 func execution(d, old M, trigger string, attempt int64) M {
 	sequence := num(old["sequence"]) + 1
 	sum := sha256.Sum256([]byte(canonical(d)))
-	return M{"intent": d, "workflow": fmt.Sprintf("tf-%s-%x-%d", str(d["uid"]), sum[:6], sequence), "sequence": sequence, "attempt": attempt, "trigger": trigger}
+	return M{"intent": d, "intentHash": fmt.Sprintf("%x", sum), "workflow": fmt.Sprintf("tf-%s-%x-%d", str(d["uid"]), sum[:6], sequence), "sequence": sequence, "attempt": attempt, "trigger": trigger, "phase": string(execengine.Pending)}
 }
 func conditionTrue(o *unstructured.Unstructured, kind string) bool {
 	status := obj(o.Object["status"])
@@ -180,81 +164,69 @@ func conditionTrue(o *unstructured.Unstructured, kind string) bool {
 	}
 	return false
 }
-func DependenciesReady(all []unstructured.Unstructured, o *unstructured.Unstructured, d M, c Catalog) bool {
-	s, e := specOf(o)
-	if e != nil {
+
+// dependencyReason usa apenas o grafo do namespace e as intenções vigentes.
+func dependencyReason(all []unstructured.Unstructured, o *unstructured.Unstructured, spec api.StackSpec, op string) string {
+	if op == string(execengine.Retain) {
+		return ""
+	}
+	type entry struct {
+		object *unstructured.Unstructured
+		spec   api.StackSpec
+	}
+	nodes := make(map[string]entry, len(all))
+	for i := range all {
+		item := &all[i]
+		if item.GetNamespace() == o.GetNamespace() {
+			if s, err := specOf(item); err == nil {
+				nodes[item.GetName()] = entry{item, s}
+			}
+		}
+	}
+	visiting, visited := map[string]bool{}, map[string]bool{}
+	var cycle func(string) bool
+	cycle = func(name string) bool {
+		if visiting[name] {
+			return true
+		}
+		if visited[name] {
+			return false
+		}
+		visiting[name] = true
+		for _, dep := range nodes[name].spec.DependsOn {
+			if cycle(dep.Name) {
+				return true
+			}
+		}
+		delete(visiting, name)
+		visited[name] = true
 		return false
 	}
-	if d["operation"] == "apply" {
-		for _, dep := range s.DependsOn {
-			found := false
-			for i := range all {
-				other := &all[i]
-				if other.GetName() != dep.Name || other.GetName() == o.GetName() {
-					continue
-				}
-				os, e := specOf(other)
-				if e != nil || os.Target != s.Target || !other.GetDeletionTimestamp().IsZero() {
-					return false
-				}
-				wanted, e := Intent(other, c)
-				status := obj(other.Object["status"])
-				found = e == nil && num(status["observedGeneration"]) == other.GetGeneration() && equal(obj(status["execution"])["intent"], wanted) && conditionTrue(other, "Ready")
-				break
-			}
-			if !found {
-				return false
+	if cycle(o.GetName()) {
+		return "DependencyCycle"
+	}
+	current := func(other *unstructured.Unstructured, condition string) bool {
+		status := obj(other.Object["status"])
+		wanted, err := Intent(other)
+		return err == nil && num(status["observedGeneration"]) == other.GetGeneration() &&
+			equal(obj(status["execution"])["intent"], wanted) && conditionTrue(other, condition)
+	}
+	if op == string(execengine.Apply) {
+		for _, dep := range spec.DependsOn {
+			other := nodes[dep.Name].object
+			if other == nil || !other.GetDeletionTimestamp().IsZero() || !current(other, "Ready") {
+				return "DependencyBlocked"
 			}
 		}
 	}
-	if d["operation"] == "destroy" {
-		for i := range all {
-			other := &all[i]
-			os, e := specOf(other)
-			if e != nil || os.Target != s.Target {
-				continue
-			}
-			for _, dep := range os.DependsOn {
-				if dep.Name == o.GetName() && !conditionTrue(other, "Destroyed") {
-					return false
+	if op == string(execengine.Destroy) {
+		for _, node := range nodes {
+			for _, dep := range node.spec.DependsOn {
+				if dep.Name == o.GetName() && !current(node.object, "Destroyed") {
+					return "DependencyBlocked"
 				}
 			}
 		}
 	}
-	return true
-}
-func normalize(m M) M {
-	for k, v := range m {
-		m[k] = normalizeValue(v)
-	}
-	return m
-}
-func normalizeValue(v any) any {
-	switch x := v.(type) {
-	case M:
-		return normalize(x)
-	case []any:
-		for i := range x {
-			x[i] = normalizeValue(x[i])
-		}
-	case json.Number:
-		if n, e := strconv.ParseInt(string(x), 10, 64); e == nil {
-			return n
-		}
-		n, _ := strconv.ParseFloat(string(x), 64)
-		return n
-	}
-	return v
-}
-func readCatalog(b []byte) (Catalog, error) {
-	var c Catalog
-	dec := json.NewDecoder(strings.NewReader(string(b)))
-	dec.UseNumber()
-	e := dec.Decode(&c)
-	for _, t := range c.Targets {
-		for _, s := range t.Stacks {
-			normalize(s)
-		}
-	}
-	return c, e
+	return ""
 }

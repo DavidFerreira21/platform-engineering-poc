@@ -16,15 +16,15 @@ A POC usa a **Kubernetes API como contrato técnico** e quatro camadas de owners
 
 O recurso **`TerraformStack`** tem um CRD próprio versionado na Etapa 04. Na Etapa 05, o **TerraformStack Controller** passa a observar esse recurso no Control Plane do Hub.
 
-- O `spec` referencia a stack aprovada por `sourceRef`, o destino lógico `Entity + Environment` e a versão dos YAMLs de configuração. O catálogo do Simulator seleciona o backend local, o PVC e a ServiceAccount. Na integração AWS, a plataforma resolve a role e o backend pelo cadastro autorizado.
+- O `spec` declara a origem por `sourceRef` e encaminha o mapa opcional `context`. O perfil do Simulator resolve o destino local, o backend e o PVC. A integração AWS resolve a role e o backend pelo registro autorizado.
 - O recurso mantém o ciclo de vida da **infraestrutura desejada**; não representa apenas um `terraform apply`.
-- O `status` expõe condições, última verificação, revisão observada, resumo do último plan, classificação, referência de workflow, estado de aprovação e divergência detectada. Não guardar segredos nem todo o plan em `status`.
+- O `status` expõe condições, horários de verificação e drift, execução, claim, resultado tipado e resolução imutável. Planos e state ficam no armazenamento privado.
 - `TerraformRun` fica **reservado como nome opcional para uma execução imutável** (ou pode ser substituído por um Argo Workflow criado pelo controller). **Não criar um segundo CRD só para representar runs antes de existir justificativa.**
 - **Entity/Environment/Domain continuam registros lógicos Git**, não CRDs criados por esta decisão.
 
 ### Contrato inicial
 
-A Etapa 04 publica `platform.example.io/v1alpha1` com escopo de namespace. O schema exige `spec.target.entity/environment` e `spec.sourceRef.name/path`. `sourceRef.version` e `configuration.version` são opcionais, com default `latest`. O subrecurso `/status` expõe condições, execução, política e revisões resolvidas. A Etapa 04 valida o exemplo com dry-run na API do Hub, e a Etapa 06 usa a mesma solicitação para executar o Simulator. [Schema](../../control-plane/terraformstack/crd/terraformstack.yaml) · [Exemplo](../../control-plane/terraformstack/examples/simulator/stacks.yaml) · [Guia da Etapa 04](../../labs/04-terraformstack-crd.md)
+A Etapa 04 publica `platform.example.io/v1alpha1` com escopo de namespace. O schema exige `spec.sourceRef.repository/path`. `sourceRef.version` tem default `latest` e `context` aceita um mapa opcional de strings. A Etapa 04 valida o dry-run na API do Hub e a Etapa 06 executa a solicitação do Simulator. [Schema](../../control-plane/terraformstack/crd/terraformstack.yaml) · [Exemplo](../../control-plane/terraformstack/examples/simulator/stacks.yaml) · [Guia da Etapa 04](../../labs/04-terraformstack-crd.md)
 
 ### Configuração por entidade e ambiente
 
@@ -58,7 +58,7 @@ O módulo `configuration` lê o arquivo `<stack>.yaml` nos níveis global, Entit
 
 **Outputs:** as stacks `network` e `eks` expõem saídas tipadas; a publicação de um subconjunto permitido para o Parameter Store da conta do Environment ocorre pelo **GitOps Bridge (Etapa 17)**, depois de apply e verificação. Não publicar state, plano ou segredos como output distribuído. A implementação deve verificar combinações de flags e tornar explícitas as dependências de rede/IAM, sem criar um quarto módulo obrigatório agora.
 
-No Simulator, a Application acompanha `main` e injeta o SHA efetivamente sincronizado em `platform.example.io/revision`. Quando `sourceRef.version` ou `configuration.version` é omitido ou recebe `latest`, o controller exige essa anotação com um SHA completo. Cada versão explícita também exige um SHA completo. O controller considera a anotação junto à geração para detectar commits que alteram apenas os YAMLs. O Workflow fixa as duas revisões e usa o binário do plano autorizado no apply. A Etapa 13 reutiliza o vínculo entre revisão, plano e aprovação com destino AWS registrado em `environment.yaml`. [Resolução de revisões](../flows/terraformstack.md#2-contrato-e-resolução-de-revisões)
+No Simulator, a Application acompanha `main` e injeta seu SHA em `platform.example.io/revision`. O controller inclui a anotação na identidade para que commits de configuração iniciem outro plan. A pipeline resolve e verifica um commit para código e configuração. `latest` usa o SHA GitOps quando disponível e `HEAD` nos demais casos. Retry e drift reutilizam a referência fixada. A Etapa 13 reutiliza o vínculo entre revisão, plano e aprovação com o destino registrado em `environment.yaml`. [Resolução de revisões](../flows/terraformstack.md#2-contrato-e-resolução-de-revisões)
 
 Os testes do Configuration cobrem os três níveis de herança, a preservação de campos aninhados e a substituição de listas e valores escalares para uma stack de exemplo. A validação do fluxo confirma que um commit que altera apenas o YAML muda os valores do próximo plan com a mesma imagem e o mesmo conteúdo de código Terraform.
 
@@ -77,15 +77,15 @@ Backstage / CLI / pessoa → PR + validações + aprovação Git
 
 **Separação de responsabilidades:**
 - **Argo CD central:** sincroniza `TerraformStack` do Git para Kubernetes, **não executa Terraform nem cria workflows por conta própria**.
-- **TerraformStack Controller:** observa CRs, valida fonte/raiz e destino autorizados no catálogo, dispara ou agenda verificações, controla concorrência/retries, acompanha o resultado da política avaliada no Workflow e atualiza status.
-- **Argo Workflows:** orquestra plan, avaliação das políticas, gates/aprovação, apply e verificações.
+- **TerraformStack Controller:** valida a intenção declarada, verifica dependências, agenda execuções, controla concorrência e retries, concede autorização e atualiza o status pelo contrato tipado.
+- **Argo Workflows:** executa a pipeline que resolve Git, contexto, variáveis, backend e política e orquestra plan, aprovação, apply e verificação.
 - **Terraform:** calcula e aplica mudanças no ConfigMap do Simulator. As raízes AWS entram nas etapas de Foundation e Entity Core.
 
-**Argo CD `Synced` significa Git == CR Kubernetes, não AWS sem drift.** Drift de infraestrutura é informado em `TerraformStack.status.conditions` (por exemplo `DriftDetected`, `Ready`, `ApprovalRequired`, `ReconcileBlocked`) e pode ser exposto por health check customizado, CLI ou observabilidade. A POC **não depende** de interface/health customizados do Argo CD.
+**Argo CD `Synced` significa Git == CR Kubernetes, não AWS sem drift.** Drift de infraestrutura é informado em `TerraformStack.status.conditions` (por exemplo `DriftDetected`, `Ready`, `ExecutionWaiting`, `ReconcileBlocked`) e pode ser exposto por health check customizado, CLI ou observabilidade. A POC **não depende** de interface/health customizados do Argo CD.
 
 ### Executor Argo, identidade do destino e isolamento
 
-**Decisão:** manter o `TerraformStack Controller` próprio com **Argo Workflows** como executor/orquestrador; não substituir pelo Tofu Controller nem criar um segundo Runner Controller. O controller observa o CR, resolve o destino autorizado e cria um Workflow governado. O Argo cria Pods efêmeros a partir do WorkflowTemplate canônico. Os passos Terraform usam o runner genérico e os scripts versionados. OPA usa sua imagem oficial e monta a versão imutável do Rego. O catálogo fixa a raiz, as revisões Git, o backend e a identidade de execução.
+A POC usa o `TerraformStack Controller` e Argo Workflows como orquestrador. O Argo cria Pods efêmeros a partir do WorkflowTemplate. Os passos Terraform usam o runner genérico e scripts versionados. OPA usa sua imagem oficial e monta a versão imutável do Rego. A configuração do runtime fixa a ServiceAccount. A pipeline verifica o perfil e fixa a revisão Git e o vínculo de destino. [Execution Contract](../flows/terraformstack-execution-contract.md)
 
 A Etapa 06 aplica o Simulator com o provider Kubernetes. Na Etapa 10, os mesmos blocos serão instalados no Hub EKS. A Etapa 12 valida a sessão de origem obtida por identidade de Pod e a assunção da role autorizada em UAT.
 
@@ -93,7 +93,7 @@ Identidades **distintas e complementares**:
 
 - **Kubernetes:** o controller tem RBAC apenas para suas operações de controle; os Pods do Workflow usam uma `serviceAccountName` de executor reservada e protegida contra uso por Workflows arbitrários.
 - **AWS de origem:** a identidade de Pod no Hub EKS fornece a sessão inicial temporária. A integração AWS é validada na Etapa 12.
-- **AWS de destino:** `spec.target.entity/environment` é uma chave lógica para consultar o registro confiável. O executor obtém uma sessão STS na role **permitida** da conta/região daquele Environment; manifesto não aceita role arbitrária. Conferir `GetCallerIdentity`, backend e trust policy. Não é o Kubernetes ServiceAccount, isoladamente, que escolhe a conta AWS.
+- **AWS de destino:** a integração interpreta o contexto como chave lógica do registro confiável. O executor deve obter uma sessão STS na role permitida da conta e região do Environment, conferindo `GetCallerIdentity`, backend e trust policy.
 
 No Simulator, os Pods compartilham o binário do plano pelo PVC da stack. O backend libera o lock durante a pausa de aprovação. RBAC e admissão restringem a criação dos Workflows e a edição do gate. Na AWS, os Pods de plan e apply usam sessões temporárias e armazenamento privado. O fluxo deve validar a identidade e o destino da sessão de apply antes de consumir o plano aprovado. [Autorização final do apply](../flows/terraformstack.md#autorização-final-do-apply)
 
@@ -109,7 +109,7 @@ spec:
     driftCheckInterval: 6h
 ```
 
-- `dependsOn`: antes de executar uma stack, conferir dependência `Ready` com `observedGeneration` atual. Resolver por nome estável, no mesmo namespace e Entity/Environment por padrão; bloquear referências fora do destino e dependências inexistentes ou não prontas; diagnóstico explícito de ciclos ainda não implementado. Exemplo: EKS Management depende da stack de rede UAT. Dependência pronta **não autoriza** apply sem política e aprovação.
+- `dependsOn` referencia stacks no mesmo namespace. O controller exige condição `Ready` para a intenção atual, detecta dependências ausentes e bloqueia ciclos. Uma stack como EKS Management pode depender da rede UAT. Cada solicitação passa pela política e pela autorização próprias.
 - `driftCheckInterval` agenda um plan após o intervalo desde a última execução `Ready`. O status expõe `lastCheckTime` e `lastDriftTime`. A política do Simulator pode autorizar a correção. A Etapa 28 prevê jitter, exposição da próxima checagem e detecção sem remediação na AWS. A Etapa 29 valida a correção governada na AWS.
 - O controller agenda por `GitOps`, `DriftCheck` e `Retry`. O retry atual depende de falha operacional e da política de retry declarada. O acionamento manual dedicado por annotation permanece planejado.
 
@@ -119,7 +119,7 @@ spec:
 
 ### Contrato do CRD: sourceRef e lifecycle de destruição
 
-**Contrato atualizado:** manter `TerraformStack` como API genérica de stacks completas e aceitar `spec.sourceRef.name/path/version` como referência à **fonte versionada e aprovada**. `sourceRef.version` opcional (`latest` por padrão) resolve Registry ou Git a uma versão/commit imutável no executor real; `configuration.version` também pode ser omitido para resolver `latest`, com pin antes do plan. O source é resolvido no catálogo sob controle do Platform Team e não aceita URL arbitrária/credenciais. A revisão de código da stack e a revisão de `configuration` são independentes e ficam fixadas em cada execução. O Simulator usa SHAs Git para código e configuração, com `latest` resolvido pela anotação GitOps. Não dependemos do `GitRepository` de Flux.
+`TerraformStack` descreve uma stack completa. A pipeline aprovada resolve a fonte declarada e publica uma referência imutável e o vínculo do destino. A pipeline do Simulator valida repositório, caminho e contexto antes de acessar Git ou state e usa o mesmo commit para código e configuração.
 
 **Dois controles de destruição já presentes no CRD, com execução local na Etapa 06 e validação na AWS na Etapa 29; ambos sujeitos ao Policy Engine e à aprovação humana:**
 
@@ -150,7 +150,7 @@ O canal de aprovação é a UI do Argo Workflows. No Simulator, o step `approval
 
 **Requisitos para a integração AWS:**
 
-1. O `TerraformStack Controller` dispara um Workflow com identificação imutável da stack, `metadata.generation`, revisão Git da solicitação, versão da configuração, versão resolvida da stack e destino autorizado. O backend protege as operações Terraform com lock quando necessário, **sem manter o lock retido durante uma aprovação pendente**.
+1. O controller dispara o Workflow com UID, generation, revisão da solicitação, fonte e contexto. A pipeline fixa a revisão efetiva e o destino. O backend protege as operações Terraform com lock e libera o lock durante o gate de aprovação.
 2. O executor gera `terraform plan -out` com a configuração da revisão selecionada. Persiste o plano binário **em armazenamento privado (retenção e validade operacional ainda a definir; não há expiração automática do gate local)**, associado ao hash SHA-256, ao state/serial, à revisão de configuração e à identidade do destino. Expõe apenas metadados não sensíveis para consulta.
 3. O passo de aprovação da UI usa um template `suspend: {}`, **sem `duration` que retome automaticamente**. Acesso ao Argo Server deve usar autenticação individual e autorização restrita a aprovadores, com trilha auditável de quem retomou o Workflow. Um simples `resume` não é autorização suficiente sem essa identidade verificável.
 4. Após o `resume`, um passo independente valida a identidade e a autorização do aprovador, o vínculo da decisão ao Workflow e ao hash do plano, as revisões da solicitação e da configuração, a `generation`, a validade do artefato, o state/lock efetivo no momento do apply e o destino. Qualquer falha, expiração ou mudança nesses vínculos **bloqueia o apply** e exige novo plan e nova aprovação.
@@ -159,7 +159,7 @@ O canal de aprovação é a UI do Argo Workflows. No Simulator, o step `approval
 
 **Critérios de aceite específicos da decisão:** (a) aprovação de pessoa autorizada libera exatamente o plano exibido; (b) usuário sem permissão de retomar Workflow não aprova; (c) `resume` sem evidência verificável de aprovação não executa apply; (d) hash/revisão/destino/generation alterados, expiração ou perda de lock impedem apply; (e) auditoria registra Workflow, plano, aprovador, instante e resultado; (f) todos os caminhos de falha permanecem sem apply indevido.
 
-O status atual publica a condição ativa em `status.conditions` e os dados da tentativa em `status.execution`, `status.policy` e `status.resolvedSource`. [Condições e diagnóstico](../flows/terraformstack.md#6-status-e-diagnóstico)
+O status atual publica a condição ativa em `status.conditions` e os dados da tentativa em `status.execution`, `status.claim`, `status.result` e `status.resolvedSource`. [Condições e diagnóstico](../flows/terraformstack.md#6-status-e-diagnóstico)
 
 ### Etapa 28 — Drift Detection
 

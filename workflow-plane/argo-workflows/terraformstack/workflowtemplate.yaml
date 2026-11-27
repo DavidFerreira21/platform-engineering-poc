@@ -13,30 +13,40 @@ spec:
   arguments:
     parameters:
       - name: intent
-      - name: volume
   volumes:
-    - name: state
-      persistentVolumeClaim:
-        claimName: '{{workflow.parameters.volume}}'
     - name: scripts
       configMap:
         name: terraformstack-scripts
     - name: policy
       configMap:
         name: terraformstack-policy
+    - name: profile
+      configMap:
+        name: terraformstack-simulator-profile
   templates:
     - name: reconcile
       steps:
-        - - {name: prepare, template: prepare}
+        - - {name: resolve, template: resolve}
+        - - name: prepare
+            template: prepare
+            when: '{{steps.resolve.outputs.parameters.allowed}} == true'
+        - - name: execute
+            template: execute
+            when: "{{=steps.resolve.outputs.parameters.allowed == 'true' && steps.prepare.outputs.parameters.allowed == 'true'}}"
+    - name: execute
+      steps:
         - - {name: init, template: init}
         - - {name: validate, template: validate}
         - - {name: plan, template: plan}
-        - - {name: opa, template: opa}
+        - - name: opa
+            template: opa
+            continueOn: {failed: true, error: true}
         - - name: decision
             template: decision
             arguments:
               parameters:
-                - {name: result, value: '{{steps.opa.outputs.result}}'}
+                - name: result
+                  value: "{{=steps.opa.status == 'Succeeded' ? steps.opa.outputs.result : ''}}"
                 - {name: plan-hash, value: '{{steps.plan.outputs.parameters.plan-hash}}'}
                 - {name: document-hash, value: '{{steps.plan.outputs.parameters.document-hash}}'}
                 - {name: context-hash, value: '{{steps.plan.outputs.parameters.context-hash}}'}
@@ -63,7 +73,34 @@ spec:
         - - name: verify
             template: verify
             when: "{{=steps.authorize.outputs.parameters['apply-request'] != 'none'}}"
+    - name: resolve
+      activeDeadlineSeconds: 90
+      container:
+        image: terraformstack-runner:local
+        imagePullPolicy: IfNotPresent
+        command: [bash, /platform/scripts/pipeline.sh]
+        args: [resolve]
+        env:
+          - {name: INTENT, value: '{{workflow.parameters.intent}}'}
+          - {name: WORKFLOW, value: '{{workflow.name}}'}
+        volumeMounts:
+          - {name: scripts, mountPath: /platform/scripts, readOnly: true}
+          - {name: profile, mountPath: /platform/profile, readOnly: true}
+        securityContext: &restricted
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+      outputs:
+        parameters:
+          - {name: allowed, valueFrom: {path: /tmp/allowed}}
+          - {name: execution-context, globalName: execution-context, valueFrom: {path: /tmp/execution-context}}
+          - {name: execution-volume, globalName: execution-volume, valueFrom: {path: /tmp/execution-volume}}
+          - {name: execution-result, globalName: execution-result, valueFrom: {path: /tmp/execution-result}}
     - name: prepare
+      volumes: &state
+        - name: state
+          persistentVolumeClaim:
+            claimName: '{{workflow.outputs.parameters.execution-volume}}'
       activeDeadlineSeconds: 300
       container:
         <<: &runner
@@ -73,26 +110,32 @@ spec:
           env:
             - {name: INTENT, value: '{{workflow.parameters.intent}}'}
             - {name: WORKFLOW, value: '{{workflow.name}}'}
+            - {name: EXECUTION_CONTEXT, value: '{{workflow.outputs.parameters.execution-context}}'}
           volumeMounts:
             - {name: state, mountPath: /state}
             - {name: scripts, mountPath: /platform/scripts, readOnly: true}
             - {name: policy, mountPath: /platform/policy, readOnly: true}
-          securityContext: &restricted
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: [ALL]
+          securityContext: *restricted
         args: [prepare]
+      outputs:
+        parameters:
+          - {name: allowed, valueFrom: {path: /tmp/allowed}}
+          - {name: resolved-source, globalName: resolved-source, valueFrom: {path: /tmp/resolved-source}}
+          - {name: execution-result, globalName: execution-result, valueFrom: {path: /tmp/execution-result}}
     - name: init
+      volumes: *state
       activeDeadlineSeconds: 300
       container:
         <<: *runner
         args: [init]
     - name: validate
+      volumes: *state
       activeDeadlineSeconds: 300
       container:
         <<: *runner
         args: [validate]
     - name: plan
+      volumes: *state
       activeDeadlineSeconds: 300
       container:
         <<: *runner
@@ -104,6 +147,7 @@ spec:
           - {name: context-hash, valueFrom: {path: /tmp/context-hash}}
           - {name: plan-exit, valueFrom: {path: /tmp/plan-exit}}
     - name: opa
+      volumes: *state
       activeDeadlineSeconds: 60
       container:
         image: openpolicyagent/opa:1.11.0-static
@@ -125,6 +169,7 @@ spec:
           - {name: state, mountPath: /state, readOnly: true}
         securityContext: *restricted
     - name: decision
+      volumes: *state
       activeDeadlineSeconds: 60
       inputs:
         parameters:
@@ -139,6 +184,7 @@ spec:
         env:
           - {name: INTENT, value: '{{workflow.parameters.intent}}'}
           - {name: WORKFLOW, value: '{{workflow.name}}'}
+          - {name: EXECUTION_CONTEXT, value: '{{workflow.outputs.parameters.execution-context}}'}
           - {name: POLICY_RESULT, value: '{{inputs.parameters.result}}'}
           - {name: PLAN_HASH, value: '{{inputs.parameters.plan-hash}}'}
           - {name: DOCUMENT_HASH, value: '{{inputs.parameters.document-hash}}'}
@@ -147,7 +193,7 @@ spec:
       outputs:
         parameters:
           - {name: decision, valueFrom: {path: /tmp/decision}}
-          - {name: decision-record, globalName: decision-record, valueFrom: {path: /tmp/decision-record}}
+          - {name: execution-state, globalName: execution-state, valueFrom: {path: /tmp/execution-state}}
     - name: approval
       suspend: {}
       inputs:
@@ -168,6 +214,7 @@ spec:
               supplied: {}
               default: unconfirmed
     - name: authorize
+      volumes: *state
       activeDeadlineSeconds: 60
       inputs:
         parameters:
@@ -181,15 +228,18 @@ spec:
         env:
           - {name: INTENT, value: '{{workflow.parameters.intent}}'}
           - {name: WORKFLOW, value: '{{workflow.name}}'}
+          - {name: EXECUTION_CONTEXT, value: '{{workflow.outputs.parameters.execution-context}}'}
           - {name: DECISION, value: '{{inputs.parameters.decision}}'}
           - {name: PLAN_HASH, value: '{{inputs.parameters.plan-hash}}'}
           - {name: APPROVAL, value: '{{inputs.parameters.approval}}'}
           - {name: APPROVED_HASH, value: '{{inputs.parameters.approved-hash}}'}
       outputs:
         parameters:
-          - {name: apply-request, globalName: apply-request, valueFrom: {path: /tmp/apply-request}}
-          - {name: approval-result, globalName: approval-result, valueFrom: {path: /tmp/approval-result}}
+          - {name: apply-request, valueFrom: {path: /tmp/apply-request}}
+          - {name: authorization-request, globalName: authorization-request, valueFrom: {path: /tmp/authorization-request}}
+          - {name: execution-result, globalName: execution-result, valueFrom: {path: /tmp/execution-result}}
     - name: apply
+      volumes: *state
       activeDeadlineSeconds: 300
       inputs:
         parameters:
@@ -200,12 +250,14 @@ spec:
         env:
           - {name: INTENT, value: '{{workflow.parameters.intent}}'}
           - {name: WORKFLOW, value: '{{workflow.name}}'}
+          - {name: EXECUTION_CONTEXT, value: '{{workflow.outputs.parameters.execution-context}}'}
           - {name: PLAN_HASH, value: '{{inputs.parameters.plan-hash}}'}
     - name: verify
+      volumes: *state
       activeDeadlineSeconds: 300
       container:
         <<: *runner
         args: [verify]
       outputs:
         parameters:
-          - {name: apply-result, globalName: apply-result, valueFrom: {path: /tmp/apply-result}}
+          - {name: execution-result, globalName: execution-result, valueFrom: {path: /tmp/execution-result}}

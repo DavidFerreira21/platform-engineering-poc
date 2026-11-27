@@ -16,6 +16,6 @@
 
 O catálogo do Hub declara uma `Application` por componente que precisa ser sincronizado e verificado de forma independente. Cada recurso tem uma `Application` responsável. Argo Workflows e Crossplane Core são compartilhados pelas etapas do laboratório. As etapas locais usam sync manual para permitir a inspeção da revisão e do diff antes de aplicar a mudança.
 
-O `TerraformStack` segue essa divisão. A Application `terraformstack-crd` publica o contrato na Etapa 04, permitindo validá-lo na API antes de ligar o controller. A Application `terraformstack-controller` entrega o controller e o `WorkflowTemplate` na Etapa 05. O controller cria cada Workflow em resposta à solicitação. A pausa para aprovação do plano ocorre dentro do Workflow na Etapa 13. [ADR-0006](0006-terraformrun-and-application-ci.md)
+O `TerraformStack` segue essa divisão. A Application `terraformstack-crd` publica o contrato na Etapa 04, permitindo validá-lo na API antes de ligar o controller. As Applications `terraformstack-controller` e `terraformstack-workflows` entregam o controller e o WorkflowTemplate na Etapa 05. O controller cria cada Workflow em resposta à solicitação. A pausa para aprovação ocorre dentro do Workflow no Simulator da Etapa 06 e no primeiro apply AWS da Etapa 13. [ADR-0006](0006-terraformrun-and-application-ci.md)
 
 [Arquitetura](../architecture.md) · [Índice](README.md)

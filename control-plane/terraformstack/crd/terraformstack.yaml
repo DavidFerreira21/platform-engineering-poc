@@ -22,18 +22,19 @@ spec:
           properties:
             spec:
               type: object
-              description: Contrato declarativo de uma stack; os campos novos são API, não funções de execução já implementadas.
-              required: [target, sourceRef]
+              description: Contrato declarativo de uma stack reconciliada por um executor.
+              required: [sourceRef]
               properties:
                 sourceRef:
                   type: object
-                  description: Referência lógica a uma stack no catálogo aprovado (Git ou Registry), não URL arbitrária.
-                  required: [name, path]
+                  description: Referência cujo acesso e revisão efetiva são resolvidos pelo executor.
+                  required: [repository, path]
                   properties:
-                    name:
+                    repository:
                       type: string
                       minLength: 1
-                      description: Nome da fonte registrada no catálogo confiável.
+                      maxLength: 512
+                      description: Identificador do repositório interpretado pelo executor.
                     path:
                       type: string
                       minLength: 1
@@ -46,32 +47,19 @@ spec:
                     version:
                       type: string
                       minLength: 1
+                      maxLength: 256
                       default: latest
                       description: Versão/tag/ref da stack. Ausente/latest só é permitido depois de resolver e fixar revisão imutável para o Workflow.
-                target:
+                context:
                   type: object
-                  required: [entity, environment]
-                  properties:
-                    entity:
-                      type: string
-                      minLength: 1
-                      description: Identificador lógico da Entity.
-                    environment:
-                      type: string
-                      minLength: 1
-                      description: Identificador lógico do Environment na Entity.
-                configuration:
-                  type: object
-                  description: Versão selecionada dos YAMLs hierárquicos da stack (global → Entity → Environment).
-                  properties:
-                    version:
-                      type: string
-                      minLength: 1
-                      default: latest
-                      description: Versão da configuração. Ausente/latest exige resolução para commit imutável antes de plan.
+                  description: Pares repassados ao executor e incluídos na identidade da intenção.
+                  maxProperties: 32
+                  additionalProperties:
+                    type: string
+                    maxLength: 256
                 dependsOn:
                   type: array
-                  description: Dependências de TerraformStacks do mesmo namespace e destino, a validar pelo controller.
+                  description: Dependências de TerraformStacks do mesmo namespace, a validar pelo controller.
                   x-kubernetes-list-type: map
                   x-kubernetes-list-map-keys: [name]
                   items:
@@ -119,39 +107,6 @@ spec:
                       type: boolean
                       default: false
                       description: Opt-in de intenção de teardown ao excluir CR; nunca autorização implícita.
-                timeout:
-                  type: object
-                  description: Limites por etapa do executor; não expiram automaticamente aprovação suspensa.
-                  properties:
-                    plan:
-                      type: string
-                      pattern: '^([0-9]+(s|m|h))+$'
-                    apply:
-                      type: string
-                      pattern: '^([0-9]+(s|m|h))+$'
-                    verify:
-                      type: string
-                      pattern: '^([0-9]+(s|m|h))+$'
-                healthChecks:
-                  type: array
-                  description: Verificações pós-apply opcionais; tipos e motores serão implementados futuramente.
-                  x-kubernetes-list-type: map
-                  x-kubernetes-list-map-keys: [name]
-                  items:
-                    type: object
-                    required: [name, type, target]
-                    properties:
-                      name:
-                        type: string
-                        minLength: 1
-                      type:
-                        type: string
-                        enum: [TerraformOutput, KubernetesCondition]
-                      target:
-                        type: string
-                        minLength: 1
-                      expected:
-                        type: string
             status:
               type: object
               properties:
@@ -162,9 +117,62 @@ spec:
                 execution:
                   type: object
                   x-kubernetes-preserve-unknown-fields: true
-                policy:
+                  properties:
+                    workflow:
+                      type: string
+                    phase:
+                      type: string
+                      enum: [Pending, Running, Waiting, AuthorizationRequested, Applying, Succeeded, Failed, Blocked, Cancelled]
+                    intentHash:
+                      type: string
+                    authorization:
+                      type: string
+                    cancelling:
+                      type: boolean
+                    intent:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                      properties:
+                        uid:
+                          type: string
+                        generation:
+                          type: integer
+                          format: int64
+                        revisionAnnotation:
+                          type: string
+                        deleting:
+                          type: boolean
+                claim:
                   type: object
-                  x-kubernetes-preserve-unknown-fields: true
+                  required: [workflow, intentHash, authorization]
+                  properties:
+                    workflow:
+                      type: string
+                      maxLength: 253
+                    intentHash:
+                      type: string
+                      pattern: '^[a-f0-9]{64}$'
+                    authorization:
+                      type: string
+                      maxLength: 256
+                result:
+                  type: object
+                  properties:
+                    outcome:
+                      type: string
+                      enum: [NoChanges, Verified, Blocked, Cancelled]
+                    reason:
+                      type: string
+                      maxLength: 96
+                    message:
+                      type: string
+                      maxLength: 512
+                    details:
+                      type: object
+                      maxProperties: 12
+                      additionalProperties:
+                        type: string
+                        maxLength: 160
                 deletionIntent:
                   type: object
                   x-kubernetes-preserve-unknown-fields: true
@@ -176,16 +184,15 @@ spec:
                   format: date-time
                 resolvedSource:
                   type: object
-                  description: Versões efetivas e artefatos imutáveis usados na execução.
+                  description: Revisão imutável e vínculo do destino confirmados pelo executor.
+                  required: [reference, binding]
                   properties:
-                    name:
+                    reference:
                       type: string
-                    version:
+                      maxLength: 256
+                    binding:
                       type: string
-                    digest:
-                      type: string
-                    configurationVersion:
-                      type: string
+                      maxLength: 256
                 conditions:
                   type: array
                   x-kubernetes-list-type: map

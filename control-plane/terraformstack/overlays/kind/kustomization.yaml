@@ -4,9 +4,3 @@ resources:
   - ../../controller
   - simulator.yaml
   - admission.yaml
-configMapGenerator:
-  - name: terraformstack-catalog
-    namespace: platform-system
-    files: [catalog.json]
-generatorOptions:
-  immutable: true

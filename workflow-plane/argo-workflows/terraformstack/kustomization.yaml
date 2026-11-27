@@ -10,5 +10,7 @@ configurations:
 configMapGenerator:
   - name: terraformstack-scripts
     files: [pipeline.sh]
+  - name: terraformstack-simulator-profile
+    files: [simulator.json]
 generatorOptions:
   immutable: true

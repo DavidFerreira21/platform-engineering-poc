@@ -121,3 +121,55 @@ metadata:
 spec:
   policyName: terraformstack-execution
   validationActions: [Deny]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: terraformstack-claim
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [platform.example.io]
+        apiVersions: [v1alpha1]
+        operations: [UPDATE]
+        resources: [terraformstacks/status]
+  matchConditions:
+    - name: executor-local
+      expression: request.userInfo.username == 'system:serviceaccount:argo-workflows:terraformstack-executor'
+  validations:
+    - expression: >-
+        has(oldObject.status.execution) && !has(oldObject.status.claim) && has(object.status.claim) &&
+        has(oldObject.status.execution.authorization) && oldObject.status.execution.authorization != '' &&
+        (!has(oldObject.status.execution.cancelling) || !oldObject.status.execution.cancelling) &&
+        object.status.claim.workflow == oldObject.status.execution.workflow &&
+        object.status.claim.intentHash == oldObject.status.execution.intentHash &&
+        object.status.claim.authorization == oldObject.status.execution.authorization
+      message: O executor só pode registrar o claim vigente autorizado pelo controller.
+    - expression: >-
+        object.status.execution == oldObject.status.execution &&
+        object.status.?observedGeneration == oldObject.status.?observedGeneration &&
+        object.status.?conditions == oldObject.status.?conditions &&
+        object.status.?result == oldObject.status.?result &&
+        object.status.?resolvedSource == oldObject.status.?resolvedSource &&
+        object.status.?deletionIntent == oldObject.status.?deletionIntent &&
+        object.status.?lastCheckTime == oldObject.status.?lastCheckTime &&
+        object.status.?lastDriftTime == oldObject.status.?lastDriftTime
+      message: O executor pode alterar somente status.claim.
+    - expression: >-
+        (!has(object.spec.suspend) || !object.spec.suspend) &&
+        oldObject.status.execution.intent.uid == object.metadata.uid &&
+        oldObject.status.execution.intent.generation == object.metadata.generation &&
+        oldObject.status.execution.intent.deleting == has(object.metadata.deletionTimestamp) &&
+        oldObject.status.execution.intent.revisionAnnotation ==
+        (has(object.metadata.annotations) && 'platform.example.io/revision' in object.metadata.annotations ?
+         object.metadata.annotations['platform.example.io/revision'] : '')
+      message: A intenção autorizada precisa corresponder à revisão vigente da stack.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: terraformstack-claim
+spec:
+  policyName: terraformstack-claim
+  validationActions: [Deny, Audit]

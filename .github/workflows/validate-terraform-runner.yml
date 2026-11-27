@@ -7,15 +7,21 @@ on:
     paths:
       - "control-plane/terraformstack/**"
       - "workflow-plane/terraform-executor/**"
+      - "foundation/modules/configuration/**"
+      - "foundation/stacks/simulator/**"
       - "workflow-plane/policy-engine/**"
       - "workflow-plane/argo-workflows/terraformstack/**"
+      - "tests/test_terraformstack_resolution.py"
       - ".github/workflows/validate-terraform-runner.yml"
   pull_request:
     paths:
       - "control-plane/terraformstack/**"
       - "workflow-plane/terraform-executor/**"
+      - "foundation/modules/configuration/**"
+      - "foundation/stacks/simulator/**"
       - "workflow-plane/policy-engine/**"
       - "workflow-plane/argo-workflows/terraformstack/**"
+      - "tests/test_terraformstack_resolution.py"
       - ".github/workflows/validate-terraform-runner.yml"
 
 permissions:
@@ -33,7 +39,16 @@ jobs:
         run: docker build -t terraformstack-runner:local workflow-plane/terraform-executor
       - name: Verificar ferramentas
         run: |
-          docker run --rm terraformstack-runner:local -ec 'terraform version; git --version; jq --version; kubectl version --client; aws --version'
+          docker run --rm terraformstack-runner:local -ec 'terraform version; tofu version; git --version; jq --version; kubectl version --client; aws --version'
+      - name: Validar o Simulator com OpenTofu em workspace isolado
+        run: |
+          check_dir="$(mktemp -d)"
+          cp -a foundation "$check_dir/"
+          docker run --rm --user "$(id -u):$(id -g)" \
+            -v "$check_dir:/work" -w /work/foundation/stacks/simulator \
+            terraformstack-runner:local -ec 'tofu init -backend=false -input=false -no-color; tofu validate -no-color; tofu test -no-color'
+      - name: Testar resolução Git e proteção do destino
+        run: python3 tests/test_terraformstack_resolution.py
       - name: Testar regras do OPA
         run: |
           docker run --rm -v "$PWD/workflow-plane/policy-engine:/policy:ro" \

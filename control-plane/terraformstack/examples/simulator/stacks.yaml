@@ -5,9 +5,9 @@ metadata:
   namespace: platform-system
 spec:
   sourceRef:
-    name: foundation-stacks
+    repository: https://github.com/DavidFerreira21/platform-engineering-poc.git
     path: foundation/stacks/simulator
-  target:
+  context:
     entity: entity-a
     environment: simulator
   reconciliation:
@@ -24,9 +24,9 @@ metadata:
   namespace: platform-system
 spec:
   sourceRef:
-    name: foundation-stacks
+    repository: https://github.com/DavidFerreira21/platform-engineering-poc.git
     path: foundation/stacks/simulator
-  target:
+  context:
     entity: entity-a
     environment: simulator
   suspend: true

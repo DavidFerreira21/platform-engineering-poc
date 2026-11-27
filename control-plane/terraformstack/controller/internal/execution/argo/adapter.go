@@ -4,18 +4,22 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"strings"
+	"unicode"
+
 	"github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/execution"
-	"io"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
+	strictjson "sigs.k8s.io/json"
 )
 
 type M = execution.Data
 
 const uidLabel = "platform.example.io/stack-uid"
+const stackNameKey = "platform.example.io/stack-name"
 
 type Adapter struct {
 	Client client.Client
@@ -25,62 +29,97 @@ type Adapter struct {
 
 var _ execution.Engine = (*Adapter)(nil)
 
-func obj(v any) M                  { m, _ := v.(map[string]any); return m }
-func str(v any) string             { s, _ := v.(string); return s }
-func arr(v any) []any              { a, _ := v.([]any); return a }
-func canonical(v any) string       { b, _ := json.Marshal(v); return string(b) }
+func obj(v any) M      { m, _ := v.(map[string]any); return m }
+func str(v any) string { s, _ := v.(string); return s }
+func arr(v any) []any  { a, _ := v.([]any); return a }
+
 func (a *Adapter) Validate() error { return a.Config.Validate() }
 func (a *Adapter) Snapshot() M     { return a.Config.Snapshot() }
+
 func WorkflowObject() *unstructured.Unstructured {
 	o := &unstructured.Unstructured{}
 	o.SetGroupVersionKind(schema.GroupVersionKind{Group: "argoproj.io", Version: "v1alpha1", Kind: "Workflow"})
 	return o
 }
+
 func (a *Adapter) Raw(ctx context.Context, name string) (*unstructured.Unstructured, error) {
-	if name == "" {
+	w := WorkflowObject()
+	err := a.Reader.Get(ctx, client.ObjectKey{Namespace: a.Config.Namespace, Name: name}, w)
+	if apierrors.IsNotFound(err) {
 		return nil, nil
 	}
-	w := WorkflowObject()
-	e := a.Reader.Get(ctx, client.ObjectKey{Namespace: a.Config.Namespace, Name: name}, w)
-	if apierrors.IsNotFound(e) {
-		return nil, nil
-	}
-	return w, e
-}
-func (a *Adapter) body(run M) *unstructured.Unstructured {
-	d := obj(run["intent"])
-	w := WorkflowObject()
-	w.SetName(str(run["workflow"]))
-	w.SetNamespace(a.Config.Namespace)
-	w.SetLabels(map[string]string{"platform.example.io/workflow": "terraformstack", uidLabel: str(d["uid"]), "platform.example.io/stack-name": str(d["stack"])})
-	w.Object["spec"] = M{"serviceAccountName": d["serviceAccount"], "workflowTemplateRef": M{"name": a.Config.TemplateRef.Name}, "arguments": M{"parameters": []any{M{"name": a.Config.Parameters.Input.Intent, "value": canonical(d)}, M{"name": a.Config.Parameters.Input.Volume, "value": d["volume"]}}}}
-	return w
+	return w, err
 }
 
-func (a *Adapter) Create(ctx context.Context, run M) error {
-	return a.Client.Create(ctx, a.body(run))
-}
-func (a *Adapter) valid(w *unstructured.Unstructured, uid string) bool {
-	return w.GetLabels()[uidLabel] == uid && str(obj(obj(w.Object["spec"])["workflowTemplateRef"])["name"]) == a.Config.TemplateRef.Name
-}
-func (a *Adapter) Get(ctx context.Context, name, uid string) (*execution.Run, error) {
-	w, e := a.Raw(ctx, name)
-	if e != nil || w == nil {
-		return nil, e
+func (a *Adapter) body(req execution.Request) (*unstructured.Unstructured, error) {
+	intent, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
 	}
-	phase := str(obj(w.Object["status"])["phase"])
-	result, e := resultOf(w, a.Config)
-	if e != nil {
-		return nil, e
+	w := WorkflowObject()
+	w.SetName(req.Workflow)
+	w.SetNamespace(a.Config.Namespace)
+	labels := map[string]string{
+		"platform.example.io/workflow": "terraformstack",
+		uidLabel:                       req.Intent.UID,
 	}
-	return &execution.Run{Name: w.GetName(), Valid: a.valid(w, uid), Terminal: phase == "Succeeded" || phase == "Failed" || phase == "Error", Succeeded: phase == "Succeeded", Result: result}, nil
+	if len(req.Intent.Stack) <= 63 {
+		labels[stackNameKey] = req.Intent.Stack
+	} else {
+		w.SetAnnotations(map[string]string{stackNameKey: req.Intent.Stack})
+	}
+	w.SetLabels(labels)
+	w.Object["spec"] = M{
+		"serviceAccountName":  a.Config.ServiceAccountName,
+		"workflowTemplateRef": M{"name": a.Config.TemplateRef.Name},
+		"arguments":           M{"parameters": []any{M{"name": a.Config.Parameters.Input.Intent, "value": string(intent)}}},
+	}
+	return w, nil
 }
-func (a *Adapter) Cancel(ctx context.Context, name, uid string) error {
-	w, e := a.Raw(ctx, name)
-	if e != nil || w == nil {
-		return e
+
+func (a *Adapter) Create(ctx context.Context, req execution.Request) error {
+	w, err := a.body(req)
+	if err != nil {
+		return err
 	}
-	if !a.valid(w, uid) {
+	return a.Client.Create(ctx, w)
+}
+
+func (a *Adapter) valid(w *unstructured.Unstructured, req execution.Request) bool {
+	labels, spec := w.GetLabels(), obj(w.Object["spec"])
+	if w.GetName() != req.Workflow || w.GetNamespace() != a.Config.Namespace ||
+		labels["platform.example.io/workflow"] != "terraformstack" ||
+		labels[uidLabel] != req.Intent.UID || stackName(w) != req.Intent.Stack ||
+		spec["serviceAccountName"] != a.Config.ServiceAccountName ||
+		obj(spec["workflowTemplateRef"])["name"] != a.Config.TemplateRef.Name ||
+		obj(spec["workflowTemplateRef"])["clusterScope"] == true {
+		return false
+	}
+	params := arr(obj(spec["arguments"])["parameters"])
+	if len(params) != 1 || obj(params[0])["name"] != a.Config.Parameters.Input.Intent {
+		return false
+	}
+	expected, err := json.Marshal(req)
+	return err == nil && str(obj(params[0])["value"]) == string(expected)
+}
+
+func (a *Adapter) Get(ctx context.Context, req execution.Request) (*execution.Run, error) {
+	w, err := a.Raw(ctx, req.Workflow)
+	if err != nil || w == nil {
+		return nil, err
+	}
+	if !a.valid(w, req) {
+		return &execution.Run{}, nil
+	}
+	return observe(w, a.Config.Parameters.Output, req), nil
+}
+
+func (a *Adapter) Cancel(ctx context.Context, req execution.Request) error {
+	w, err := a.Raw(ctx, req.Workflow)
+	if err != nil || w == nil {
+		return err
+	}
+	if !a.valid(w, req) {
 		return fmt.Errorf("identidade de execução inválida")
 	}
 	spec := obj(w.Object["spec"])
@@ -91,87 +130,141 @@ func (a *Adapter) Cancel(ctx context.Context, name, uid string) error {
 	spec["shutdown"] = "Terminate"
 	return a.Client.Patch(ctx, w, client.MergeFromWithOptions(old, client.MergeFromWithOptimisticLock{}))
 }
-func resultOf(w *unstructured.Unstructured, integration WorkflowConfig) (M, error) {
-	p := integration.Parameters.Output
-	result := M{}
-	if w == nil {
-		return result, nil
+
+var opaque = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:@/+~-]{0,255}$`)
+var code = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_.-]{0,63}$`)
+
+func safeDiagnostics(d execution.Diagnostics) bool {
+	if (d.Reason != "" && !code.MatchString(d.Reason)) || len(d.Message) > 256 ||
+		strings.ContainsFunc(d.Message, unicode.IsControl) || len(d.Details) > 12 {
+		return false
 	}
-	status := obj(w.Object["status"])
-	outputs := M{}
-	for _, p := range arr(obj(status["outputs"])["parameters"]) {
-		m := obj(p)
-		outputs[str(m["name"])] = m["value"]
-	}
-	if raw := str(outputs[p.Decision]); raw != "" {
-		if e := decodeDecision(raw, &result); e != nil || result == nil {
-			return M{"decision": "Error", "reason": "Resultado OPA inválido"}, nil
+	for key, val := range d.Details {
+		k := strings.ToLower(key)
+		if !code.MatchString(key) || strings.Contains(k, "secret") || strings.Contains(k, "token") ||
+			strings.Contains(k, "credential") || strings.Contains(k, "password") ||
+			len(val) > 160 || strings.ContainsFunc(val, unicode.IsControl) {
+			return false
 		}
 	}
-	for _, v := range obj(status["nodes"]) {
-		n := obj(v)
-		if n["templateName"] == integration.Templates.Policy && (n["phase"] == "Failed" || n["phase"] == "Error") {
-			result["decision"] = "Error"
-			result["reason"] = "OPA falhou ao avaliar o plano"
-		}
-		if n["type"] == "Suspend" && n["templateName"] == integration.Templates.Approval {
-			result["approval"] = n["phase"]
-			if a := w.GetLabels()["workflows.argoproj.io/actor"]; a != "" {
-				result["approvalActor"] = a
-			}
-			if m := str(n["message"]); m != "" {
-				r := []rune(m)
-				if len(r) > 512 {
-					r = r[:512]
-				}
-				result["approvalMessage"] = string(r)
-			}
-		}
-	}
-	if r := str(outputs[p.Authorization]); r != "" && r != "none" {
-		result["applyRequest"] = r
-	}
-	if outputs[p.Approval] == "Rejected" {
-		result["outcome"] = "Rejected"
-	}
-	if r := str(outputs[p.Result]); r != "" {
-		result["outcome"] = r
-	}
-	return result, nil
+	return true
 }
 
-func decodeDecision(raw string, result *M) error {
-	// Preserve integral JSON values when writing Kubernetes status.
-	dec := json.NewDecoder(strings.NewReader(raw))
-	dec.UseNumber()
-	if e := dec.Decode(result); e != nil {
-		return e
+func decode(raw string, into any) bool {
+	if raw == "" || len(raw) > 4096 {
+		return false
 	}
-	var extra any
-	if e := dec.Decode(&extra); e != io.EOF {
-		return fmt.Errorf("resultado contém JSON adicional ou inválido")
-	}
-	for k, v := range *result {
-		(*result)[k] = normalizeValue(v)
-	}
-	return nil
+	strict, err := strictjson.UnmarshalStrict([]byte(raw), into)
+	return err == nil && len(strict) == 0
 }
-func normalizeValue(v any) any {
-	switch x := v.(type) {
-	case json.Number:
-		if n, e := x.Int64(); e == nil {
-			return n
+
+func observe(w *unstructured.Unstructured, names OutputParameters, req execution.Request) *execution.Run {
+	status := obj(w.Object["status"])
+	native := str(status["phase"])
+	phase := execution.Running
+	terminal := native == "Succeeded" || native == "Failed" || native == "Error"
+	if native == "" || native == "Pending" {
+		phase = execution.Pending
+	}
+	out := &execution.Run{Valid: true, Phase: phase}
+	invalid := func() *execution.Run {
+		if terminal {
+			phase = execution.Blocked
 		}
-		n, _ := x.Float64()
-		return n
-	case M:
-		for k, val := range x {
-			x[k] = normalizeValue(val)
-		}
-	case []any:
-		for i, val := range x {
-			x[i] = normalizeValue(val)
+		return &execution.Run{Valid: true, Phase: phase, ContractError: true}
+	}
+	if native != "" && native != "Pending" && native != "Running" && !terminal {
+		return invalid()
+	}
+
+	outputs := map[string]string{}
+	for _, p := range arr(obj(status["outputs"])["parameters"]) {
+		param := obj(p)
+		key := str(param["name"])
+		switch key {
+		case names.State, names.Authorization, names.Result, names.ResolvedSource:
+			value, ok := param["value"].(string)
+			if _, exists := outputs[key]; exists || !ok {
+				return invalid()
+			}
+			outputs[key] = value
 		}
 	}
-	return v
+
+	if raw := outputs[names.ResolvedSource]; raw != "" {
+		var source execution.ResolvedSource
+		if !decode(raw, &source) || source.Identity != req.Identity ||
+			!opaque.MatchString(source.Reference) || !opaque.MatchString(source.Binding) ||
+			(req.PinnedReference != "" && source.Reference != req.PinnedReference) ||
+			(req.Binding != "" && source.Binding != req.Binding) {
+			return invalid()
+		}
+		out.Resolution = &source.Resolution
+	}
+	if raw := outputs[names.State]; raw != "" {
+		var progress execution.Progress
+		if !decode(raw, &progress) || progress.Identity != req.Identity ||
+			(progress.Phase != execution.Running && progress.Phase != execution.Waiting) ||
+			!safeDiagnostics(progress.Diagnostics) || out.Resolution == nil {
+			return invalid()
+		}
+		out.Progress = &progress
+	}
+	if raw := outputs[names.Authorization]; raw != "" {
+		var approval execution.Authorization
+		if !decode(raw, &approval) || approval.Identity != req.Identity ||
+			!opaque.MatchString(approval.Token) || out.Resolution == nil {
+			return invalid()
+		}
+		out.Authorization = approval.Token
+	}
+	if raw := outputs[names.Result]; raw != "" {
+		var result execution.Result
+		if !decode(raw, &result) || result.Identity != req.Identity || !safeDiagnostics(result.Diagnostics) {
+			return invalid()
+		}
+		switch result.Outcome {
+		case execution.NoChanges:
+			if req.Intent.Operation != execution.Apply || out.Resolution == nil || out.Authorization != "" ||
+				(out.Progress != nil && out.Progress.Phase == execution.Waiting) || (terminal && native != "Succeeded") {
+				return invalid()
+			}
+			if terminal {
+				out.Phase = execution.Succeeded
+			}
+		case execution.Verified:
+			if out.Resolution == nil || out.Authorization == "" || (terminal && native != "Succeeded") {
+				return invalid()
+			}
+			if terminal {
+				out.Phase = execution.Succeeded
+			}
+		case execution.OutcomeBlocked:
+			if out.Authorization != "" {
+				return invalid()
+			}
+			if terminal {
+				out.Phase = execution.Blocked
+			}
+		case execution.OutcomeCancelled:
+			if terminal {
+				out.Phase = execution.Cancelled
+			}
+		default:
+			return invalid()
+		}
+		out.Result = &result
+		return out
+	}
+	switch {
+	case native == "Succeeded":
+		return invalid()
+	case terminal:
+		out.Phase = execution.Failed
+	case out.Authorization != "":
+		out.Phase = execution.AuthorizationRequested
+	case out.Progress != nil && out.Progress.Phase == execution.Waiting:
+		out.Phase = execution.Waiting
+	}
+	return out
 }
