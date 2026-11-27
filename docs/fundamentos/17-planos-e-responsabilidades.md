@@ -8,7 +8,7 @@ Um plano organiza responsabilidade de arquitetura. Control Plane representa cont
 
 ## A posição do Crossplane
 
-Platform Management Cluster hospeda Control/Workflow/Observability. UAT e PROD são Data Planes; Hub-and-Spoke explica gerenciamento, não necessariamente rede.
+O Platform Hub hospeda os componentes centrais dos planos lógicos; a arquitetura-alvo inclui uma conta Platform e contas UAT/PROD no Data Plane da Entity. Hub-and-Spoke descreve a relação de gerenciamento, não uma malha de rede. As quatro camadas de ownership (Foundation, Entity Core, Domain Infrastructure e Domain Applications) não são planos adicionais.
 
 Crossplane fica no Control Plane da POC porque reconcilia XRs definidos por XRDs. O TerraformStack Controller também fica nesse plano, coordenando o lifecycle de suas solicitações por um contrato de execução. Argo Workflows fica no Workflow Plane porque coordena passos e gates. Ambos podem rodar fisicamente no Platform Management Cluster local, sem criar clusters separados só para respeitar o diagrama.
 
