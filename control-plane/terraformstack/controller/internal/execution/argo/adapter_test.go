@@ -73,6 +73,19 @@ func TestAdapterLifecycle(t *testing.T) {
 	}
 }
 
+func TestLongStackName(t *testing.T) {
+	a := &Adapter{Config: testConfig()}
+	req := testRequest()
+	req.Intent.Stack = strings.Repeat("a", 63) + ".network"
+	w, err := a.body(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w.GetLabels()[stackNameKey] != "" || stackName(w) != req.Intent.Stack || !a.valid(w, req) {
+		t.Fatal(w.Object["metadata"])
+	}
+}
+
 func TestResultNormalization(t *testing.T) {
 	req := testRequest()
 	encode := func(fields M) string {

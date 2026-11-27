@@ -19,6 +19,7 @@ import (
 type M = execution.Data
 
 const uidLabel = "platform.example.io/stack-uid"
+const stackNameKey = "platform.example.io/stack-name"
 
 type Adapter struct {
 	Client client.Client
@@ -58,10 +59,16 @@ func (a *Adapter) body(req execution.Request) (*unstructured.Unstructured, error
 	w := WorkflowObject()
 	w.SetName(req.Workflow)
 	w.SetNamespace(a.Config.Namespace)
-	w.SetLabels(map[string]string{
+	labels := map[string]string{
 		"platform.example.io/workflow": "terraformstack",
-		uidLabel:                       req.Intent.UID, "platform.example.io/stack-name": req.Intent.Stack,
-	})
+		uidLabel:                       req.Intent.UID,
+	}
+	if len(req.Intent.Stack) <= 63 {
+		labels[stackNameKey] = req.Intent.Stack
+	} else {
+		w.SetAnnotations(map[string]string{stackNameKey: req.Intent.Stack})
+	}
+	w.SetLabels(labels)
 	w.Object["spec"] = M{
 		"serviceAccountName":  a.Config.ServiceAccountName,
 		"workflowTemplateRef": M{"name": a.Config.TemplateRef.Name},
@@ -82,7 +89,7 @@ func (a *Adapter) valid(w *unstructured.Unstructured, req execution.Request) boo
 	labels, spec := w.GetLabels(), obj(w.Object["spec"])
 	if w.GetName() != req.Workflow || w.GetNamespace() != a.Config.Namespace ||
 		labels["platform.example.io/workflow"] != "terraformstack" ||
-		labels[uidLabel] != req.Intent.UID || labels["platform.example.io/stack-name"] != req.Intent.Stack ||
+		labels[uidLabel] != req.Intent.UID || stackName(w) != req.Intent.Stack ||
 		spec["serviceAccountName"] != a.Config.ServiceAccountName ||
 		obj(spec["workflowTemplateRef"])["name"] != a.Config.TemplateRef.Name ||
 		obj(spec["workflowTemplateRef"])["clusterScope"] == true {
