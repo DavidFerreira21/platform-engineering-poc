@@ -104,15 +104,15 @@ func EnrichStatus(old, next Data, now time.Time) {
 				next["driftPending"] = false
 			}
 		}
-		if run["result"] == "Destroyed" && boolean(next["driftPending"]) {
+		if run["result"] == "Destroyed" {
 			delete(next, "driftPending")
 		}
 	}
 }
 
 type Health struct {
-	Namespace, Stack, Condition, Reason, Phase, Trigger  string
-	Active, Suspended, Current, DriftKnown, DriftPending bool
+	Namespace, Stack, Condition, Reason, Phase, Trigger   string
+	Active, Suspended, Current, DriftKnown, DriftPending  bool
 	Attempt, Scheduled, LastCheck, LastSuccess, LastDrift float64
 }
 
