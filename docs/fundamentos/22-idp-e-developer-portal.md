@@ -12,7 +12,7 @@ Essa distinção também reduz acoplamento: um catálogo que aponta para um `Dat
 
 ## Aplicação na POC
 
-A primeira Capability de ObjectStorage pode ser entregue com manifest Git, XRD Crossplane, reconciliação e status, sem esperar Backstage. Quando o portal for incluído, ele consumirá os contratos existentes e oferecerá um percurso mais simples, e não um novo motor de provisionamento.
+A primeira Infrastructure Capability AWS, ObjectStorage, está planejada para ser entregue com manifest Git, XRD Crossplane, reconciliação e status, sem esperar Backstage. O TerraformStack e o Simulator já demonstram que uma API e seu motor podem ser desenvolvidos antes do portal. Quando o portal for incluído, ele consumirá os contratos existentes e oferecerá um percurso mais simples, e não um novo motor de provisionamento.
 
 ## Leitura complementar
 
