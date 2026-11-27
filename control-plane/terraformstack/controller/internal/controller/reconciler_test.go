@@ -43,7 +43,7 @@ func fixture(t *testing.T) (*Reconciler, *unstructured.Unstructured) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	r := &Reconciler{Engine: &argo.Adapter{Client: cl, Reader: cl, Config: configs[defaultName]}, Client: cl, Reader: cl, StackNamespace: "platform-system", Now: func() time.Time { return fixed }}
+	r := &Reconciler{Engines: map[string]execengine.Engine{defaultName: &argo.Adapter{Client: cl, Reader: cl, Config: configs[defaultName]}}, DefaultWorkflow: defaultName, Client: cl, Reader: cl, StackNamespace: "platform-system", Now: func() time.Time { return fixed }}
 	return r, o
 }
 func getStack(t *testing.T, r *Reconciler) *unstructured.Unstructured {
@@ -71,7 +71,7 @@ func tick(t *testing.T, r *Reconciler, n int) ctrl.Result {
 }
 func current(t *testing.T, r *Reconciler) *unstructured.Unstructured {
 	t.Helper()
-	w, e := r.Engine.(*argo.Adapter).Raw(context.Background(), str(getRun(t, r)["workflow"]))
+	w, e := r.Engines[r.DefaultWorkflow].(*argo.Adapter).Raw(context.Background(), str(getRun(t, r)["workflow"]))
 	if e != nil || w == nil {
 		t.Fatalf("workflow: %v", e)
 	}
@@ -81,7 +81,7 @@ func workflowStatus(t *testing.T, r *Reconciler, phase, progress, outcome, token
 	t.Helper()
 	w := current(t, r)
 	run := getRun(t, r)
-	names := r.Engine.(*argo.Adapter).Config.Parameters.Output
+	names := r.Engines[r.DefaultWorkflow].(*argo.Adapter).Config.Parameters.Output
 	p := []any{}
 	add := func(name string, fields M) {
 		fields["workflow"], fields["intentHash"] = run["workflow"], run["intentHash"]
@@ -165,7 +165,7 @@ func TestIdempotency(t *testing.T) {
 	if num(run["sequence"]) != 1 {
 		t.Fatal(run)
 	}
-	w, e := r.Engine.(*argo.Adapter).Raw(context.Background(), str(run["workflow"]))
+	w, e := r.Engines[r.DefaultWorkflow].(*argo.Adapter).Raw(context.Background(), str(run["workflow"]))
 	if e != nil || w != nil {
 		t.Fatal("workflow antes de persistir intenção")
 	}
@@ -434,11 +434,11 @@ func TestEnvtestStatusCAS(t *testing.T) {
 
 func TestRenamedIntegration(t *testing.T) {
 	r, _ := fixture(t)
-	r.Engine.(*argo.Adapter).Config.TemplateRef.Name = "custom-workflow"
-	r.Engine.(*argo.Adapter).Config.Parameters.Input.Intent = "request-json"
-	r.Engine.(*argo.Adapter).Config.Parameters.Output.State = "policy-output"
-	r.Engine.(*argo.Adapter).Config.Parameters.Output.Authorization = "authorized-hash"
-	r.Engine.(*argo.Adapter).Config.Parameters.Output.Result = "verification"
+	r.Engines[r.DefaultWorkflow].(*argo.Adapter).Config.TemplateRef.Name = "custom-workflow"
+	r.Engines[r.DefaultWorkflow].(*argo.Adapter).Config.Parameters.Input.Intent = "request-json"
+	r.Engines[r.DefaultWorkflow].(*argo.Adapter).Config.Parameters.Output.State = "policy-output"
+	r.Engines[r.DefaultWorkflow].(*argo.Adapter).Config.Parameters.Output.Authorization = "authorized-hash"
+	r.Engines[r.DefaultWorkflow].(*argo.Adapter).Config.Parameters.Output.Result = "verification"
 	tick(t, r, 4)
 	w := current(t, r)
 	spec := obj(w.Object["spec"])
@@ -459,7 +459,7 @@ func TestIntegrationChangeBlocksActiveRun(t *testing.T) {
 	r, _ := fixture(t)
 	tick(t, r, 4)
 	old := getRun(t, r)["workflow"]
-	r.Engine.(*argo.Adapter).Config.Parameters.Output.State = "different-decision"
+	r.Engines[r.DefaultWorkflow].(*argo.Adapter).Config.Parameters.Output.State = "different-decision"
 	tick(t, r, 1)
 	if reason(t, r) != "IntegrationChanged" || getRun(t, r)["workflow"] != old {
 		t.Fatal("execução não preservada")
@@ -511,7 +511,7 @@ func TestAuthorizationCannotChangeAfterGrant(t *testing.T) {
 
 func TestWorkflowSelection(t *testing.T) {
 	r, _ := fixture(t)
-	first := r.Engine.(*argo.Adapter)
+	first := r.Engines[r.DefaultWorkflow].(*argo.Adapter)
 	second := *first
 	second.Config.TemplateRef.Name = "other-template"
 	second.Config.ServiceAccountName = "other-executor"
@@ -551,7 +551,7 @@ func TestWorkflowSelection(t *testing.T) {
 
 func TestUnknownWorkflowBlocked(t *testing.T) {
 	r, _ := fixture(t)
-	r.Engines = map[string]execengine.Engine{"default": r.Engine}
+	r.Engines = map[string]execengine.Engine{"default": r.Engines[r.DefaultWorkflow]}
 	r.DefaultWorkflow = "default"
 	change(t, r, "workflowRef", M{"name": "unregistered"})
 	tick(t, r, 3)
@@ -562,7 +562,7 @@ func TestUnknownWorkflowBlocked(t *testing.T) {
 
 func TestWithoutAuthorizationPreservesActiveExecution(t *testing.T) {
 	r, _ := fixture(t)
-	a := r.Engine.(*argo.Adapter)
+	a := r.Engines[r.DefaultWorkflow].(*argo.Adapter)
 	disabled := false
 	a.Config.Contract.Authorization = &disabled
 	r.Engines = map[string]execengine.Engine{"default": a}
@@ -593,7 +593,7 @@ func TestWithoutAuthorizationPreservesActiveExecution(t *testing.T) {
 func TestWithoutAuthorizationMissingWorkflowFailsClosed(t *testing.T) {
 	r, _ := fixture(t)
 	disabled := false
-	r.Engine.(*argo.Adapter).Config.Contract.Authorization = &disabled
+	r.Engines[r.DefaultWorkflow].(*argo.Adapter).Config.Contract.Authorization = &disabled
 	tick(t, r, 3)
 	run := getRun(t, r)
 	if !yes(run["launchAttempted"]) || yes(run["created"]) {
@@ -612,7 +612,7 @@ func TestWithoutAuthorizationMissingWorkflowFailsClosed(t *testing.T) {
 func TestWithoutAuthorizationDestroy(t *testing.T) {
 	r, _ := fixture(t)
 	disabled := false
-	r.Engine.(*argo.Adapter).Config.Contract.Authorization = &disabled
+	r.Engines[r.DefaultWorkflow].(*argo.Adapter).Config.Contract.Authorization = &disabled
 	change(t, r, "lifecycle", M{"destroy": true})
 	tick(t, r, 4)
 	workflowStatus(t, r, "Succeeded", "", "Verified", "")
