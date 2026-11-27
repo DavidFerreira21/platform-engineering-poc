@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	strictjson "sigs.k8s.io/json"
 )
 
@@ -82,7 +83,11 @@ func (a *Adapter) Create(ctx context.Context, req execution.Request) error {
 	if err != nil {
 		return err
 	}
-	return a.Client.Create(ctx, w)
+	err = a.Client.Create(ctx, w)
+	if err == nil {
+		log.FromContext(ctx).Info("workflow created", "event", "execution.created", "workflow", req.Workflow, "intentHash", req.IntentHash)
+	}
+	return err
 }
 
 func (a *Adapter) valid(w *unstructured.Unstructured, req execution.Request) bool {
@@ -109,6 +114,7 @@ func (a *Adapter) Get(ctx context.Context, req execution.Request) (*execution.Ru
 		return nil, err
 	}
 	if !a.valid(w, req) {
+		log.FromContext(ctx).Info("workflow identity invalid", "event", "execution.identity.invalid", "workflow", req.Workflow, "intentHash", req.IntentHash)
 		return &execution.Run{}, nil
 	}
 	return observeWithAuthorization(w, a.Config.Parameters.Output, req, a.Config.RequiresAuthorization()), nil
@@ -128,7 +134,11 @@ func (a *Adapter) Cancel(ctx context.Context, req execution.Request) error {
 	}
 	old := w.DeepCopy()
 	spec["shutdown"] = "Terminate"
-	return a.Client.Patch(ctx, w, client.MergeFromWithOptions(old, client.MergeFromWithOptimisticLock{}))
+	err = a.Client.Patch(ctx, w, client.MergeFromWithOptions(old, client.MergeFromWithOptimisticLock{}))
+	if err == nil {
+		log.FromContext(ctx).Info("workflow termination requested", "event", "execution.cancel.requested", "workflow", req.Workflow, "intentHash", req.IntentHash)
+	}
+	return err
 }
 
 var opaque = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:@/+~-]{0,255}$`)
@@ -171,14 +181,15 @@ func observeWithAuthorization(w *unstructured.Unstructured, names OutputParamete
 		phase = execution.Pending
 	}
 	out := &execution.Run{Valid: true, Phase: phase}
-	invalid := func() *execution.Run {
+	invalid := func(reason, output string) *execution.Run {
+		diagnostic(reason, output)
 		if terminal {
 			phase = execution.Blocked
 		}
 		return &execution.Run{Valid: true, Phase: phase, ContractError: true}
 	}
 	if native != "" && native != "Pending" && native != "Running" && !terminal {
-		return invalid()
+		return invalid("InvalidNativePhase", "")
 	}
 
 	outputs := map[string]string{}
@@ -192,7 +203,7 @@ func observeWithAuthorization(w *unstructured.Unstructured, names OutputParamete
 		case names.State, names.Authorization, names.Result, names.ResolvedSource:
 			value, ok := param["value"].(string)
 			if _, exists := outputs[key]; exists || !ok {
-				return invalid()
+				return invalid("DuplicateOrNonStringOutput", key)
 			}
 			outputs[key] = value
 		}
@@ -204,7 +215,7 @@ func observeWithAuthorization(w *unstructured.Unstructured, names OutputParamete
 			!opaque.MatchString(source.Reference) || !opaque.MatchString(source.Binding) ||
 			(req.PinnedReference != "" && source.Reference != req.PinnedReference) ||
 			(req.Binding != "" && source.Binding != req.Binding) {
-			return invalid()
+			return invalid("InvalidResolvedSource", names.ResolvedSource)
 		}
 		out.Resolution = &source.Resolution
 	}
@@ -213,7 +224,7 @@ func observeWithAuthorization(w *unstructured.Unstructured, names OutputParamete
 		if !decode(raw, &progress) || progress.Identity != req.Identity ||
 			(progress.Phase != execution.Running && progress.Phase != execution.Waiting) ||
 			!safeDiagnostics(progress.Diagnostics) || out.Resolution == nil {
-			return invalid()
+			return invalid("InvalidProgress", names.State)
 		}
 		out.Progress = &progress
 	}
@@ -224,20 +235,20 @@ func observeWithAuthorization(w *unstructured.Unstructured, names OutputParamete
 		var approval execution.Authorization
 		if !decode(raw, &approval) || approval.Identity != req.Identity ||
 			!opaque.MatchString(approval.Token) || out.Resolution == nil {
-			return invalid()
+			return invalid("InvalidAuthorization", names.Authorization)
 		}
 		out.Authorization = approval.Token
 	}
 	if raw := outputs[names.Result]; raw != "" {
 		var result execution.Result
 		if !decode(raw, &result) || result.Identity != req.Identity || !safeDiagnostics(result.Diagnostics) {
-			return invalid()
+			return invalid("InvalidResult", names.Result)
 		}
 		switch result.Outcome {
 		case execution.NoChanges:
 			if req.Intent.Operation != execution.Apply || out.Resolution == nil || out.Authorization != "" ||
 				(out.Progress != nil && out.Progress.Phase == execution.Waiting) || (terminal && native != "Succeeded") {
-				return invalid()
+				return invalid("InconsistentNoChanges", names.Result)
 			}
 			if terminal {
 				out.Phase = execution.Succeeded
@@ -251,7 +262,7 @@ func observeWithAuthorization(w *unstructured.Unstructured, names OutputParamete
 			}
 		case execution.OutcomeBlocked:
 			if out.Authorization != "" {
-				return invalid()
+				return invalid("UnexpectedAuthorization", names.Result)
 			}
 			if terminal {
 				out.Phase = execution.Blocked
@@ -261,14 +272,14 @@ func observeWithAuthorization(w *unstructured.Unstructured, names OutputParamete
 				out.Phase = execution.Cancelled
 			}
 		default:
-			return invalid()
+			return invalid("UnknownOutcome", names.Result)
 		}
 		out.Result = &result
 		return out
 	}
 	switch {
 	case native == "Succeeded":
-		return invalid()
+		return invalid("MissingTerminalResult", names.Result)
 	case terminal:
 		out.Phase = execution.Failed
 	case out.Authorization != "":

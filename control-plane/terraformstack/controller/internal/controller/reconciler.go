@@ -102,6 +102,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if e := r.Reader.Get(ctx, req.NamespacedName, o); e != nil {
 		return done(client.IgnoreNotFound(e))
 	}
+	logger := log.FromContext(ctx)
+	logger.V(1).Info("reconciliation started", "event", "reconcile.started", "stack", o.GetName(), "generation", o.GetGeneration())
 	status := obj(o.Object["status"])
 	run := copyMap(obj(status["execution"]))
 	deleting := !o.GetDeletionTimestamp().IsZero()
@@ -332,6 +334,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return done(nil)
 		}
 		if remaining := finished.Add(delay).Sub(r.clock()); remaining > 0 {
+			logger.V(1).Info("requeue scheduled", "event", "reconcile.requeue", "trigger", trigger, "delay", remaining.String())
 			return ctrl.Result{RequeueAfter: remaining}, nil
 		}
 	}

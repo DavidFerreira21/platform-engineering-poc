@@ -71,6 +71,7 @@ func main() {
 		logger.Error(e, "readyz")
 		os.Exit(1)
 	}
+	logger.Info("controller configured", "event", "controller.configured", "stackNamespace", stackNS, "workflowNamespace", wfNS, "workers", workers, "leaderElection", leader)
 	if e = manager.Start(ctrl.SetupSignalHandler()); e != nil {
 		logger.Error(e, "manager encerrado")
 		os.Exit(1)
