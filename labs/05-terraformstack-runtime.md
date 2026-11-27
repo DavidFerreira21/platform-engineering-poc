@@ -89,14 +89,14 @@ Sincronize o CRD da Etapa 04, carregue as imagens reconstruídas, sincronize os 
 
 ## Validar os sinais operacionais
 
-Com o controller instalado, abra um terminal para o port-forward e outro para consultar o endpoint:
+Com o controller instalado, abra um terminal para o port-forward e outro para consultar o endpoint. Use a porta local 18080 para não disputar a 8080 do Traefik:
 
 ```bash
-hub -n platform-system port-forward deployment/terraformstack-controller 8080:8080
+kubectl --context kind-platform-management -n platform-system port-forward deployment/terraformstack-controller 18080:8080
 ```
 
 ```bash
-curl -fsS http://localhost:8080/metrics | grep '^terraformstack_'
+curl -fsS http://localhost:18080/metrics | grep '^terraformstack_'
 ```
 
 Após sincronizar as solicitações na Etapa 06, consulte `hub -n platform-system describe terraformstack simulator-network` e os logs do controller. O status e os gauges refletem os CRs conhecidos; antes da primeira execução, métricas de transição e horários podem estar ausentes. Não instale Prometheus ou Grafana para este teste. [Semântica das métricas](../control-plane/terraformstack/controller/README.md#observabilidade-operacional).
