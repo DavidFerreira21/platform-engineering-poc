@@ -21,7 +21,10 @@ spec:
         - name: controller
           image: terraformstack-controller:local
           imagePullPolicy: IfNotPresent
-          args: ["--config=/etc/terraformstack-config/controller-config.yaml"]
+          args:
+          - "--config=/etc/terraformstack-config/controller-config.yaml"
+          - "--zap-encoder=json"
+          - "--zap-log-level=info"
           ports:
             - {name: metrics, containerPort: 8080}
             - {name: health, containerPort: 8081}
