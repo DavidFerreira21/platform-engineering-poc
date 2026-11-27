@@ -8,7 +8,7 @@ Thinnest Viable Platform (TVP) é a menor oferta integrada que resolve um proble
 
 ## Nossa primeira fatia
 
-Nossa primeira fatia entrega ObjectStorage real numa conta AWS preexistente, com XRD, Composition, status e cleanup. Não exige Backstage nem sete clusters EKS.
+Nossa primeira fatia técnica foi o Simulator TerraformStack no Hub local: intenção Git, workflow, governança, status e cleanup de ConfigMap. Crossplane local é a fatia seguinte. ObjectStorage é a primeira Infrastructure Capability AWS planejada. Nenhuma dessas etapas isoladas comprova uma TVP adotada por consumidores reais; o Golden Path integrado é validado mais tarde. Não é necessário construir Backstage nem sete clusters para experimentar a jornada.
 
 Um XRD ObjectStorage com Composition que provisiona um bucket real numa conta autenticada, mostra condições de status e permite limpeza segura já demonstra um produto incipiente. Não precisamos aguardar a implementação simultânea de Backstage, dois ambientes completos e seis EKS.
 
