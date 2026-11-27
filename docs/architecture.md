@@ -32,7 +32,7 @@ O Hub EKS, as spokes, o consumo de Capabilities AWS, o GitOps Bridge e a stack d
 | :--- | :--- |
 | **Experience Layer** | Consumidores independentes: Backstage, CLI, PR GitOps, AI/MCP; Backstage não é gateway obrigatório |
 | **Control Plane** | Kubernetes API Server, Crossplane central, TerraformStack Controller, RBAC e admission Kubernetes |
-| **Workflow Plane** | Argo CD central, Argo Workflows, Terraform Executor e política OPA aplicada no Workflow |
+| **Workflow Plane** | Argo CD central, Argo Workflows, runner e Policy Engine da implementação de referência |
 | **Observability Plane** | OpenTelemetry, Grafana, Loki, Tempo, métricas, eventos e auditoria |
 | **Data Plane** | Contas AWS das Entities, Core compartilhado, Domains, Management EKS com Argo CD local/Operators/gateway de logs e EKS PCI/Non-PCI |
 
@@ -84,9 +84,10 @@ Esses YAMLs **não são manifests Kubernetes** e não devem ser sincronizados di
 
 ### Decisões complementares da arquitetura-alvo
 
-- **Contrato Terraform.** `TerraformStack` é o CRD Kubernetes próprio do Hub que representa **infraestrutura desejada** de Foundation/Entity Core. O Argo CD central sincroniza o manifesto. O controller Go coordena a execução inicial, as checagens periódicas, as dependências e a autorização. A pipeline em Argo Workflows resolve Git, contexto e state, avalia o plano com OPA e aplica a alteração autorizada após o claim. O adapter entrega o resultado tipado ao controller, que atualiza o status do CR. [ADR-0009](adr/0009-terraformstack-runtime.md) · [Execution Contract](flows/terraformstack-execution-contract.md).
+- **Contrato Terraform.** `TerraformStack` é o CRD Kubernetes próprio do Hub que representa **infraestrutura desejada** de Foundation/Entity Core. O Argo CD central sincroniza o manifesto. O controller Go coordena a execução inicial, as checagens periódicas e as dependências, preservando um Workflow ativo por CR. O CR seleciona um alias cadastrado ou o default. A autorização operacional é habilitada por padrão, mas configurável por integração. A pipeline de referência em Argo Workflows resolve Git, contexto e state, avalia o plano com OPA e aplica a alteração autorizada após o claim. O adapter entrega o resultado tipado ao controller, que atualiza o status do CR. [ADR-0009](adr/0009-terraformstack-runtime.md) · [Execution Contract](flows/terraformstack-execution-contract.md).
 - **Domain Applications:** as squads manterão **código, GitHub Actions e manifests Kubernetes da aplicação em repositório próprio**, separado deste monorepo e previsto para uma etapa posterior. O pipeline faz build/testes/scans e publicação, propõe atualização declarativa GitOps; **Argo CD local** em cada Management EKS faz o deploy nos EKS PCI/Non-PCI autorizados. O workflow CI existente neste monorepo só valida a POC.
 - **Management EKS:** **Operators ainda a estudar**; usar **OpenTelemetry Collector/gateway** para encaminhar telemetria à camada central, não assumir Loki instalado dentro de todos os Management EKS.
+- **Observabilidade do controller:** logs JSON, Events Kubernetes e métricas nativas e por CR já são disponibilizados sem dependência de coletores ou backends externos. A saúde deriva do status persistido; a coleta e os alertas pertencem ao operador. [Operação](../control-plane/terraformstack/controller/README.md).
 - **Observabilidade central:** **OpenTelemetry, Grafana, Loki e Tempo**; estratégia de métricas/Prometheus, retenção e fronteiras PCI a validar no laboratório.
 
 ### Personas, limites de abstração e modelo de consumo
@@ -188,7 +189,7 @@ foundation/config/ ou core-infrastructure/ (Git)
 
 O Bootstrap Terraform central é reutilizado por configuração de Entity/Environment, com **state segregado**. Inicialmente pode rodar em um lab manual e auditável. **Argo CD não executa Terraform**. Criar conta AWS automaticamente é possibilidade futura, **não exige `AWSEnvironment` CRD/controller próprio agora**.
 
-O controller encaminha a fonte declarada e o mapa de contexto. A interface de execução e o adapter Argo traduzem os sinais de execução. Git, identidade efetiva, backend, variáveis e política são resolvidos pela pipeline, que publica uma referência imutável e um vínculo opaco de destino. Argo Workflows é a única integração suportada. WorkflowTemplate, runner e OPA são a implementação de referência da POC; devem respeitar o contrato e as políticas de segurança, sob controle do Platform Team. [ADR-0009](adr/0009-terraformstack-runtime.md) · [Execution Contract](flows/terraformstack-execution-contract.md).
+O controller encaminha a fonte declarada e o mapa de contexto. A interface de execução e o adapter Argo traduzem os sinais de execução. Git, identidade efetiva, backend, variáveis e política são resolvidos pela pipeline, que publica uma referência imutável e um vínculo opaco de destino. Argo é o único tipo de adapter implementado; a instalação pode cadastrar vários WorkflowTemplates Argo, com aliases e ServiceAccounts próprios. O fluxo acima representa a pipeline de referência governada, não etapas obrigatórias para todo template. Cada integração respeita o contrato configurado, incluindo resolução e resultado; o handshake pode ser desabilitado sem desabilitar políticas ou aprovação humana. Sem claim, o controller não infere o início do apply nem cancela automaticamente uma execução ativa para substituí-la. O Platform Team controla templates, identidades e políticas. [ADR-0009](adr/0009-terraformstack-runtime.md) · [Execution Contract](flows/terraformstack-execution-contract.md).
 
 ### Evolução planejada do TerraformStack
 
