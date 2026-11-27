@@ -48,6 +48,7 @@ class TerraformStackContractTest(unittest.TestCase):
     def test_optional_context_and_version(self):
         self.validator.validate(self.example())
         self.validator.validate(self.example(context={"anything": "any value"}))
+        self.validator.validate(self.example(workflowRef={"name": "custom-workflow"}))
         self.validator.validate(self.example(sourceRef={
             "repository": "opaque-repository", "path": "stacks/network", "version": "v1.2.3",
         }))
@@ -63,6 +64,8 @@ class TerraformStackContractTest(unittest.TestCase):
             self.example(sourceRef={"repository": "repo", "path": "a", "name": "old"}),
             self.example(sourceRef={"repository": "repo", "path": "/absolute"}),
             self.example(context={"scope": ["one", "two"]}),
+            self.example(workflowRef={"name": "../custom"}),
+            self.example(workflowRef={}),
             self.example(target={"entity": "entity-a", "environment": "uat"}),
             self.example(configuration={"version": "latest"}),
             self.example(timeout={"apply": "15m"}),
@@ -85,7 +88,7 @@ class TerraformStackContractTest(unittest.TestCase):
         ))
         template = yaml.safe_load((PIPELINE / "workflowtemplate.yaml").read_text(encoding="utf-8"))
         config = yaml.safe_load((CONTROLLER / "controller-config.yaml").read_text(encoding="utf-8"))
-        transport = config["workflow"]["parameters"]
+        transport = next(w["parameters"] for w in config["workflows"] if w["name"] == config["defaultWorkflow"])
         inputs = {p["name"] for p in template["spec"]["arguments"]["parameters"]}
         self.assertEqual(inputs, {transport["input"]["intent"]})
         templates = {item["name"]: item for item in template["spec"]["templates"]}
