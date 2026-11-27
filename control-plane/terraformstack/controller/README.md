@@ -25,3 +25,15 @@ go vet ./...
 ```
 
 A CI também executa envtest com API Kubernetes e etcd. A Etapa 06 usa o Hub para validar Argo, OPA e Terraform em conjunto. [Instalação e atualização](../../../labs/05-terraformstack-runtime.md) · [Fluxo e diagnóstico](../../../docs/flows/terraformstack.md)
+
+## Troubleshooting e reporte de bugs
+
+O controller utiliza Zap com JSON e nível `info` por padrão. Para diagnóstico temporário, altere `--zap-log-level=debug` no Deployment e restaure `info` após a investigação. Os eventos incluem identificadores da stack e do Workflow quando disponíveis. Filtre por `workflow` ou `intentHash` para correlacionar ciclos de reconciliação. O adapter informa a categoria e o nome do output inválido, sem registrar seu conteúdo.
+
+```bash
+kubectl logs -n platform-system -l app=terraformstack-controller --all-containers=true --prefix=true --since=30m
+kubectl get terraformstack <stack> -n platform-system -o jsonpath='{.status.execution.workflow}'
+kubectl get terraformstack <stack> -n platform-system -o json | jq '.status'
+```
+
+Inspecione também os steps e logs do Workflow correspondente no Argo. Antes de compartilhar diagnósticos, sanitize manifests, status e logs (credenciais, tokens, variáveis, identificadores privados e planos). Informe a revisão Git, versões de Kubernetes/Argo, passos de reprodução e resultado esperado/observado.

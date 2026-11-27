@@ -69,7 +69,8 @@ func (r *Reconciler) report(ctx context.Context, o *unstructured.Unstructured, k
 	o.Object["status"] = status
 	e := r.Status().Update(ctx, o)
 	if e == nil {
-		log.FromContext(ctx).Info("transição TerraformStack", "stack", o.GetName(), "condition", kind, "reason", reason)
+		run := obj(status["execution"])
+		log.FromContext(ctx).Info("transição TerraformStack", "event", "stack.status.updated", "stack", o.GetName(), "namespace", o.GetNamespace(), "uid", string(o.GetUID()), "generation", o.GetGeneration(), "workflow", str(run["workflow"]), "intentHash", str(run["intentHash"]), "phase", str(run["phase"]), "trigger", str(run["trigger"]), "attempt", num(run["attempt"]), "condition", kind, "reason", reason)
 	}
 	return e
 }
@@ -86,6 +87,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if e := r.Reader.Get(ctx, req.NamespacedName, o); e != nil {
 		return done(client.IgnoreNotFound(e))
 	}
+	logger := log.FromContext(ctx)
+	logger.V(1).Info("reconciliation started", "event", "reconcile.started", "stack", o.GetName(), "generation", o.GetGeneration())
 	status := obj(o.Object["status"])
 	run := copyMap(obj(status["execution"]))
 	deleting := !o.GetDeletionTimestamp().IsZero()
@@ -160,6 +163,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	dependency := dependencyReason(all.Items, o, s, str(d["operation"]))
 	eligible := dependency == ""
+	logger.V(1).Info("dependencies evaluated", "event", "dependency.evaluated", "eligible", eligible, "reason", dependency)
 	changed := !equal(d, run["intent"])
 	suspended := s.Suspend
 	if active {
@@ -275,6 +279,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return done(nil)
 		}
 		if remaining := finished.Add(delay).Sub(r.clock()); remaining > 0 {
+			logger.V(1).Info("requeue scheduled", "event", "reconcile.requeue", "trigger", trigger, "delay", remaining.String())
 			return ctrl.Result{RequeueAfter: remaining}, nil
 		}
 	}
