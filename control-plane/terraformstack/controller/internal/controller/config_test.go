@@ -30,3 +30,55 @@ func TestConfigValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestMultipleWorkflowConfig(t *testing.T) {
+	b, err := os.ReadFile("../../controller-config.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := string(b)
+	second := `
+  - name: alternate
+    namespace: another-namespace
+    templateRef:
+      name: custom-template
+    serviceAccountName: custom-executor
+    contract:
+      authorization: false
+    parameters:
+      input:
+        intent: request
+      output:
+        result: result
+        resolvedSource: resolution
+`
+	c, err := ParseConfig([]byte(base + second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, integrations, err := c.Integrations()
+	if err != nil || name != "terraformstack" || len(integrations) != 2 ||
+		!integrations[name].RequiresAuthorization() || integrations["alternate"].RequiresAuthorization() {
+		t.Fatalf("unexpected integration config: %s %v %v", name, integrations, err)
+	}
+	for _, invalid := range []string{
+		strings.Replace(base+second, "defaultWorkflow: terraformstack", "defaultWorkflow: missing", 1),
+		strings.Replace(base+second, "name: alternate", "name: terraformstack", 1),
+		strings.Replace(base+second, "authorization: false", "authorization: true", 1),
+		strings.Replace(base+second, "defaultWorkflow: terraformstack\n", "", 1),
+	} {
+		if _, err := ParseConfig([]byte(invalid)); err == nil {
+			t.Fatal("invalid config accepted")
+		}
+	}
+	single := strings.Replace(base, "defaultWorkflow: terraformstack\n", "", 1)
+	single = strings.Replace(single, "    contract:\n      authorization: true\n", "", 1)
+	c, err = ParseConfig([]byte(single))
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, integrations, err = c.Integrations()
+	if err != nil || name != "terraformstack" || !integrations[name].RequiresAuthorization() {
+		t.Fatal("missing authorization must default to true")
+	}
+}
