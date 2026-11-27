@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	execengine "github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/execution"
 	"github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/execution/argo"
 	"os"
 	"path/filepath"
@@ -38,7 +39,11 @@ func fixture(t *testing.T) (*Reconciler, *unstructured.Unstructured) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	r := &Reconciler{Engine: &argo.Adapter{Client: cl, Reader: cl, Config: config.Workflow}, Client: cl, Reader: cl, StackNamespace: "platform-system", Now: func() time.Time { return fixed }}
+	defaultName, configs, e := config.Integrations()
+	if e != nil {
+		t.Fatal(e)
+	}
+	r := &Reconciler{Engine: &argo.Adapter{Client: cl, Reader: cl, Config: configs[defaultName]}, Client: cl, Reader: cl, StackNamespace: "platform-system", Now: func() time.Time { return fixed }}
 	return r, o
 }
 func getStack(t *testing.T, r *Reconciler) *unstructured.Unstructured {
@@ -501,5 +506,118 @@ func TestAuthorizationCannotChangeAfterGrant(t *testing.T) {
 				t.Fatal(getRun(t, r))
 			}
 		})
+	}
+}
+
+func TestWorkflowSelection(t *testing.T) {
+	r, _ := fixture(t)
+	first := r.Engine.(*argo.Adapter)
+	second := *first
+	second.Config.TemplateRef.Name = "other-template"
+	second.Config.ServiceAccountName = "other-executor"
+	second.Config.Namespace = "other-workflows"
+	r.Engines = map[string]execengine.Engine{"first": first, "second": &second}
+	r.DefaultWorkflow = "first"
+	change(t, r, "workflowRef", M{"name": "second"})
+	tick(t, r, 4)
+	run := getRun(t, r)
+	w, err := second.Raw(context.Background(), str(run["workflow"]))
+	if err != nil || w == nil {
+		t.Fatalf("selected workflow: %v", err)
+	}
+	if run["workflowRef"] != "second" || obj(obj(run["intent"])["workflowRef"])["name"] != "second" ||
+		obj(obj(w.Object["spec"])["workflowTemplateRef"])["name"] != "other-template" ||
+		obj(w.Object["spec"])["serviceAccountName"] != "other-executor" {
+		t.Fatal(run)
+	}
+	change(t, r, "workflowRef", M{"name": "first"})
+	tick(t, r, 2)
+	w, err = second.Raw(context.Background(), str(run["workflow"]))
+	if err != nil || w == nil || obj(w.Object["spec"])["shutdown"] != "Terminate" {
+		t.Fatalf("old integration was not used for cancellation: %v", err)
+	}
+	w.Object["status"] = M{"phase": "Failed"}
+	if err := r.Status().Update(context.Background(), w); err != nil {
+		t.Fatal(err)
+	}
+	tick(t, r, 4)
+	if getRun(t, r)["workflowRef"] != "first" || num(getRun(t, r)["sequence"]) != 2 {
+		t.Fatal(getRun(t, r))
+	}
+	if obj(obj(current(t, r).Object["spec"])["workflowTemplateRef"])["name"] != first.Config.TemplateRef.Name {
+		t.Fatal("wrong template after switching")
+	}
+}
+
+func TestUnknownWorkflowBlocked(t *testing.T) {
+	r, _ := fixture(t)
+	r.Engines = map[string]execengine.Engine{"default": r.Engine}
+	r.DefaultWorkflow = "default"
+	change(t, r, "workflowRef", M{"name": "unregistered"})
+	tick(t, r, 3)
+	if reason(t, r) != "UnknownWorkflow" || len(getRun(t, r)) != 0 {
+		t.Fatal(getRun(t, r), reason(t, r))
+	}
+}
+
+func TestWithoutAuthorizationPreservesActiveExecution(t *testing.T) {
+	r, _ := fixture(t)
+	a := r.Engine.(*argo.Adapter)
+	disabled := false
+	a.Config.Contract.Authorization = &disabled
+	r.Engines = map[string]execengine.Engine{"default": a}
+	r.DefaultWorkflow = "default"
+	tick(t, r, 4)
+	old := getRun(t, r)["workflow"]
+	workflowStatus(t, r, "Running", "Running", "", "")
+	tick(t, r, 1)
+	change(t, r, "context", M{"updated": "value"})
+	tick(t, r, 2)
+	if getRun(t, r)["workflow"] != old || obj(current(t, r).Object["spec"])["shutdown"] != nil {
+		t.Fatal("execution interrupted")
+	}
+	if getRun(t, r)["authorization"] != nil || getRun(t, r)["phase"] == "Applying" {
+		t.Fatal("authorization or apply-start was inferred")
+	}
+	workflowStatus(t, r, "Succeeded", "", "Verified", "")
+	tick(t, r, 1)
+	if getRun(t, r)["result"] != "Ready" || getRun(t, r)["finishedAt"] == nil {
+		t.Fatal(getRun(t, r))
+	}
+	tick(t, r, 1)
+	if num(getRun(t, r)["sequence"]) != 2 || getRun(t, r)["binding"] != "destination-01" {
+		t.Fatal(getRun(t, r))
+	}
+}
+
+func TestWithoutAuthorizationMissingWorkflowFailsClosed(t *testing.T) {
+	r, _ := fixture(t)
+	disabled := false
+	r.Engine.(*argo.Adapter).Config.Contract.Authorization = &disabled
+	tick(t, r, 3)
+	run := getRun(t, r)
+	if !yes(run["launchAttempted"]) || yes(run["created"]) {
+		t.Fatal(run)
+	}
+	if err := r.Delete(context.Background(), current(t, r)); err != nil {
+		t.Fatal(err)
+	}
+	change(t, r, "context", M{"updated": "value"})
+	tick(t, r, 3)
+	if reason(t, r) != "ExecutionMissing" || getRun(t, r)["workflow"] != run["workflow"] || getRun(t, r)["finishedAt"] != nil {
+		t.Fatal(getRun(t, r))
+	}
+}
+
+func TestWithoutAuthorizationDestroy(t *testing.T) {
+	r, _ := fixture(t)
+	disabled := false
+	r.Engine.(*argo.Adapter).Config.Contract.Authorization = &disabled
+	change(t, r, "lifecycle", M{"destroy": true})
+	tick(t, r, 4)
+	workflowStatus(t, r, "Succeeded", "", "Verified", "")
+	tick(t, r, 1)
+	if reason(t, r) != "Verified" || getRun(t, r)["result"] != "Destroyed" {
+		t.Fatal(getRun(t, r))
 	}
 }
