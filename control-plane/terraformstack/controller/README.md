@@ -112,9 +112,9 @@ Os gauges de recursos são derivados do cache Kubernetes no scrape; as séries i
 
 ```bash
 kubectl -n platform-system describe terraformstack simulator-network
-kubectl -n platform-system port-forward deployment/terraformstack-controller 8080:8080
+kubectl -n platform-system port-forward deployment/terraformstack-controller 18080:8080
 # Em outro terminal:
-curl -fsS http://localhost:8080/metrics | grep '^terraformstack_'
+curl -fsS http://localhost:18080/metrics | grep '^terraformstack_'
 ```
 
 Exemplos de consultas para um consumidor Prometheus (não são regras de alerta instaladas):
