@@ -16,12 +16,12 @@ import (
 
 type Reconciler struct {
 	client.Client
-	Reader         client.Reader // Leitura consistente antes de decisões de autorização.
-	Engine         execengine.Engine // Single integration for embedding and tests.
-	Engines        map[string]execengine.Engine
+	Reader          client.Reader     // Leitura consistente antes de decisões de autorização.
+	Engine          execengine.Engine // Single integration for embedding and tests.
+	Engines         map[string]execengine.Engine
 	DefaultWorkflow string
-	StackNamespace string
-	Now            func() time.Time
+	StackNamespace  string
+	Now             func() time.Time
 }
 
 // resolveEngine uses only installation-authorized aliases. It never mutates the
