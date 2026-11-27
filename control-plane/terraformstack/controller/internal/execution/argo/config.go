@@ -82,10 +82,8 @@ func (w WorkflowConfig) Validate() error {
 	if p.State != "" {
 		outputs = append(outputs, p.State)
 	}
-	if w.RequiresAuthorization() {
+	if w.RequiresAuthorization() || p.Authorization != "" {
 		outputs = append(outputs, p.Authorization)
-	} else if p.Authorization != "" {
-		return fmt.Errorf("authorization output must be omitted when authorization is disabled")
 	}
 	return distinct("workflow.parameters.output", outputs...)
 }
