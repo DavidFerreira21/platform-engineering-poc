@@ -64,7 +64,7 @@ core:
   eksPci: true
 ```
 
-A Foundation confere `aws.accountId` e a região contra o destino aprovado. As flags de Foundation e Core declaram os componentes previstos. O provisionamento exige execução e aprovação próprias.
+As flags de Foundation e Core do registro descrevem a topologia prevista; não habilitam diretamente os recursos das raízes Terraform. Os YAMLs de stack (`network.yaml`, `eks.yaml`) e seus overrides determinam a configuração efetiva. Em UAT, Management começa habilitado, Non-PCI e PCI começam desabilitados. A integração AWS deve validar `aws.accountId`, região e identidade do destino aprovado. O provisionamento exige execução e aprovação próprias. [Foundation](../foundation/README.md).
 
 Exemplo **ilustrativo** de Domain (identidade única):
 
@@ -122,8 +122,8 @@ Um recurso externo tem **um único owner de reconciliação**. Terraform adminis
 ```text
 platform-engineering-poc/
 ├── platform/hub/                        # bootstrap kind
-├── control-plane/                       # Crossplane, Capabilities e políticas
-├── workflow-plane/                      # GitOps central, Workflows, Terraform
+├── control-plane/                       # Crossplane, TerraformStack e contratos
+├── workflow-plane/                      # GitOps central, Workflows, runner e Policy Engine
 ├── observability-plane/
 ├── foundation/                          # infraestrutura central
 │   ├── modules/
@@ -243,7 +243,7 @@ O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicaçã
 
 ## 10. Decisões vigentes e pontos abertos
 
-**Em aberto.** A arquitetura prevê o Argo CD local nos Management EKS e reserva a seleção dos Operators para os respectivos add-ons. Métricas, retenção e fronteiras PCI serão verificadas com a stack de telemetria prevista no roadmap.
+**Em aberto.** A arquitetura prevê o Argo CD local nos Management EKS e reserva a seleção dos Operators para os respectivos add-ons. Coleta central de métricas, retenção e fronteiras PCI serão verificadas com a stack de telemetria prevista no roadmap; a emissão de sinais pelo TerraformStack já existe.
 
 **Fechado:** Domain como unidade lógica de consumo/ownership, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas (incluindo **Domain Applications**), monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência.
 
