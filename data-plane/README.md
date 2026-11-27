@@ -29,7 +29,7 @@ data-plane/
     │   ├── uat/                 # 3 EKS e infraestrutura comum
     │   └── prod/
     └── domains/
-        └── payments/
+        └── rastreamento-encomendas/
             ├── domain.yaml      # owners e políticas comuns
             ├── uat/
             │   └── infrastructure/      # DevOps Federado
