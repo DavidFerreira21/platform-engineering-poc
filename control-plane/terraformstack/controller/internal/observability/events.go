@@ -9,7 +9,7 @@ import (
 )
 
 type Observer struct {
-	Metrics *Metrics
+	Metrics  *Metrics
 	Recorder record.EventRecorder
 }
 
@@ -24,8 +24,7 @@ func (o *Observer) Committed(ctx context.Context, stack *unstructured.Unstructur
 	if transition {
 		log.FromContext(ctx).Info("TerraformStack status transition",
 			"component", "controller", "event", "stack.status.updated",
-			"stack", stack.GetName(), "namespace", stack.GetNamespace(), "uid", string(stack.GetUID()),
-			"generation", stack.GetGeneration(), "workflowRef", stringValue(run["workflowRef"]),
+			"workflowRef", stringValue(run["workflowRef"]),
 			"workflow", stringValue(run["workflow"]), "intentHash", stringValue(run["intentHash"]),
 			"authorizationRequired", object(run["integration"])["authorizationRequired"] != false,
 			"phase", boundedPhase(stringValue(run["phase"])), "trigger", boundedTrigger(stringValue(run["trigger"])),
