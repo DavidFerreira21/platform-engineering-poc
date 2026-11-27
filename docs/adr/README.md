@@ -13,7 +13,7 @@ Os ADRs registram as **decisões arquiteturais vigentes** e, quando necessário,
 | [**0006**](0006-terraformrun-and-application-ci.md) | TerraformStack CRD/controller, drift e reconciliação por políticas; CI/CD de aplicações em repo separado |
 | [**0007**](0007-personas-and-developer-experience.md) | Três personas, ownership federado, repositórios e app mínima Python/FastAPI para validar DX no fim da POC |
 | [**0008**](0008-managed-argocd-connectivity.md) | Argo CD central gerenciado e acesso GitOps entre VPCs isoladas |
-| [**0009**](0009-terraformstack-runtime.md) | Runtime Go, fronteira de execução Argo, contrato e implementação de referência |
+| [**0009**](0009-terraformstack-runtime.md) | Runtime Go, integrações Argo selecionáveis, autorização opcional, exclusividade por CR e observabilidade |
 
 Diagrama visual: [Arquitetura de referência com as três personas](../arquitetura%20Plataform.png).
 

@@ -13,11 +13,11 @@ Validar a reconciliação de um recurso composto no Hub e observar como o schema
 - Consultar o schema publicado pelo XRD e conferir a mensagem do `LabMessage` no ConfigMap.
 - Remover os recursos do exercício e manter o Crossplane Core instalado.
 
-O exercício roda no Hub local e tem custo AWS zero.
+O exercício roda no Hub local, sem provisionar recursos AWS. Crossplane Core é instalado via GitOps; os manifests da demonstração são aplicados diretamente à API para observar cada etapa. Isso é um smoke test, não o aceite GitOps completo, reservado à Etapa 08.
 
 ## Por que fizemos assim
 
-O Crossplane Core é compartilhado pelas etapas. O `LabMessage` usa um XRD e uma Composition de demonstração para tornar a reconciliação visível em um ConfigMap do Hub. Assim é possível rever a validação do contrato e a reconciliação local mesmo em um Hub que já tenha outras Capabilities.
+O Crossplane Core é compartilhado pelas etapas. O `LabMessage` usa um XRD namespaced da API v2 e uma Composition de demonstração para tornar a reconciliação visível em um ConfigMap do Hub. Assim é possível rever a validação do contrato e a reconciliação local mesmo em um Hub que já tenha outras Capabilities.
 
 ## Pré-requisitos
 
@@ -70,7 +70,7 @@ A saída deve mostrar um ConfigMap cujo owner é `lab03-demo` e cuja mensagem é
 
 ## O que observar
 
-- O campo `spec.message` aparece na API a partir do schema do XRD.
+- O campo `spec.message` aparece na API a partir do schema do XRD. O XR é o recurso observado pelo Crossplane; o XRD define o tipo e não representa uma solicitação de infraestrutura.
 - O `LabMessage` chega a `Synced` e `Ready`. O ConfigMap identifica o XR como owner e contém a mensagem declarada no manifesto.
 
 ## 3. Limpar o exercício

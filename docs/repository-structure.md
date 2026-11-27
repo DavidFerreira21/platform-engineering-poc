@@ -26,8 +26,8 @@ O repositório mantém os valores em `foundation/config/`. Cada stack informa a 
 
 ### Componentes do TerraformStack
 
-- `control-plane/terraformstack/` reúne CRD, controller Go, configuração do adapter Argo, exemplos e overlay do Hub local. O CRD e o controller têm Applications próprias. [Estrutura do controller](../control-plane/terraformstack/controller/README.md).
-- `workflow-plane/argo-workflows/terraformstack/` contém WorkflowTemplate, scripts e perfil do Simulator. O runner e o Policy Engine são blocos do Workflow Plane. [Execution Contract](flows/terraformstack-execution-contract.md) · [Policy Engine](../workflow-plane/policy-engine/README.md).
+- `control-plane/terraformstack/` reúne CRD, controller Go, configuração das integrações Argo, exemplos e overlay do Hub local. Em `controller/internal/`, `controller` concentra reconciliação; `execution` define o contrato e `execution/argo` implementa o adapter; `observability` expõe logs, Events e métricas de saúde sem controlar o lifecycle. O CRD e o controller têm Applications próprias. [Estrutura do controller](../control-plane/terraformstack/controller/README.md).
+- `workflow-plane/argo-workflows/terraformstack/` contém o WorkflowTemplate de referência, scripts e perfil do Simulator. Integrações alternativas podem cadastrar seus próprios templates sem alterar o núcleo do controller. O runner e o Policy Engine são blocos do Workflow Plane. [Execution Contract](flows/terraformstack-execution-contract.md) · [Policy Engine](../workflow-plane/policy-engine/README.md).
 - `foundation/stacks/simulator/` cria o ConfigMap do ensaio local. As raízes Network e EKS fazem parte da evolução AWS, cujo primeiro apply aprovado está previsto na Etapa 13. [Roadmap](learning-roadmap.md).
 
 ### Três personas e a fronteira entre repositórios

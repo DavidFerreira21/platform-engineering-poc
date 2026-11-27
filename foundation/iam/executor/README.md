@@ -2,13 +2,17 @@
 
 A Etapa 12 valida o executor a partir do Hub EKS. Os exemplos abaixo descrevem o desenho de IAM e um utilitário supervisionado de diagnóstico. Nenhuma role é criada automaticamente aqui. Provisionar as roles por um administrador autorizado, em contas determinadas pelo cadastro de Environment, antes de executar o bootstrap.
 
-## Papéis separados
+## Diagnóstico local versus identidade-alvo AWS
+
+Os exemplos de bootstrap via SSO e Secret temporário abaixo são um diagnóstico supervisionado no Hub `kind`, não a identidade definitiva do Workflow no EKS. Na topologia-alvo, Platform, UAT e PROD são contas distintas. Na Etapa 12, validar a identidade de Pod do executor no Hub EKS e a assunção da role UAT por essa identidade; não transportar sessões humanas em Secrets como padrão de operação AWS. O controller não assume a role de provisionamento.
+
+## Papéis do diagnóstico local
 
 1. **Identidade humana:** acesso com IAM Identity Center ao perfil `platform-poc-uat`. Usado apenas no computador para assumir uma role inicial temporária.
-2. **Role de bootstrap na conta de plataforma (ou na própria UAT quando a POC possui apenas uma conta AWS):** exemplo `PlatformPocTerraformBootstrap`. Trust policy limitada ao principal/role de SSO autorizado; permissões **somente `sts:AssumeRole`** para a role UAT aprovada. Não conceder permissões diretamente de EC2/EKS a essa role.
+2. **Role de bootstrap na conta de plataforma (ou na própria UAT em um diagnóstico isolado de conta única, que não representa a topologia-alvo):** exemplo `PlatformPocTerraformBootstrap`. Trust policy limitada ao principal/role de SSO autorizado; permissões **somente `sts:AssumeRole`** para a role UAT aprovada. Não conceder permissões diretamente de EC2/EKS a essa role.
 3. **Role de execução na conta UAT:** exemplo `PlatformPocTerraformExecution`. Trust policy permite que a role de bootstrap (ARN exato) seja assumida. A role de execução contém apenas as permissões necessárias às stacks e backend aprovados, a detalhar antes do primeiro apply.
 
-A topologia AWS usa contas distintas para Platform, UAT e PROD. O destino e as roles autorizadas vêm do registro confiável que a pipeline consulta a partir de `spec.context`. No utilitário supervisionado, os ARNs são parâmetros de bootstrap operacional. [Contrato de execução](../../../docs/flows/terraformstack-execution-contract.md)
+Na integração AWS prevista, o destino e as roles autorizadas virão do registro confiável que a pipeline consulta a partir de `spec.context`. O Simulator atual não implementa essa resolução AWS. No utilitário supervisionado, os ARNs são parâmetros de bootstrap operacional. [Contrato de execução](../../../docs/flows/terraformstack-execution-contract.md)
 
 ### Exemplo de política de permissão da role de bootstrap (ajustar placeholders)
 

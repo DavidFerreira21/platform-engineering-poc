@@ -8,6 +8,8 @@ O diagrama mostra os caminhos de execução, política e drift validados no Simu
 
 ![Fluxo do TerraformStack e reconciliação de drift](terraformstack-flow.png)
 
+O diagrama ilustra a pipeline governada de referência com autorização habilitada; não prescreve os steps de integrações alternativas.
+
 ## 1. Do Git ao Workflow
 
 1. O Git versiona o manifesto e os YAMLs de configuração. O Argo CD sincroniza o CR na API do Hub e injeta o SHA resolvido pela Application em `platform.example.io/revision`. O estado `Synced` indica que o manifesto foi entregue à API. [Application do Simulator](../../platform/hub/addons/catalog/terraformstack-simulator.yaml)
@@ -39,7 +41,7 @@ spec:
       maxRetries: 1
 ```
 
-- `workflowRef.name` é opcional e seleciona apenas um alias cadastrado pelo Platform Team. A POC mantém um único Workflow por padrão. Outras integrações podem implementar suas próprias ferramentas e etapas; a autorização operacional é habilitada por padrão e pode ser desabilitada na configuração da integração, não diretamente no CR. [Execution Contract](terraformstack-execution-contract.md)
+- `workflowRef.name` é opcional e seleciona apenas um alias cadastrado pelo Platform Team. A instalação da POC cadastra uma única integração de referência por padrão; outras podem coexistir, mas cada CR conserva no máximo uma tentativa ativa. Outras integrações podem implementar suas próprias ferramentas e etapas; a autorização operacional é habilitada por padrão e pode ser desabilitada na configuração da integração, não diretamente no CR. [Execution Contract](terraformstack-execution-contract.md)
 - `sourceRef.repository` identifica a origem e `sourceRef.path` aponta para a raiz da stack. O campo opcional `context` aceita pares de strings que seguem até o executor. O perfil do Simulator autoriza uma combinação de repositório, caminho, namespace, nome da stack e contexto. Ele resolve o caminho de Configuration, PVC, backend, variáveis e perfil OPA. A ServiceAccount é definida na instalação do runtime. [Perfil do Simulator](../../workflow-plane/argo-workflows/terraformstack/simulator.json)
 - A pipeline resolve `sourceRef.version` para um commit imutável. Quando a origem coincide com o repositório GitOps configurado, `latest` usa o SHA da Application. Sem essa revisão ou para outra origem previamente autorizada, `latest` resolve `HEAD`. Versões explícitas aceitam referência Git válida, incluindo SHA, branch e tag. A pipeline busca a mesma revisão para código e configuração e confere o checkout. [Pipeline](../../workflow-plane/argo-workflows/terraformstack/pipeline.sh)
 - O controller considera o UID, a geração e a revisão GitOps na intenção. Um commit que muda apenas YAML pode iniciar outro plan após o sync, porque a anotação muda mesmo com o mesmo `metadata.generation`.
@@ -86,15 +88,17 @@ O `claimName` do WorkflowTemplate identifica o PVC que os Pods montam. O `claim(
 | `DriftCheck` | A última execução ficou `Ready` e já decorreu o `driftCheckInterval` desde `status.execution.finishedAt`. |
 | `Retry` | A última execução ficou `Failed` e `retryPolicy` permite outra tentativa após o intervalo. |
 
-Drift e retry preservam a referência imutável já resolvida. A pipeline do Simulator sinaliza mudanças externas pelo campo `resource_drift` do plan e aplica as regras OPA para decidir a remediação. O controller registra `lastCheckTime` no fim da tentativa e conserva a última detecção em `lastDriftTime`. O acionamento manual dedicado por annotation, o jitter e a exposição da próxima checagem são evoluções planejadas. [Ensaio de drift](../../labs/06-terraformstack-simulator.md#3-observar-drift-e-reconciliação) · [Roadmap](../learning-roadmap.md#fase-6--observabilidade-operação-e-governança)
+Drift e retry preservam a referência imutável já resolvida. A pipeline do Simulator sinaliza mudanças externas pelo campo `resource_drift` do plan e aplica as regras OPA para decidir a remediação. O controller registra `lastCheckTime` no fim da tentativa (inclusive falha), conserva a última detecção em `lastDriftTime` e mantém `driftPending` após drift reportado até confirmação de convergência. A ausência de `driftPending` significa estado desconhecido, não ausência de drift. O acionamento manual dedicado por annotation, o jitter e a exposição da próxima checagem são evoluções planejadas. [Ensaio de drift](../../labs/06-terraformstack-simulator.md#3-observar-drift-e-reconciliação) · [Roadmap](../learning-roadmap.md#fase-6--observabilidade-operação-e-governança)
 
-Um sync repetido com a mesma intenção ou um reinício do controller conserva a execução ativa. Se chega uma nova revisão enquanto o Workflow espera aprovação, o controller encerra o Workflow anterior antes de agendar o novo. Se o apply já fez o claim, ele aguarda a conclusão da execução anterior. `suspend: true` impede novas execuções e cancela a ativa quando a autorização está habilitada e ela ainda não marcou o início do apply. Sem autorização, o controller aguarda o término de qualquer Workflow ativo, inclusive diante de nova intenção; não há claim que delimite o início da alteração. [Reconciliação](../../control-plane/terraformstack/controller/internal/controller/reconciler.go)
+A exclusividade de execução é uma garantia estrutural: no máximo um Workflow ativo por CR, independentemente de alias, intenção ou modo de autorização. CRs independentes podem executar em paralelo; dependências são respeitadas. O lock de state continua necessário, inclusive quando CRs distintos apontam para o mesmo backend. Um sync repetido com a mesma intenção ou um reinício do controller conserva a execução ativa. Com autorização habilitada, se chega uma nova revisão enquanto o Workflow espera aprovação, o controller encerra o Workflow anterior antes de agendar o novo. Se o apply já fez o claim, ele aguarda a conclusão da execução anterior. `suspend: true` impede novas execuções e cancela a ativa quando a autorização está habilitada e ela ainda não marcou o início do apply. Sem autorização, o controller aguarda o término de qualquer Workflow ativo, inclusive diante de nova intenção; não há claim que delimite o início da alteração. Antes de submeter, o controller persiste `launchAttempted`; se a submissão ficar ambígua ou o Workflow desaparecer, bloqueia novas tentativas com `ExecutionMissing` até investigação. Alterar a configuração de uma integração ativa também bloqueia a reconciliação até restaurar o snapshot original. [Reconciliação](../../control-plane/terraformstack/controller/internal/controller/reconciler.go)
 
-O retry operacional cria outro Workflow com outro plano e, quando exigido, outra aprovação. A política aceita `None`, `Fixed` e `ExponentialBackoff`. O runtime efetivamente faz zero retries quando `maxRetries` é omitido. `PolicyDenied`, `PolicyError` e `ApprovalRejected` terminam em `ReconcileBlocked` e encerram a tentativa sem retry automático. [Contrato de retry](../../control-plane/terraformstack/crd/terraformstack.yaml) · [Controller](../../control-plane/terraformstack/controller/internal/controller/reconciler.go)
+O retry operacional cria outro Workflow com outro plano e, quando exigido, outra aprovação. A política aceita `None`, `Fixed` e `ExponentialBackoff`. O runtime efetivamente faz zero retries quando `maxRetries` é omitido. Na pipeline de referência, `PolicyDenied`, `PolicyError` e `ApprovalRejected` terminam em `ReconcileBlocked` e encerram a tentativa sem retry automático. [Contrato de retry](../../control-plane/terraformstack/crd/terraformstack.yaml) · [Controller](../../control-plane/terraformstack/controller/internal/controller/reconciler.go)
 
 ## 5. Dependências e destruição
 
 `dependsOn` referencia stacks no mesmo namespace. O controller detecta ciclos e verifica as condições das dependências sem interpretar seus contextos. Para aplicar, cada dependência precisa estar `Ready` para a geração e a intenção atuais. Para destruir, uma dependente que ainda referencia a stack precisa estar `Destroyed` para sua intenção atual. [Exemplo com duas stacks](../../control-plane/terraformstack/examples/simulator/stacks.yaml)
+
+Na tabela, plan, política e aprovação descrevem a pipeline de referência; o controller exige o resultado tipado de destroy e o claim somente nas integrações que habilitam o handshake.
 
 | Solicitação | Comportamento |
 | --- | --- |
@@ -102,7 +106,7 @@ O retry operacional cria outro Workflow com outro plano e, quando exigido, outra
 | Excluir o CR com o padrão `destroyResourcesOnDeletion: false` | Retém o recurso e o PVC. O controller libera o finalizer após tratar a execução ativa. |
 | Excluir o CR com `destroyResourcesOnDeletion: true` | Registra `status.deletionIntent` e mantém o finalizer durante o teardown. Libera a exclusão após o destroy aprovado e verificado. Negativa ou rejeição conserva o CR em exclusão e preserva o recurso. |
 
-A aprovação do PR autoriza a alteração da intenção no Git. A aprovação do Workflow autoriza o plano específico, inclusive no destroy. [Exercício de teardown](../../labs/06-terraformstack-simulator.md#4-exercitar-destroy-e-limpar)
+A aprovação do PR autoriza a alteração da intenção no Git. Na referência governada, a aprovação do Workflow autoriza o plano específico, inclusive no destroy. Essa política não é imposta pelo adapter a outros templates. [Exercício de teardown](../../labs/06-terraformstack-simulator.md#4-exercitar-destroy-e-limpar)
 
 ## 6. Status e diagnóstico
 
@@ -110,12 +114,12 @@ O controller publica a condição corrente em `status.conditions`, preservando c
 
 | `type` | `reason` | Como interpretar |
 | --- | --- | --- |
-| `Reconciling` | `Scheduling`, `Running`, `AuthorizationRequested`, `Applying` | Tentativa registrada, em execução, ou com claim do apply registrado. Para o step exato, consulte o Workflow. |
+| `Reconciling` | `Scheduling`, `Submitting`, `Running`, `AuthorizationRequested`, `Applying` | Tentativa registrada, em execução, ou com claim do apply registrado. Para o step exato, consulte o Workflow. |
 | `ExecutionWaiting` | `Waiting` | A pipeline aguarda uma condição externa. No Simulator, consulte a decisão e o hash em `status.result.details`. |
 | `DriftDetected` | `ExternalChange` | O plan identificou divergência externa. Consulte `lastDriftTime` após a transição de condição. |
 | `Ready` | `NoChanges`, `Verified` | O plan saiu sem mudanças ou o apply passou na verificação. |
 | `ReconcilePending` | `Suspended`, `DependencyBlocked`, `DependencyCycle`, `Cancelling`, `PreviousExecutionFinished` | Execução suspensa, dependência pendente ou transição entre intenções. |
-| `ReconcileBlocked` | `InvalidIntent`, `IntegrationChanged`, `InvalidExecution`, `InvalidExecutionContract`, `ExecutionBlocked`, `Cancelled` | Validação, política, aprovação ou cancelamento interrompeu a tentativa. |
+| `ReconcileBlocked` | `InvalidIntent`, `UnknownWorkflow`, `IntegrationChanged`, `InvalidExecution`, `InvalidExecutionContract`, `ExecutionBlocked`, `Cancelled` | Validação, política, aprovação ou cancelamento interrompeu a tentativa. |
 | `Failed` | `ExecutionFailed`, `ExecutionMissing` | O Workflow falhou ou desapareceu. Consulte os Pods e a última execução antes de intervir no state. |
 | `Destroyed` | `Verified` | O teardown foi aplicado e verificado. |
 
@@ -123,7 +127,7 @@ Correlacione `status.observedGeneration` com a geração do CR e `status.resolve
 
 ## 7. Operação do controller
 
-O manager usa quatro workers por padrão, Leader Election por Lease e duas réplicas, com apenas um líder ativo. A API Kubernetes conserva a intenção e o claim com resourceVersion; o controller lê diretamente a stack, o Workflow e as dependências antes de autorizar mudanças; o cache/index é usado nos watches. Métricas do controller-runtime em :8080 e probes em :8081. A coleta Prometheus será integrada na fase de observabilidade. Mudanças na configuração do controller são aplicadas por rollout. [Implementação Go](../../control-plane/terraformstack/controller/README.md)
+O manager usa quatro workers por padrão, Leader Election por Lease e duas réplicas, com apenas um líder ativo. A API Kubernetes conserva a intenção e o claim com resourceVersion; o controller lê diretamente a stack, o Workflow e as dependências antes de autorizar mudanças; o cache/index é usado nos watches. O controller publica logs JSON, Kubernetes Events e métricas nativas e customizadas em `:8080/metrics`, com probes em `:8081`. `internal/observability` deriva gauges do status no cache e emite contadores de transições persistidas. A coleta central, dashboards e alertas permanecem opcionais e a integração da POC com backends externos fica na fase de observabilidade. Consulte o [catálogo de métricas e diagnóstico](../../control-plane/terraformstack/controller/README.md#observabilidade-operacional). Mudanças na configuração do controller são aplicadas por rollout. [Implementação Go](../../control-plane/terraformstack/controller/README.md)
 
 ## 8. Evolução na AWS
 

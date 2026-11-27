@@ -10,7 +10,7 @@ Sincronizar a Application do CRD e usar as solicitações do Simulator em valida
 
 ## Por que fizemos assim
 
-O CRD `v1alpha1` é o contrato instalado para as próximas etapas. `sourceRef` declara o repositório, o caminho e a versão. O mapa opcional `context` acompanha a intenção. O subrecurso `status` recebe o estado da execução. O controller da próxima etapa usa o mesmo contrato para orquestrar a pipeline.
+O CRD `v1alpha1` é o contrato instalado para as próximas etapas. `sourceRef` declara o repositório, o caminho e a versão. O mapa opcional `context` acompanha a intenção. `workflowRef.name` seleciona um alias cadastrado no controller; a API valida o formato, não a existência da integração. O subrecurso `status` recebe o estado da execução. O controller da próxima etapa usa o mesmo contrato para orquestrar a pipeline.
 
 ## 1. Sincronizar e validar
 
@@ -23,6 +23,7 @@ hub wait --for=condition=Established crd/terraformstacks.platform.example.io --t
 hub explain terraformstack.spec.sourceRef
 hub explain terraformstack.spec.sourceRef.version
 hub explain terraformstack.spec.context
+hub explain terraformstack.spec.workflowRef
 kubectl kustomize control-plane/terraformstack/examples/simulator |
   hub apply --dry-run=server --validate=strict -f -
 ```
@@ -37,6 +38,6 @@ sed 's|foundation/stacks/simulator|foundation/../simulator|g' \
 
 ## O que observar
 
-A API publica os campos de fonte, contexto, ciclo de vida e reconciliação. O dry-run valida as duas solicitações sem criar CRs. Se o tipo estiver ausente, confira a condição `Established` e o resultado do sync da Application.
+A API publica os campos de fonte, contexto, seleção de integração, ciclo de vida e reconciliação. A validação de alias cadastrado pertence ao controller da Etapa 05. O dry-run valida as duas solicitações sem criar CRs. Se o tipo estiver ausente, confira a condição `Established` e o resultado do sync da Application.
 
 [← Etapa 03](03-argo-workflows.md) · [Etapa 05 →](05-terraformstack-runtime.md)

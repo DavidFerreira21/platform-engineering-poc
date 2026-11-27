@@ -53,7 +53,7 @@ Perfis previstos:
 
 | Perfil | Escopo de add-ons |
 | --- | --- |
-| **Control Plane** | Argo CD central, Argo Workflows, Crossplane e controllers centrais |
+| **Hub (perfil físico central)** | Argo CD central e Argo Workflows (Workflow Plane), Crossplane e controllers (Control Plane), componentes de telemetria previstos (Observability Plane) |
 | **Management** | Argo CD local, componentes de gestão e telemetria |
 | **PCI** | Add-ons corporativos explicitamente aprovados para PCI |
 | **Non-PCI** | Add-ons corporativos do perfil padrão |
@@ -75,13 +75,13 @@ As duas primeiras Capabilities do roadmap são **`ObjectStorage` (S3)** e **`Dat
 
 1. O Platform Team (ou persona autorizada) propõe um `TerraformStack` em Git.
 2. Após validação e revisão, o Argo CD central sincroniza **o CR de intenção** no Hub.
-3. O **TerraformStack Controller** valida a estrutura da intenção, verifica dependências e agenda cada tentativa. O CR identifica a fonte em `spec.sourceRef` e pode informar o contexto em `spec.context`.
-4. A pipeline do **Argo Workflows** resolve a revisão Git, o destino e o state conforme o perfil confiável. O Terraform Executor disponibiliza os binários para `plan`, avaliação OPA e, quando exigida, validação da aprovação humana.
-5. O controller autoriza a execução conforme o contrato. O passo de apply registra o claim antes de executar o plano autorizado. A pipeline verifica o resultado e o controller atualiza `TerraformStack.status`.
+3. O **TerraformStack Controller** valida a estrutura da intenção, verifica dependências e agenda cada tentativa. O CR identifica a fonte em `spec.sourceRef` e pode informar `spec.context` e `spec.workflowRef.name`. O alias seleciona uma integração cadastrada, ou usa o default. Há no máximo um Workflow ativo por CR.
+4. A pipeline de referência no **Argo Workflows** resolve a revisão Git, o destino e o state conforme o perfil confiável. O Terraform Executor disponibiliza os binários para `plan`, avaliação OPA e, quando exigida, validação da aprovação humana.
+5. Com o handshake habilitado (default), o controller concede autorização e o executor registra o claim antes do apply. Uma integração compatível pode desabilitar esse handshake; nesse caso, o controller aguarda o término da execução ativa antes de agendar outra. A pipeline publica o resultado tipado e o controller atualiza `TerraformStack.status`. Logs JSON, Events e métricas expõem a saúde da reconciliação independentemente de coleta externa.
 
 **Não há `terraform apply` em todo reconcile da API Kubernetes.** A Etapa 06 exercita Terraform, OPA, aprovação e drift no Simulator. A Etapa 13 leva o apply aprovado à Network UAT. As Etapas 28–29 validam drift e políticas na AWS.
 
-A exclusão padrão do CR retém os recursos. O teardown habilitado explicitamente exige plano, política e aprovação. O fluxo detalha também concorrência, state e retry. [Fluxo do TerraformStack](terraformstack.md) · [ADR-0006](../adr/0006-terraformrun-and-application-ci.md)
+A exclusão padrão do CR retém os recursos. O teardown habilitado explicitamente exige execução verificada; a referência governada aplica plano, política e aprovação conforme a decisão da pipeline. O fluxo detalha também concorrência, state e retry. [Fluxo do TerraformStack](terraformstack.md) · [ADR-0006](../adr/0006-terraformrun-and-application-ci.md)
 
 ## 6. Domain GitOps — aplicações das entidades
 

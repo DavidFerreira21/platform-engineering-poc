@@ -10,7 +10,7 @@ Um plano organiza responsabilidade de arquitetura. Control Plane representa cont
 
 Platform Management Cluster hospeda Control/Workflow/Observability. UAT e PROD são Data Planes; Hub-and-Spoke explica gerenciamento, não necessariamente rede.
 
-Crossplane fica no Control Plane da POC porque observa XRDs e reconcilia recursos. Argo Workflows fica no Workflow Plane porque coordena passos e gates. Ambos podem rodar fisicamente no Platform Management Cluster local, sem criar clusters separados só para respeitar o diagrama.
+Crossplane fica no Control Plane da POC porque reconcilia XRs definidos por XRDs. O TerraformStack Controller também fica nesse plano, coordenando o lifecycle de suas solicitações por um contrato de execução. Argo Workflows fica no Workflow Plane porque coordena passos e gates. Ambos podem rodar fisicamente no Platform Management Cluster local, sem criar clusters separados só para respeitar o diagrama.
 
 ## Leitura complementar
 

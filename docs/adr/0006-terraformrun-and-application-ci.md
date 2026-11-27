@@ -16,10 +16,10 @@ A POC usa a **Kubernetes API como contrato técnico** e quatro camadas de owners
 
 O recurso **`TerraformStack`** tem um CRD próprio versionado na Etapa 04. Na Etapa 05, o **TerraformStack Controller** passa a observar esse recurso no Control Plane do Hub.
 
-- O `spec` declara a origem por `sourceRef` e encaminha o mapa opcional `context`. O perfil do Simulator resolve o destino local, o backend e o PVC. A integração AWS resolve a role e o backend pelo registro autorizado.
+- O `spec` declara a origem por `sourceRef` e encaminha o mapa opcional `context`. `workflowRef.name` seleciona um alias cadastrado ou, quando omitido, o default da instalação. O perfil do Simulator resolve o destino local, o backend e o PVC. A integração AWS resolve a role e o backend pelo registro autorizado.
 - O recurso mantém o ciclo de vida da **infraestrutura desejada**; não representa apenas um `terraform apply`.
-- O `status` expõe condições, horários de verificação e drift, execução, claim, resultado tipado e resolução imutável. Planos e state ficam no armazenamento privado.
-- `TerraformRun` fica **reservado como nome opcional para uma execução imutável** (ou pode ser substituído por um Argo Workflow criado pelo controller). **Não criar um segundo CRD só para representar runs antes de existir justificativa.**
+- O `status` expõe condições, horários de execução, sucesso e drift, drift pendente, execução, claim quando habilitado, resultado tipado e resolução imutável. Planos e state ficam no armazenamento privado.
+- Cada tentativa é representada por um Argo Workflow; não há um segundo CRD de execução.
 - **Entity/Environment/Domain continuam registros lógicos Git**, não CRDs criados por esta decisão.
 
 ### Contrato inicial
@@ -77,7 +77,7 @@ Backstage / CLI / pessoa → PR + validações + aprovação Git
 
 **Separação de responsabilidades:**
 - **Argo CD central:** sincroniza `TerraformStack` do Git para Kubernetes, **não executa Terraform nem cria workflows por conta própria**.
-- **TerraformStack Controller:** valida a intenção declarada, verifica dependências, agenda execuções, controla concorrência e retries, concede autorização e atualiza o status pelo contrato tipado.
+- **TerraformStack Controller:** valida a intenção declarada, verifica dependências, agenda execuções, garante uma tentativa ativa por CR, controla retries, concede autorização quando configurada e atualiza o status pelo contrato tipado. Publica logs, Events e métricas de saúde; a coleta externa é opcional.
 - **Argo Workflows:** executa a pipeline que resolve Git, contexto, variáveis, backend e política e orquestra plan, aprovação, apply e verificação.
 - **Terraform:** calcula e aplica mudanças no ConfigMap do Simulator. As raízes AWS entram nas etapas de Foundation e Entity Core.
 
@@ -85,7 +85,7 @@ Backstage / CLI / pessoa → PR + validações + aprovação Git
 
 ### Executor Argo, identidade do destino e isolamento
 
-A POC usa o `TerraformStack Controller` e Argo Workflows como orquestrador. O Argo cria Pods efêmeros a partir do WorkflowTemplate. Os passos Terraform usam o runner genérico e scripts versionados. OPA usa sua imagem oficial e monta a versão imutável do Rego. A configuração do runtime fixa a ServiceAccount. A pipeline verifica o perfil e fixa a revisão Git e o vínculo de destino. [Execution Contract](../flows/terraformstack-execution-contract.md)
+A POC usa o `TerraformStack Controller` e Argo Workflows como orquestrador. O Argo cria Pods efêmeros a partir do WorkflowTemplate. Os passos Terraform usam o runner genérico e scripts versionados. OPA usa sua imagem oficial e monta a versão imutável do Rego. A configuração do runtime cadastra aliases de WorkflowTemplate com ServiceAccount e contrato próprios. A referência do Simulator usa autorização habilitada; integrações alternativas podem desabilitar o handshake, sem que isso altere suas políticas ou gates. [ADR-0009](0009-terraformstack-runtime.md) A pipeline verifica o perfil e fixa a revisão Git e o vínculo de destino. [Execution Contract](../flows/terraformstack-execution-contract.md)
 
 A Etapa 06 aplica o Simulator com o provider Kubernetes. Na Etapa 10, os mesmos blocos serão instalados no Hub EKS. A Etapa 12 valida a sessão de origem obtida por identidade de Pod e a assunção da role autorizada em UAT.
 
@@ -155,7 +155,7 @@ O canal de aprovação é a UI do Argo Workflows. No Simulator, o step `approval
 3. O passo de aprovação da UI usa um template `suspend: {}`, **sem `duration` que retome automaticamente**. Acesso ao Argo Server deve usar autenticação individual e autorização restrita a aprovadores, com trilha auditável de quem retomou o Workflow. Um simples `resume` não é autorização suficiente sem essa identidade verificável.
 4. Após o `resume`, um passo independente valida a identidade e a autorização do aprovador, o vínculo da decisão ao Workflow e ao hash do plano, as revisões da solicitação e da configuração, a `generation`, a validade do artefato, o state/lock efetivo no momento do apply e o destino. Qualquer falha, expiração ou mudança nesses vínculos **bloqueia o apply** e exige novo plan e nova aprovação.
 5. O executor aplica o arquivo de plano aprovado. Um plan adicional pode verificar a validade do plano aprovado antes do apply. O controller registra o resultado da verificação em `status`.
-6. Reprovação, cancelamento, timeout e erro terminam sem apply; retry é controlado e nunca reaproveita aprovação para plano diferente. Operações `destroy` ou deleção de Stack não são autorizadas implicitamente.
+6. Reprovação, cancelamento, timeout e erro anteriores ao apply devem impedir sua execução; falha após o início pode deixar alteração parcial e exige investigação. Retry é controlado e nunca reaproveita aprovação para plano diferente. Operações `destroy` ou deleção de Stack não são autorizadas implicitamente.
 
 **Critérios de aceite específicos da decisão:** (a) aprovação de pessoa autorizada libera exatamente o plano exibido; (b) usuário sem permissão de retomar Workflow não aprova; (c) `resume` sem evidência verificável de aprovação não executa apply; (d) hash/revisão/destino/generation alterados, expiração ou perda de lock impedem apply; (e) auditoria registra Workflow, plano, aprovador, instante e resultado; (f) todos os caminhos de falha permanecem sem apply indevido.
 

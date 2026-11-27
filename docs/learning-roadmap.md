@@ -35,7 +35,7 @@ Concluir o ciclo TerraformStack antes do Crossplane. Cada reconciliador gerencia
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
 | **04** | [API do TerraformStack](../labs/04-terraformstack-crd.md) | CRD `v1alpha1` estabelecido e schema validado na API |
-| **05** | [Controller e pipeline do TerraformStack](../labs/05-terraformstack-runtime.md) | Controller Go e adapter Argo, configuração e perfil local imutáveis, runner e WorkflowTemplate instalados via GitOps; duas réplicas saudáveis, Lease e RBAC verificados |
+| **05** | [Controller e pipeline do TerraformStack](../labs/05-terraformstack-runtime.md) | Controller Go e adapter Argo, configuração e perfil local imutáveis, runner e WorkflowTemplate instalados via GitOps; duas réplicas saudáveis, Lease e RBAC verificados; endpoint de métricas, logs JSON e Events disponíveis |
 | **06** | [Terraform Stack Simulator](../labs/06-terraformstack-simulator.md) | GitOps, Terraform real, três decisões OPA, aprovação auditada, claim, drift, retry e destroy comprovados no ConfigMap e no status. OpenTofu validado com state próprio |
 | **07** | [Crossplane Core e smoke test](../labs/07-crossplane-core.md) | Core disponível, Function saudável, XRD estabelecido e Composition local observável |
 | **08** | Crossplane de ponta a ponta no `kind` | Argo CD sincroniza XR e o Crossplane cria, atualiza e remove um ConfigMap distinto do Simulator. Conferir schema, `Synced`, `Ready`, ownership, re-sync e permissões |
@@ -104,11 +104,11 @@ Construir uma aplicação **mínima e funcional** usando a infraestrutura pronta
 
 ## Fase 6 — Observabilidade, operação e governança
 
-Instrumentar os componentes implantados e concluir o lifecycle operacional do TerraformStack. Políticas preventivas essenciais já devem existir desde a introdução de cada componente; esta fase consolida diagnósticos e cenários mais avançados.
+Integrar a coleta e a visualização dos sinais já emitidos pelo TerraformStack e instrumentar os demais componentes implantados. O controller não depende de backends externos. Concluir as validações de lifecycle na AWS. Políticas preventivas essenciais já devem existir desde a introdução de cada componente; esta fase consolida diagnósticos e cenários mais avançados.
 
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
-| **26** | Telemetria de plataforma e aplicação | OpenTelemetry Collector/gateway no Data Plane e integração com Grafana, Loki e Tempo; logs/traces correlacionados da API, dos Workflows e dos controllers |
+| **26** | Telemetria de plataforma e aplicação | OpenTelemetry Collector/gateway no Data Plane e integração com Grafana, Loki e Tempo; logs/traces correlacionados da API, dos Workflows e dos controllers; consumir métricas nativas e por CR do TerraformStack, sem alterar sua reconciliação |
 | **27** | Diagnóstico, recuperação e custos | Investigar uma falha controlada, recuperar a operação e conferir rastreabilidade e custos AWS |
 | **28** | Drift Detection do TerraformStack | Validar na AWS `driftCheckInterval` configurável, agendamento idempotente com jitter e verificação periódica; detectar alteração externa em stack UAT, registrar última/próxima checagem e condição/alerta **sem aplicar correção** |
 | **29** | Reconciliação, destroy e políticas | Ampliar as regras OPA da Etapa 13 e comprovar **Auto Apply / Require Approval / Deny** com três planos de teste e evidências da etapa alcançada; testar drift, `plan -destroy` explícito, destroy on deletion com finalizer, proteção de dependências, aprovação humana e bloqueio de ações sensíveis |

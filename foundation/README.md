@@ -7,6 +7,8 @@ A Foundation é de **ownership da plataforma central**. O monorepo reutiliza sta
 
 [← Início](../README.md) · [Arquitetura](../docs/architecture.md) · [Roadmap](../docs/learning-roadmap.md)
 
+Os registros `environment.yaml` descrevem o destino e a topologia pretendida; as flags `core.eks*` não são as flags de provisionamento da raiz EKS. A configuração efetiva vem dos YAMLs de stack: `eks.clusters.management`, `nonPci` e `pci`. O override UAT atual habilita somente Management; Non-PCI entra na Etapa 15 e PCI na Etapa 30, sob autorização. A mudança de uma flag de `true` para `false` em cluster já gerenciado pode propor destroy. A implementação das raízes e utilitários não implica provisionamento AWS concluído.
+
 A Etapa 06 usa a raiz Simulator em Kubernetes. As Etapas 09–10 preparam a conta de plataforma e o Hub EKS. A [Etapa 12](../docs/learning-roadmap.md#etapa-12--identidade-do-executor-e-state) valida a identidade temporária e o backend do executor no Hub EKS para o primeiro apply da spoke na Etapa 13.
 
 ## Configuration
