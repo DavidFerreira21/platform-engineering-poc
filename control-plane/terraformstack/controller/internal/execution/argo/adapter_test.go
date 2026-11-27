@@ -155,3 +155,47 @@ func TestResultNormalization(t *testing.T) {
 		}
 	}
 }
+
+func TestOptionalAuthorizationContract(t *testing.T) {
+	req := testRequest()
+	names := testConfig().Parameters.Output
+	encode := func(fields M) string {
+		fields["workflow"], fields["intentHash"] = req.Workflow, req.IntentHash
+		raw, err := json.Marshal(fields)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(raw)
+	}
+	source := encode(M{"reference": "revision", "binding": "destination"})
+	result := encode(M{"outcome": "Verified"})
+	token := encode(M{"token": "authorization"})
+	for _, tc := range []struct {
+		name string
+		required bool
+		source, token string
+		wantError bool
+	}{
+		{"default requires authorization", true, source, "", true},
+		{"disabled accepts verified", false, source, "", false},
+		{"disabled still requires resolution", false, "", "", true},
+		{"disabled rejects authorization request", false, source, token, true},
+		{"enabled accepts valid request", true, source, token, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := WorkflowObject()
+			params := []any{M{"name": names.Result, "value": result}}
+			if tc.source != "" {
+				params = append(params, M{"name": names.ResolvedSource, "value": tc.source})
+			}
+			if tc.token != "" {
+				params = append(params, M{"name": names.Authorization, "value": tc.token})
+			}
+			w.Object["status"] = M{"phase": "Succeeded", "outputs": M{"parameters": params}}
+			out := observeWithAuthorization(w, names, req, tc.required)
+			if out.ContractError != tc.wantError || (!tc.wantError && out.Phase != execution.Succeeded) {
+				t.Fatalf("unexpected result: %+v", out)
+			}
+		})
+	}
+}
