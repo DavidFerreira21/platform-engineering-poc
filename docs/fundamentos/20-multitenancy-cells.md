@@ -10,7 +10,7 @@ Namespace é um mecanismo de organização e aplicação de controles Kubernetes
 
 UAT e PROD em contas AWS separadas; EKS PCI e Non-PCI por ambiente. A POC não precisa alegar multi-tenant enterprise só porque há múltiplos Domains.
 
-Na POC, UAT e PROD são contas distintas, e cada uma poderá ter EKS PCI e EKS Non-PCI. Um Argo CD do Management EKS com credenciais administrativas para ambos cruza os dois escopos; a conformidade e os controles de segurança precisam ser examinados antes da implantação.
+Na arquitetura-alvo, UAT e PROD usam contas distintas; cada Environment prevê Management, PCI e Non-PCI. O Hub central continua sendo uma dependência compartilhada, portanto essa topologia não demonstra automaticamente células independentes nem conformidade PCI. O acesso entre VPCs isoladas para GitOps é específico do serviço gerenciado previsto, não conectividade geral de Pods. Um Argo CD do Management EKS com credenciais administrativas para ambos cruza os dois escopos; a conformidade e os controles de segurança precisam ser examinados antes da implantação.
 
 ## Leitura complementar
 
