@@ -8,9 +8,9 @@
 
 **Por quê:** evita controllers concorrendo pelos mesmos recursos, isola operação AWS dos Deployments e preserva autonomia federada via Git.
 
-**TerraformStack.** O CRD declara a infraestrutura desejada. O Argo CD central sincroniza o CR e o controller agenda tentativas em Argo Workflows. A pipeline resolve a fonte e o destino, gera o plano e consulta OPA. O apply usa o plano autorizado depois do claim da execução. O Simulator valida aplicação automática, aprovação, bloqueio e drift no Hub local. [ADR-0006](0006-terraformrun-and-application-ci.md) · [ADR-0009](0009-terraformstack-runtime.md).
+**TerraformStack.** O CRD declara a infraestrutura desejada. O Argo CD central sincroniza o CR e o controller agenda tentativas em Argo Workflows. Cada CR conserva uma tentativa ativa, selecionando um alias de integração ou o default. A pipeline de referência resolve a fonte e o destino, gera o plano e consulta OPA. Seu apply usa o plano autorizado depois do claim da execução. Integrações alternativas podem desabilitar o handshake sem impor ou remover gates internos. O Simulator valida aplicação automática, aprovação, bloqueio e drift no Hub local. [ADR-0006](0006-terraformrun-and-application-ci.md) · [ADR-0009](0009-terraformstack-runtime.md).
 
-**Telemetria.** O desenho AWS prevê OpenTelemetry Collector nos Management EKS com destino central em Grafana, Loki e Tempo.
+**Telemetria.** O TerraformStack já expõe logs JSON, Events e métricas nativas e por CR, sem dependência de backends. O desenho AWS prevê OpenTelemetry Collector nos Management EKS com destino central em Grafana, Loki e Tempo.
 
 **Consequências:** Crossplane não monitora Git, apenas a API. Credenciais IAM precisam de associação autorizada por Environment e validação de Domain. O Argo CD local pode precisar de segregação de acesso PCI. Terraform só converge quando é executado; indisponibilidade do Hub interrompe reconciliação das Capabilities centrais, não necessariamente os workloads.
 
