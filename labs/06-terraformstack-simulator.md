@@ -253,9 +253,34 @@ hub -n terraformstack-simulator delete serviceaccount "$approver"
 - Um Workflow pode terminar em `Succeeded` após registrar `Deny` ou uma rejeição. Nesses casos, o CR exibe `ReconcileBlocked` e o ConfigMap preserva o último valor aplicado.
 - Guarde revisão, ID ou digest de imagem e resultados do exercício. O PVC contém os planos e states locais.
 
+## 5. Executar o mesmo fluxo com OpenTofu
+
+O runner da Etapa 05 inclui o OpenTofu. Use a stack dependente e um PVC vazio para manter os ensaios separados. Conclua o destroy Terraform da dependente, exclua seu CR e remova seus Workflows concluídos antes de excluir o PVC. Os Pods desses Workflows podem manter a proteção do PVC ativa. Sincronize **terraformstack-controller** para recriar o PVC vazio.
+
+Em uma revisão de teste, defina `iac` como `tofu` no perfil do Simulator. Suspenda a Network, remova o `dependsOn` da dependente e ative a dependente. Sincronize **terraformstack-workflows** e depois **terraformstack-simulator** com essa revisão. Confira no Workflow o primeiro apply, a mudança de CIDR com aprovação e o destroy explícito aprovado da dependente. Use `status.resolvedSource.binding` para correlacionar as tentativas no mesmo state. [Perfil de execução](../workflow-plane/argo-workflows/terraformstack/simulator.json) · [Runner e isolamento](../workflow-plane/README.md#binário-de-iac-no-simulator)
+
+Após o destroy verificado, remova os recursos do ensaio conforme a seção anterior e sincronize o WorkflowTemplate da revisão padrão com `iac: terraform`.
+
 ## Evidências de aceite
 
-**Aceite da revisão anterior.** Em 26/11/2026, recriamos o Hub `platform-management` e seguimos as Etapas 01 a 06. O WorkflowTemplate foi sincronizado a partir de `e7245bd`. Para os testes de dependência e teardown, reconstruímos o controller com a correção `77e4b77`. O Kubernetes registrou o ImageID `sha256:17fb6897534d9569ab8333c09581468eed856306eca44dc860a9fa1a5ec5d6af` no controller e `sha256:8e9155c8134166b516c7d27bc2eab74c40aec79f961a19fb06d185f57eb46a67` no runner.
+### Contrato atual
+
+O aceite usou o Hub `kind` `platform-management` com as revisões da refatoração do [PR #58](https://github.com/DavidFerreira21/platform-engineering-poc/pull/58). Os cenários versionaram somente dados do Simulator e as mudanças aplicadas foram ConfigMaps locais.
+
+| Cenário | Resultado observado |
+| --- | --- |
+| GitOps e drift | O primeiro apply criou o baseline. O plan periódico retornou `NoChanges` sem claim. A alteração externa para `10.83.0.0/16` foi detectada e corrigida no commit já fixado. |
+| Política e UI | O Resume autorizado aplicou `10.82.0.0/16` e apareceu na auditoria. Rejeição, hash incorreto, negativa do OPA e erro de Rego preservaram esse valor. A identidade somente leitura não tinha permissão de atualizar Workflows. |
+| Outputs e integridade | Outputs ausentes, inválidos e contraditórios terminaram em `InvalidExecutionContract`. A adulteração do binário falhou antes do claim. O retry usou a mesma referência e o mesmo vínculo e exigiu outra aprovação. |
+| Idempotência e cancelamento | O sync repetido e a troca de líder conservaram o gate. Um novo commit terminou a espera obsoleta antes de criar o próximo Workflow. Uma revisão que chegou após o claim aguardou o apply e a verificação anteriores. A admissão recusou claim sem autorização. |
+| Origem e destino | O Workflow recusou repositório e contexto fora do perfil antes de preparar o volume. Uma mudança de vínculo foi recusada com `BindingChanged` e o ConfigMap foi preservado. |
+| Dependências e destroy explícito | O controller detectou o ciclo, aguardou a Network ficar pronta e provisionou a dependente com state próprio. O destroy da Network só alcançou o gate depois do destroy verificado da dependente. A rejeição preservou o ConfigMap. A aprovação subsequente removeu o ConfigMap e manteve o CR em `Destroyed`. |
+| Retain, vínculo do PVC e finalizer | A exclusão padrão preservou o ConfigMap e o PVC. Recriar o CR com um perfil incompatível retornou `StateBindingMismatch`. Restaurar o perfil retomou o state com `NoChanges`. O destroy opt-in na exclusão removeu o ConfigMap e liberou o finalizer após aprovação e verificação. |
+| OpenTofu 1.13.9 | Com PVC novo, o Simulator passou por plan JSON, OPA, apply automático, atualização de CIDR aprovada, revalidação, verify e destroy aprovado. O backend local recusou um plan concorrente durante apply em testes separados com Terraform e OpenTofu. |
+
+### Revisão anterior
+
+Em 26/11/2026, recriamos o Hub `platform-management` e seguimos as Etapas 01 a 06. O WorkflowTemplate foi sincronizado a partir de `e7245bd`. Para os testes de dependência e teardown, reconstruímos o controller com a correção `77e4b77`. O Kubernetes registrou o ImageID `sha256:17fb6897534d9569ab8333c09581468eed856306eca44dc860a9fa1a5ec5d6af` no controller e `sha256:8e9155c8134166b516c7d27bc2eab74c40aec79f961a19fb06d185f57eb46a67` no runner.
 
 | Cenário | Resultado observado |
 | --- | --- |

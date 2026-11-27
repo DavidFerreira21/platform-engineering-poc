@@ -116,7 +116,7 @@ O controller publica a condição corrente em `status.conditions`, preservando c
 | `Failed` | `ExecutionFailed`, `ExecutionMissing` | O Workflow falhou ou desapareceu. Consulte os Pods e a última execução antes de intervir no state. |
 | `Destroyed` | `Verified` | O teardown foi aplicado e verificado. |
 
-Correlacione `status.observedGeneration` com a geração do CR e `status.resolvedSource.reference` com o commit efetivo. `status.resolvedSource.binding` identifica o destino autorizado. `status.execution` guarda a intenção, a fase, a referência do Workflow e o gatilho. O `status.result` informa o resultado e o diagnóstico do executor, como `PolicyDenied`, `PolicyError`, `ApprovalRejected` e `StateBindingMismatch`. O binário, o JSON integral e o state ficam no volume. [Consultas do exercício](../../labs/06-terraformstack-simulator.md#o-que-observar)
+Correlacione `status.observedGeneration` com a geração do CR e `status.resolvedSource.reference` com o commit efetivo. `status.resolvedSource.binding` identifica o destino autorizado. `status.execution` guarda a intenção, a fase, a referência do Workflow e o gatilho. O `status.result` informa o resultado e o diagnóstico do executor, como `PolicyDenied`, `PolicyError`, `ApprovalRejected` e `StateBindingMismatch`. O resultado acompanha a tentativa registrada em `status.execution`. Uma suspensão ou dependência pode atualizar a condição antes de existir uma nova tentativa. O binário, o JSON integral e o state ficam no volume. [Consultas do exercício](../../labs/06-terraformstack-simulator.md#o-que-observar)
 
 ## 7. Operação do controller
 
