@@ -155,3 +155,22 @@ func TestResultNormalization(t *testing.T) {
 		}
 	}
 }
+
+func TestContractDiagnosticDoesNotExposePayload(t *testing.T) {
+	req := testRequest()
+	names := testConfig().Parameters.Output
+	w := WorkflowObject()
+	w.Object["status"] = M{"phase": "Succeeded", "outputs": M{"parameters": []any{
+		M{"name": names.Result, "value": "private-payload"},
+	}}}
+	var reasons []string
+	out := observeWithDiagnostic(w, names, req, func(reason, output string) {
+		reasons = append(reasons, reason+":"+output)
+	})
+	if !out.ContractError || out.Phase != execution.Blocked {
+		t.Fatalf("unexpected result: %+v", out)
+	}
+	if len(reasons) != 1 || reasons[0] != "InvalidResult:"+names.Result {
+		t.Fatalf("unexpected diagnostic: %v", reasons)
+	}
+}
