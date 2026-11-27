@@ -10,8 +10,8 @@ O código é organizado pelo componente que a plataforma instala e mantém. A nu
 
 | Caminho-alvo | Camada e gestão |
 | :--- | :--- |
-| `config/` | YAMLs de valores por stack (`network.yaml`, `eks.yaml` etc.), organizados em global → Entity → Environment. O módulo compartilhado `configuration` resolve a herança usada pelo Simulator e pelas raízes AWS |
-| `foundation/modules/` + `foundation/config/<entity>/<env>/` | **Foundation** · implementações de stacks `network`/`eks`, módulos Terraform internos reutilizáveis e cadastro autorizado do Environment |
+| `foundation/config/` | YAMLs de valores por stack, da camada global à Entity e ao Environment, e registros de destino `environment.yaml` |
+| `foundation/stacks/` + `foundation/modules/` | Raízes `simulator`, `network` e `eks`, com módulos Terraform reutilizáveis, incluindo `configuration` |
 | `data-plane/<entity>/core-infrastructure/<env>/` | **Entity Core** · compartilhado por ambiente, EKS por Terraform |
 | `data-plane/<entity>/domains/<domain>/domain.yaml` | **Domain** · registro lógico único, não CRD |
 | `data-plane/<entity>/domains/<domain>/<env>/infrastructure/` | **Domain Infrastructure** · manifests de Capabilities sob gestão do DevOps Federado; Crossplane central é reconciliador |
@@ -22,13 +22,13 @@ Os registros de Domain ficam no monorepo. O DevOps Federado mantém os manifests
 
 **Environment é a conta AWS UAT/PROD inteira**, não a pasta de Core. O Core é a parte compartilhada e o Domain possui os recursos de negócio. Ambos ficam no **Data Plane**. O registro de Environment fica na Foundation por ownership central, mas descreve o destino de todos os recursos do Environment.
 
-Os valores de cada **stack** seguem a ordem `config/<arquivo>.yaml`, `config/<entity>/<arquivo>.yaml` e `config/<entity>/<env>/<arquivo>.yaml`. A stack usa o módulo compartilhado `configuration` para resolver precedência e flags. O `TerraformStack` guarda a revisão versionada da configuração usada no plan. Os registros `environment.yaml` mantêm o cadastro do destino AWS na Foundation. [Decisão sobre configuração por entidade e ambiente](adr/0006-terraformrun-and-application-ci.md#configuração-por-entidade-e-ambiente)
+O repositório mantém os valores em `foundation/config/`. Cada stack informa a raiz de configuração e a hierarquia ao módulo `configuration`, que compõe os arquivos na ordem global, Entity e Environment. A pipeline do Simulator usa o mesmo commit para código e YAMLs de valores e registra a referência efetiva em `status.resolvedSource.reference`. Os registros `environment.yaml` descrevem o destino AWS autorizado. [Decisão sobre configuração por entidade e ambiente](adr/0006-terraformrun-and-application-ci.md#configuração-por-entidade-e-ambiente)
 
-### Atualizações de arquitetura-alvo (a implementar)
+### Componentes do TerraformStack
 
-- **TerraformStack (CRD + controller).** O contrato de infraestrutura desejada fica em `control-plane/` e é sincronizado via Argo CD central. O controller Go separa `internal/controller` (reconciliação), `internal/execution` (interface) e `internal/execution/argo` (integração Argo). Argo Workflows, Terraform Executor e [Policy Engine](../workflow-plane/policy-engine/README.md) ficam em `workflow-plane/`. A Etapa 13 comprova o apply aprovado. A Etapa 06 valida políticas e drift no Simulator. As Etapas 28 e 29 validam esses mecanismos na AWS. `TerraformRun` é nome opcional de uma execução individual. [Estrutura do controller](../control-plane/terraformstack/controller/README.md) · [ADR-0009](adr/0009-terraformstack-runtime.md).
-- **GitHub Actions das aplicações:** será mantido **em repositório de aplicação de teste separado**, a integrar durante o lab correspondente. Este monorepo não incluirá código/CI da aplicação.
-- **Management EKS:** Argo CD local, Operators a escolher e OpenTelemetry Collector/gateway para observabilidade central (Grafana/Loki/Tempo).
+- `control-plane/terraformstack/` reúne CRD, controller Go, configuração do adapter Argo, exemplos e overlay do Hub local. O CRD e o controller têm Applications próprias. [Estrutura do controller](../control-plane/terraformstack/controller/README.md).
+- `workflow-plane/argo-workflows/terraformstack/` contém WorkflowTemplate, scripts e perfil do Simulator. O runner e o Policy Engine são blocos do Workflow Plane. [Execution Contract](flows/terraformstack-execution-contract.md) · [Policy Engine](../workflow-plane/policy-engine/README.md).
+- `foundation/stacks/simulator/` cria o ConfigMap do ensaio local. As raízes Network e EKS fazem parte da evolução AWS, cujo primeiro apply aprovado está previsto na Etapa 13. [Roadmap](learning-roadmap.md).
 
 ### Três personas e a fronteira entre repositórios
 

@@ -1,8 +1,6 @@
 # GitOps Flow — Platform Engineering POC
 
-> **Estado:** arquitetura-alvo aprovada (v1); implementação incremental conforme o roadmap.  
-> **Atual:** Hub `kind` com bootstrap por scripts, Argo CD central e catálogo de add-ons.  
-> **Futuro:** EKS e múltiplos ambientes com EKS Capability for Argo CD como Argo CD central. [ADR-0008](../adr/0008-managed-argocd-connectivity.md)
+As Etapas 01 a 06 validaram o Hub `kind`, o catálogo do Argo CD e o Terraform Stack Simulator. Crossplane Core tem um smoke test local na Etapa 07. A topologia AWS prevê a EKS Capability for Argo CD no Hub e Argo CD autogerenciado em cada Management EKS. [Roadmap](../learning-roadmap.md) · [ADR-0008](../adr/0008-managed-argocd-connectivity.md)
 
 ![Fluxo GitOps: Platform Addons, Crossplane, TerraformStack e Domain Applications](./gitops-flow.png)
 
@@ -18,7 +16,7 @@ O GitOps abrange quatro fluxos complementares:
 | --- | --- | --- | --- |
 | **Platform GitOps** | Catálogo de add-ons e Applications | Argo CD central e ApplicationSet | Componentes Kubernetes corporativos |
 | **Infrastructure GitOps — Crossplane** | CRs de Capabilities | Crossplane central e Provider AWS | S3, Aurora PostgreSQL e demais Capabilities |
-| **Infrastructure GitOps — Terraform** | CR `TerraformStack` | TerraformStack Controller → Argo Workflows → Terraform Executor | Foundation, rede, IAM e EKS |
+| **Infrastructure GitOps — Terraform** | CR `TerraformStack` | TerraformStack Controller → Argo Workflows → Terraform Executor | ConfigMap no Simulator. Foundation, rede, IAM e EKS no alvo AWS |
 | **Domain GitOps** | Manifests de aplicações no repositório da squad | Argo CD local | Aplicações nos clusters PCI/Non-PCI autorizados |
 
 > **Importante:** o diagrama é **lógico**, não prova de conectividade entre VPCs/landing zones nem de recursos AWS já implantados. O Argo CD central não executa diretamente Terraform nem substitui o Crossplane.
@@ -77,9 +75,9 @@ As duas primeiras Capabilities do roadmap são **`ObjectStorage` (S3)** e **`Dat
 
 1. O Platform Team (ou persona autorizada) propõe um `TerraformStack` em Git.
 2. Após validação e revisão, o Argo CD central sincroniza **o CR de intenção** no Hub.
-3. O **TerraformStack Controller** valida módulo, revisão, Entity/Environment e destino confiável; avalia quando iniciar uma execução.
-4. O **Argo Workflows** orquestra `plan`, política, aprovação humana quando exigida e `apply` pelo Terraform Executor.
-5. O Terraform provisiona a infraestrutura; o controller verifica a execução e atualiza `TerraformStack.status`.
+3. O **TerraformStack Controller** valida a estrutura da intenção, verifica dependências e agenda cada tentativa. O CR identifica a fonte em `spec.sourceRef` e pode informar o contexto em `spec.context`.
+4. A pipeline do **Argo Workflows** resolve a revisão Git, o destino e o state conforme o perfil confiável. O Terraform Executor disponibiliza os binários para `plan`, avaliação OPA e, quando exigida, validação da aprovação humana.
+5. O controller autoriza a execução conforme o contrato. O passo de apply registra o claim antes de executar o plano autorizado. A pipeline verifica o resultado e o controller atualiza `TerraformStack.status`.
 
 **Não há `terraform apply` em todo reconcile da API Kubernetes.** A Etapa 06 exercita Terraform, OPA, aprovação e drift no Simulator. A Etapa 13 leva o apply aprovado à Network UAT. As Etapas 28–29 validam drift e políticas na AWS.
 
@@ -120,21 +118,21 @@ As landing zones podem ser isoladas, sem VPC Peering nem Transit Gateway. O padr
 
 Git define **configuração e intenção declarativas**; não é obrigatório armazenar nele outputs dinâmicos, credenciais ou Terraform state.
 
-O [GitOps Bridge Flow](gitops-bridge.md) documenta separadamente: publicação de outputs selecionados do Terraform no Parameter Store, consumo por External Secrets Operator e, quando aplicável, parâmetros de ApplicationSet. Também serão tratados atualização, revogação e limpeza de parâmetros, sem exposição de segredos em annotations.
+Na Etapa 17, o GitOps Bridge publica outputs selecionados do Terraform no Parameter Store e o External Secrets Operator os materializa em Secrets nos namespaces consumidores. O ApplicationSet central consulta o cadastro criado pelo onboarding do cluster. [GitOps Bridge](gitops-bridge.md)
 
 ## 10. Implementação incremental
 
 | Etapa | Evidência principal |
 | --- | --- |
-| 01–02 | Hub `kind`, Argo CD central e catálogo de Applications |
-| 03–05 | Argo Workflows, Crossplane Core e API TerraformStack |
-| 06–09 | Controller, UAT, IAM/backend e primeiro Terraform apply aprovado |
-| 10–12 | EKS Management/Non-PCI, onboarding multicluster, Argo CD local e perfis corporativos |
-| 13–14 | GitOps Bridge (Parameter Store → ESO) e smoke test HTTP no Non-PCI |
-| 15–17 | Capabilities AWS por Crossplane |
-| 18–21 | Primeira aplicação FastAPI com Aurora/S3, CI GitHub Actions/ECR e CD GitOps |
-| 22–27 | Observabilidade, drift, reconciliação por políticas e isolamento |
-| 28–31 | Experience Layer e Golden Path integrado |
+| 01–03 | Hub `kind`, Argo CD central e Argo Workflows |
+| 04–06 | CRD, controller, pipeline e Simulator com Terraform e OpenTofu |
+| 07–08 | Crossplane Core com recurso local e aceite GitOps |
+| 09–13 | Foundation, Hub EKS, UAT, identidade, state e primeiro apply de Network |
+| 14–18 | Management e Non-PCI, GitOps multicluster, Bridge e smoke test HTTP |
+| 19–21 | Identidade Crossplane e Capabilities AWS |
+| 22–25 | Aplicação FastAPI com Aurora/S3, GitHub Actions, ECR e Argo CD local |
+| 26–31 | Observabilidade, drift, reconciliação por políticas e isolamento |
+| 32–35 | Experience Layer e Golden Path integrado |
 
 Os laboratórios iniciais permanecem em **kind**; adicionar dependências AWS antes da etapa correspondente não faz parte desta aprovação.
 

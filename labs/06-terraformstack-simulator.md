@@ -265,7 +265,7 @@ Após o destroy verificado, remova os recursos do ensaio conforme a seção ante
 
 ### Contrato atual
 
-O aceite usou o Hub `kind` `platform-management` com as revisões da refatoração do [PR #58](https://github.com/DavidFerreira21/platform-engineering-poc/pull/58). Os cenários versionaram somente dados do Simulator e as mudanças aplicadas foram ConfigMaps locais.
+O aceite usou o Hub `kind` `platform-management` com as revisões da refatoração. Depois do merge, repetimos as Etapas 01 a 06 com a `main` em `ce89b5f`. Os cenários versionaram somente dados do Simulator e as mudanças aplicadas foram ConfigMaps locais. [PR #58](https://github.com/DavidFerreira21/platform-engineering-poc/pull/58).
 
 | Cenário | Resultado observado |
 | --- | --- |

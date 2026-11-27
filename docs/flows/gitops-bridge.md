@@ -2,11 +2,7 @@
 
 [← Arquitetura](../architecture.md) · [GitOps Flow](gitops.md) · [TerraformStack Flow](terraformstack.md) · [Roadmap](../learning-roadmap.md)
 
-> **Estado:** arquitetura-alvo documentada; integração ainda não implementada.
-> **Hoje:** o laboratório roda em `kind`; o `TerraformStack` da Etapa 04 possui contrato inicial, sem outputs AWS reais.
-> **Futuro:** Terraform publica outputs selecionados em AWS Systems Manager Parameter Store na **conta do Environment**; consumidores Kubernetes autorizados os utilizam por meio do External Secrets Operator (ESO).
->
-> **Imagem:** o arquivo `gitops-bridge-flow.png` será adicionado manualmente nesta pasta. O desenho é **lógico**, não representa uma conexão de rede ou IAM já provisionada.
+O Simulator validado no Hub `kind` termina com a verificação do ConfigMap local. As raízes AWS expõem `bridge_parameters` e o publicador já está versionado. A Etapa 17 integra a publicação após `verify` ao SSM da conta do Environment e valida o consumo por External Secrets Operator (ESO) no Management EKS. O diagrama mostra a topologia-alvo. [Raízes e publicador](../../foundation/stacks/README.md)
 
 ![GitOps Bridge — provisionamento, publicação de outputs e consumo no Environment](./gitops-bridge-flow.png)
 
@@ -30,14 +26,14 @@ Na arquitetura AWS futura há pelo menos **duas fronteiras**: a conta de platafo
 
 | Componente | Onde executa / reside | Ownership |
 | --- | --- | --- |
-| **Argo CD central, TerraformStack Controller e Argo Workflows** | Control Plane da plataforma: `kind` hoje, EKS de plataforma como evolução possível | Platform Team |
+| **Argo CD central, TerraformStack Controller e Argo Workflows** | Hub da plataforma. Argo CD autogerenciado no `kind` e EKS Capability for Argo CD no alvo AWS | Platform Team |
 | **VPC, IAM, Management EKS, PCI e Non-PCI** | Conta AWS do Environment selecionado | Foundation / Entity Core, sob governança do Platform Team |
 | **AWS SSM Parameter Store** | **Mesma conta e região autorizadas do Environment** para os parâmetros publicados nesse destino | Publicação governada pela plataforma |
 | **External Secrets Operator para consumo de gestão** | **Management EKS do Environment**, quando esse cluster já existir | Instalação/configuração-base via Platform GitOps |
 | **ESO de workloads (quando necessário)** | **EKS PCI ou Non-PCI** correspondente, sem compartilhamento automático entre clusters | Platform Team para instalação; consumidores autorizados para ExternalSecrets |
 | **Kubernetes Secrets gerados pelo ESO** | Namespace do **cluster onde o ESO reconcilia** | Consumidor e políticas Kubernetes do cluster |
 | **ApplicationSet corporativo** | **Argo CD central**, não no Management EKS apenas por haver ESO local | Platform Team |
-| **Argo CD local** | Management EKS do Environment, ou capability gerenciada associada a ele na arquitetura AWS sob avaliação | Aplicações e extensões locais autorizadas |
+| **Argo CD local** | Instância autogerenciada no Management EKS do Environment | Aplicações e extensões locais autorizadas |
 
 **Regra:** o ESO **não é um serviço por conta AWS**. É um controller executando **dentro de um cluster Kubernetes**. Uma instância no Management EKS não distribui Kubernetes Secrets automaticamente para PCI, Non-PCI ou Control Plane.
 
@@ -50,7 +46,7 @@ Da mesma forma, **o ESO do Management não entrega automaticamente metadados ao 
 ```text
 Git (TerraformStack) → Argo CD central → Kubernetes API
   → TerraformStack Controller → Argo Workflows
-  → plan → política / aprovação → apply → verify
+  → plan → política / aprovação → autorização → claim → apply → verify
   → recursos na conta AWS de Entity / Environment
 ```
 
@@ -72,12 +68,12 @@ Exemplo **ilustrativo** de caminhos:
 /platform/entity-a/uat/network/vpc-id
 /platform/entity-a/uat/eks/management/cluster-name
 /platform/entity-a/uat/eks/management/cluster-endpoint
-/platform/entity-a/uat/iam/external-secrets-role-arn
+/platform/entity-a/uat/network/web-nonpci-subnet-ids
 ```
 
 Esses exemplos representam **metadados operacionais não secretos**. Não publicar state, plan binário, kubeconfig, tokens, senhas nem outputs classificados como sensíveis. Mesmo valores não secretos precisam de acesso restrito quando revelam topologia interna.
 
-**Importante:** a **etapa de publicação** é uma capacidade adicional prevista, não algo que todo `terraform apply` execute hoje. Ela precisa de critérios de idempotência, reexecução, falhas parciais e política de limpeza.
+Na Etapa 17, a pipeline AWS chama o publicador após `verify`. O utilitário confere a conta, recebe a região do destino e grava chaves da allowlist como `String`. A reexecução atualiza os mesmos caminhos. A limpeza de parâmetros descontinuados é explícita. [Publicador](../../foundation/scripts/publish-bridge-outputs.py)
 
 ### 3.3 Consumo no Management EKS
 
@@ -133,7 +129,7 @@ Os três passos são independentes:
 
 **Outputs no Parameter Store não registram clusters.** A conectividade de API Kubernetes, as EKS Access Entries/IAM, as labels de classificação e os limites PCI/Non-PCI devem ser estabelecidos explicitamente.
 
-A avaliação do **EKS Argo CD Capability** para landing zones isoladas é uma decisão de implementação da arquitetura AWS, não pré-requisito para compreender este fluxo no laboratório `kind`.
+A arquitetura AWS adota a **EKS Capability for Argo CD** como Argo CD central. A Etapa 16 valida registro por ARN, Access Entries e conectividade gerenciada antes do aceite do Bridge. [ADR-0008](../adr/0008-managed-argocd-connectivity.md)
 
 ## 6. Segurança e contratos de publicação
 
@@ -164,7 +160,7 @@ A avaliação do **EKS Argo CD Capability** para landing zones isoladas é uma d
 
 ## 8. Laboratório: kind primeiro, AWS depois
 
-### Simulação local — sem recursos AWS
+### Ensaio local opcional
 
 Objetivo: demonstrar o conceito produtor → distribuição → consumidor, sem depender de IAM ou EKS.
 
@@ -174,7 +170,7 @@ Objetivo: demonstrar o conceito produtor → distribuição → consumidor, sem 
 4. Alterar a versão do output e verificar a atualização; simular falha e parâmetro ausente.
 5. Documentar que **isso não comprova a integração ESO + SSM real**. Um ensaio genuíno do ESO exigirá um provedor suportado, por exemplo um provedor local de teste ou a AWS na etapa correspondente.
 
-### Integração AWS — quando o roadmap chegar ao destino
+### Integração AWS na Etapa 17
 
 A evolução exige conta UAT autorizada, TerraformStack real, role de publicação, Parameter Store, Management EKS consumidor, ESO, RBAC e verificações. O [Roadmap V2](../learning-roadmap.md) prevê a integração AWS na **Etapa 17**, após o provisionamento e onboarding dos clusters das Etapas 14–16.
 

@@ -6,7 +6,7 @@ O Workflow Plane mantém processos, GitOps central, aprovação e execução. O 
 | :--- | :--- |
 | **Argo CD central** | Sincroniza CRs Kubernetes de `TerraformStack` e de Capability na API do Hub |
 | **Argo Workflows** | Orquestra a pipeline canônica, a avaliação OPA e o gate de aprovação. O Simulator usa esses steps na Etapa 06 |
-| **Terraform Executor** | Imagem genérica de ferramentas que executa os scripts de Terraform do WorkflowTemplate |
+| **Terraform Executor** | Imagem genérica com Terraform, OpenTofu e as ferramentas usadas pelos scripts do WorkflowTemplate |
 
 No Hub `kind`, Argo CD central é autogerenciado. No Hub EKS, adotar EKS Capability for Argo CD para sincronização local e cross-account por ARN e Access Entries, sem rotas entre VPCs. [ADR-0008](../docs/adr/0008-managed-argocd-connectivity.md).
 
@@ -14,7 +14,7 @@ No Hub `kind`, Argo CD central é autogerenciado. No Hub EKS, adotar EKS Capabil
 
 ## Aplicações e execuções declarativas
 
-- **TerraformStack.** O controller Go fica no Control Plane e coordena o fluxo pelo adapter Argo. A pipeline de referência resolve Git, contexto, backend, variáveis e política. WorkflowTemplate, runner, scripts e Policy Engine implementam o [Execution Contract](../docs/flows/terraformstack-execution-contract.md). A Etapa 13 valida o `plan`, a aprovação humana e o `apply` do mesmo plano. A Etapa 06 exercita as decisões OPA e drift localmente. As Etapas 28–29 validam esses mecanismos na AWS. `TerraformRun` permanece um nome opcional para a execução individual.
+- **TerraformStack.** O controller Go fica no Control Plane e coordena o fluxo pelo adapter Argo. A pipeline de referência resolve Git, contexto, backend, variáveis e política. WorkflowTemplate, runner, scripts e Policy Engine implementam o [Execution Contract](../docs/flows/terraformstack-execution-contract.md). A Etapa 06 comprova as decisões OPA, o claim e o drift localmente. A Etapa 13 prevê o primeiro apply da Network UAT, com aprovação vinculada ao plano. As Etapas 28–29 exercitam drift e políticas na AWS.
 - **Domain Applications:** GitHub Actions fará o **CI/CD em um repositório de aplicação de teste separado**, a integrar durante o lab correspondente. Build/test/scan/publicação → atualização GitOps revisada → Argo CD **local** no Management EKS faz deploy nos clusters autorizados. Não adicionar código ou workflow CI da aplicação neste monorepo.
 
 [ADR-0006](../docs/adr/0006-terraformrun-and-application-ci.md)
