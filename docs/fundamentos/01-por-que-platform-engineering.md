@@ -8,7 +8,7 @@ Uma equipe central pode automatizar tarefas sem oferecer uma plataforma. A difer
 
 ## Onde a POC se encaixa
 
-No laboratório, o resultado desejado é permitir que um consumidor solicite storage ou banco e acompanhe a reconciliação sem aprender como um Provider AWS é configurado. Kubernetes, Crossplane e Terraform são meios para oferecer essa experiência, não a definição de Platform Engineering.
+Na POC, começamos pelo fluxo de infraestrutura declarativa no Simulator local, antes de entregar storage e banco na AWS. A meta é que o DevOps Federado solicite uma Capability e acompanhe seu lifecycle sem configurar diretamente o Provider AWS. O desenvolvedor consome os padrões de aplicação e suas dependências. A plataforma precisa demonstrar valor para cada persona, não apenas automatizar tarefas do próprio Platform Team. Kubernetes, Crossplane e Terraform são meios para oferecer essa experiência, não a definição de Platform Engineering.
 
 ## Leitura complementar
 
