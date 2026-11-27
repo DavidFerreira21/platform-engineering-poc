@@ -7,6 +7,7 @@ import (
 	"time"
 
 	execengine "github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/execution"
+	"github.com/DavidFerreira21/platform-engineering-poc/terraformstack/internal/observability"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -21,6 +22,7 @@ type Reconciler struct {
 	DefaultWorkflow string
 	StackNamespace  string
 	Now             func() time.Time
+	Observer        *observability.Observer
 }
 
 // resolveEngine uses only installation-authorized aliases. It never mutates the
@@ -82,13 +84,14 @@ func (r *Reconciler) report(ctx context.Context, o *unstructured.Unstructured, k
 	}
 	status["observedGeneration"] = o.GetGeneration()
 	status["conditions"] = conditions
+	observability.EnrichStatus(old, status, r.clock())
 	if equal(status, old) {
 		return nil
 	}
 	o.Object["status"] = status
 	e := r.Status().Update(ctx, o)
 	if e == nil {
-		log.FromContext(ctx).Info("transição TerraformStack", "stack", o.GetName(), "workflowRef", str(obj(status["execution"])["workflowRef"]), "condition", kind, "reason", reason)
+		r.Observer.Committed(ctx, o, old, status)
 	}
 	return e
 }
@@ -102,8 +105,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if e := r.Reader.Get(ctx, req.NamespacedName, o); e != nil {
 		return done(client.IgnoreNotFound(e))
 	}
-	logger := log.FromContext(ctx)
-	logger.V(1).Info("reconciliation started", "event", "reconcile.started", "stack", o.GetName(), "generation", o.GetGeneration())
+	logger := log.FromContext(ctx).WithValues("stack", o.GetName(), "namespace", o.GetNamespace(), "uid", string(o.GetUID()), "generation", o.GetGeneration())
+	ctx = log.IntoContext(ctx, logger)
+	logger.V(1).Info("reconciliation started", "event", "reconcile.started")
 	status := obj(o.Object["status"])
 	run := copyMap(obj(status["execution"]))
 	deleting := !o.GetDeletionTimestamp().IsZero()
@@ -207,8 +211,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	dependency := dependencyReason(all.Items, o, s, str(d["operation"]))
 	eligible := dependency == ""
+	logger.V(1).Info("dependencies evaluated", "event", "dependency.evaluated", "eligible", eligible, "reason", dependency)
 	changed := !equal(d, run["intent"]) || desiredErr != nil || (str(run["workflowRef"]) != "" && desiredName != str(run["workflowRef"]))
 	suspended := s.Suspend
+	if active && (changed || suspended || !eligible) && !canCancel {
+		logger.V(1).Info("active execution preserved", "event", "execution.preserved", "workflowRef", selectedName, "workflow", str(run["workflow"]), "authorizationRequired", requiresAuthorization)
+	}
 	if active {
 		switch {
 		case w == nil:
