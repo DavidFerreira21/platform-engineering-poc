@@ -1,6 +1,6 @@
 # 🚀 PROD · Entity Core (marcador legado)
 
-Ambiente **PROD**, representado por uma conta AWS independente de UAT. A estrutura abaixo está planejada, ainda não provisionada. No modelo vigente, Core ficará em `data-plane/entity-a/core-infrastructure/`prod``, e Domains estarão em `data-plane/entity-a/domains/`. Environment inclui ambos os escopos.
+Ambiente **PROD**, representado por uma conta AWS independente de UAT. A estrutura abaixo está planejada, ainda não provisionada. No modelo vigente, Core ficará em `data-plane/entity-a/core-infrastructure/prod/`, e Domains estarão em `data-plane/entity-a/domains/`. Environment inclui ambos os escopos.
 
 | Componente | Papel |
 | :--- | :--- |
