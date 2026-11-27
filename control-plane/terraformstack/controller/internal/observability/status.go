@@ -9,9 +9,9 @@ import (
 
 type Data = map[string]any
 
-func object(v any) Data { m, _ := v.(map[string]any); return m }
+func object(v any) Data        { m, _ := v.(map[string]any); return m }
 func stringValue(v any) string { s, _ := v.(string); return s }
-func boolean(v any) bool { b, _ := v.(bool); return b }
+func boolean(v any) bool       { b, _ := v.(bool); return b }
 func integer(v any) int64 {
 	switch n := v.(type) {
 	case int64:
@@ -111,7 +111,7 @@ func EnrichStatus(old, next Data, now time.Time) {
 }
 
 type Health struct {
-	Namespace, Stack, Condition, Reason, Phase, Trigger string
+	Namespace, Stack, Condition, Reason, Phase, Trigger  string
 	Active, Suspended, Current, DriftKnown, DriftPending bool
 	Attempt, Scheduled, LastCheck, LastSuccess, LastDrift float64
 }
