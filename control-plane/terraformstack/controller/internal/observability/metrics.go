@@ -95,8 +95,8 @@ func flag(v bool) float64 {
 }
 
 type Metrics struct {
-	executions                                     *prometheus.CounterVec
-	duration                                       *prometheus.HistogramVec
+	executions                                    *prometheus.CounterVec
+	duration                                      *prometheus.HistogramVec
 	contractErrors, drift, retries, authorizations *prometheus.CounterVec
 }
 
