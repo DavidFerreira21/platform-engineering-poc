@@ -171,10 +171,10 @@ func TestOptionalAuthorizationContract(t *testing.T) {
 	result := encode(M{"outcome": "Verified"})
 	token := encode(M{"token": "authorization"})
 	for _, tc := range []struct {
-		name string
-		required bool
+		name          string
+		required      bool
 		source, token string
-		wantError bool
+		wantError     bool
 	}{
 		{"default requires authorization", true, source, "", true},
 		{"disabled accepts verified", false, source, "", false},
