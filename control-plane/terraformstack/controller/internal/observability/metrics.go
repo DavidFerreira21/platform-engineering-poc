@@ -13,8 +13,8 @@ import (
 // HealthCollector reads the existing informer cache at scrape time. No new
 // watches, external collector, API calls per stack, or mutable gauge cache.
 type HealthCollector struct {
-	reader client.Reader
-	namespace string
+	reader      client.Reader
+	namespace   string
 	descriptors map[string]*prometheus.Desc
 }
 
@@ -95,8 +95,8 @@ func flag(v bool) float64 {
 }
 
 type Metrics struct {
-	executions *prometheus.CounterVec
-	duration *prometheus.HistogramVec
+	executions                                     *prometheus.CounterVec
+	duration                                       *prometheus.HistogramVec
 	contractErrors, drift, retries, authorizations *prometheus.CounterVec
 }
 
@@ -107,12 +107,12 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 		return c
 	}
 	m := &Metrics{
-		executions: counter("executions_total", "Observed persisted terminal execution transitions.", "phase", "trigger"),
+		executions:     counter("executions_total", "Observed persisted terminal execution transitions.", "phase", "trigger"),
 		contractErrors: counter("contract_errors_total", "Observed transitions to invalid contract or identity.", "reason"),
-		drift: counter("drift_detected_total", "Observed newly reported drift.", "trigger"),
-		retries: counter("retries_total", "Observed newly scheduled retry attempts.", "trigger"),
+		drift:          counter("drift_detected_total", "Observed newly reported drift.", "trigger"),
+		retries:        counter("retries_total", "Observed newly scheduled retry attempts.", "trigger"),
 		authorizations: counter("authorization_requests_total", "Observed authorization grants.", "trigger"),
-		duration: prometheus.NewHistogramVec(prometheus.HistogramOpts{Namespace: "terraformstack", Name: "execution_duration_seconds", Help: "Time from scheduling to terminal result, including waits.", Buckets: []float64{1, 5, 15, 30, 60, 300, 900, 3600, 14400, 86400}}, []string{"phase"}),
+		duration:       prometheus.NewHistogramVec(prometheus.HistogramOpts{Namespace: "terraformstack", Name: "execution_duration_seconds", Help: "Time from scheduling to terminal result, including waits.", Buckets: []float64{1, 5, 15, 30, 60, 300, 900, 3600, 14400, 86400}}, []string{"phase"}),
 	}
 	reg.MustRegister(m.duration)
 	return m
