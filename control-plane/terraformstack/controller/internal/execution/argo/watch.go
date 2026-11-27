@@ -16,8 +16,13 @@ func stackName(o client.Object) string {
 }
 
 func (a *Adapter) WatchHandler(stackNamespace string) handler.EventHandler {
+	return WatchHandlerForNamespaces(stackNamespace, map[string]bool{a.Config.Namespace: true})
+}
+
+// WatchHandlerForNamespaces maps only Workflows in the configured execution namespaces.
+func WatchHandlerForNamespaces(stackNamespace string, namespaces map[string]bool) handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, o client.Object) []reconcile.Request {
-		if o.GetNamespace() != a.Config.Namespace || o.GetLabels()["platform.example.io/workflow"] != "terraformstack" {
+		if !namespaces[o.GetNamespace()] || o.GetLabels()["platform.example.io/workflow"] != "terraformstack" {
 			return nil
 		}
 		name := stackName(o)

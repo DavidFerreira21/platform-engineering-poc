@@ -105,7 +105,7 @@ func Intent(o *unstructured.Unstructured) (M, error) {
 	intent := &execengine.Intent{
 		Stack: o.GetName(), Namespace: o.GetNamespace(), UID: string(o.GetUID()),
 		Generation: o.GetGeneration(), RevisionAnnotation: o.GetAnnotations()[revision],
-		Deleting: deleting, SourceRef: s.SourceRef, Context: s.Context, Operation: op,
+		Deleting: deleting, WorkflowRef: s.WorkflowRef, SourceRef: s.SourceRef, Context: s.Context, Operation: op,
 	}
 	return runtime.DefaultUnstructuredConverter.ToUnstructured(intent)
 }

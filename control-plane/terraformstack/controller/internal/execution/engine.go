@@ -16,6 +16,7 @@ type Intent struct {
 	Generation         int64             `json:"generation"`
 	RevisionAnnotation string            `json:"revisionAnnotation"`
 	Deleting           bool              `json:"deleting"`
+	WorkflowRef        *api.WorkflowRef  `json:"workflowRef,omitempty"`
 	SourceRef          api.SourceRef     `json:"sourceRef"`
 	Context            map[string]string `json:"context"`
 	Operation          Operation         `json:"operation"`

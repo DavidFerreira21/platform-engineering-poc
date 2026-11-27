@@ -25,6 +25,16 @@ spec:
               description: Contrato declarativo de uma stack reconciliada por um executor.
               required: [sourceRef]
               properties:
+                workflowRef:
+                  type: object
+                  description: Nome da integração autorizada pelo Platform Team; ausente utiliza a integração padrão.
+                  required: [name]
+                  properties:
+                    name:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
+                      pattern: '^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$'
                 sourceRef:
                   type: object
                   description: Referência cujo acesso e revisão efetiva são resolvidos pelo executor.
@@ -72,7 +82,7 @@ spec:
                 suspend:
                   type: boolean
                   default: false
-                  description: Interrompe novas reconciliações e checagens; não cancela apply em andamento.
+                  description: Interrompe novas reconciliações e checagens; preserva apply em andamento e Workflows ativos sem handshake de autorização.
                 reconciliation:
                   type: object
                   properties:
@@ -102,7 +112,7 @@ spec:
                     destroy:
                       type: boolean
                       default: false
-                      description: Solicita plan -destroy explícito, governado por policy e aprovação humana.
+                      description: Solicita destroy explícito; os controles de governança pertencem à pipeline selecionada.
                     destroyResourcesOnDeletion:
                       type: boolean
                       default: false
@@ -120,6 +130,12 @@ spec:
                   properties:
                     workflow:
                       type: string
+                    workflowRef:
+                      type: string
+                      description: Alias da integração selecionada para a tentativa.
+                    launchAttempted:
+                      type: boolean
+                      description: Registro de submissão antes da criação de Workflow sem autorização.
                     phase:
                       type: string
                       enum: [Pending, Running, Waiting, AuthorizationRequested, Applying, Succeeded, Failed, Blocked, Cancelled]

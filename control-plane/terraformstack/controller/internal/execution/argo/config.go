@@ -23,11 +23,16 @@ type Parameters struct {
 	Input  InputParameters  `json:"input"`
 	Output OutputParameters `json:"output"`
 }
+type ContractConfig struct {
+	Authorization *bool `json:"authorization,omitempty"`
+}
+
 type WorkflowConfig struct {
-	Namespace          string      `json:"namespace"`
-	TemplateRef        TemplateRef `json:"templateRef"`
-	ServiceAccountName string      `json:"serviceAccountName"`
-	Parameters         Parameters  `json:"parameters"`
+	Contract           ContractConfig `json:"contract,omitempty"`
+	Namespace          string         `json:"namespace"`
+	TemplateRef        TemplateRef    `json:"templateRef"`
+	ServiceAccountName string         `json:"serviceAccountName"`
+	Parameters         Parameters     `json:"parameters"`
 }
 
 func validName(label, v string, ns bool) error {
@@ -55,6 +60,10 @@ func distinct(label string, values ...string) error {
 	}
 	return nil
 }
+func (w WorkflowConfig) RequiresAuthorization() bool {
+	return w.Contract.Authorization == nil || *w.Contract.Authorization
+}
+
 func (w WorkflowConfig) Validate() error {
 	if e := validName("workflow.namespace", w.Namespace, true); e != nil {
 		return e
@@ -69,14 +78,25 @@ func (w WorkflowConfig) Validate() error {
 		return e
 	}
 	p := w.Parameters.Output
-	return distinct("workflow.parameters.output", p.State, p.Authorization, p.Result, p.ResolvedSource)
+	outputs := []string{p.Result, p.ResolvedSource}
+	if p.State != "" {
+		outputs = append(outputs, p.State)
+	}
+	if w.RequiresAuthorization() || p.Authorization != "" {
+		outputs = append(outputs, p.Authorization)
+	}
+	return distinct("workflow.parameters.output", outputs...)
 }
 
 func (w WorkflowConfig) Snapshot() execution.Data {
-	return execution.Data{
+	snapshot := execution.Data{
 		"namespace": w.Namespace, "templateRef": w.TemplateRef.Name, "serviceAccountName": w.ServiceAccountName,
 		"intent": w.Parameters.Input.Intent, "state": w.Parameters.Output.State,
 		"authorization": w.Parameters.Output.Authorization, "result": w.Parameters.Output.Result,
 		"resolvedSource": w.Parameters.Output.ResolvedSource,
 	}
+	if !w.RequiresAuthorization() {
+		snapshot["authorizationRequired"] = false
+	}
+	return snapshot
 }

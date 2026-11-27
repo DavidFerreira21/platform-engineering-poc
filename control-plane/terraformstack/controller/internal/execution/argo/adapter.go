@@ -117,9 +117,7 @@ func (a *Adapter) Get(ctx context.Context, req execution.Request) (*execution.Ru
 		log.FromContext(ctx).Info("workflow identity invalid", "event", "execution.identity.invalid", "workflow", req.Workflow, "intentHash", req.IntentHash)
 		return &execution.Run{}, nil
 	}
-	return observeWithDiagnostic(w, a.Config.Parameters.Output, req, func(reason, output string) {
-		log.FromContext(ctx).Info("execution contract invalid", "event", "execution.contract.invalid", "workflow", req.Workflow, "intentHash", req.IntentHash, "reason", reason, "output", output)
-	}), nil
+	return observeWithAuthorization(w, a.Config.Parameters.Output, req, a.Config.RequiresAuthorization()), nil
 }
 
 func (a *Adapter) Cancel(ctx context.Context, req execution.Request) error {
@@ -171,10 +169,10 @@ func decode(raw string, into any) bool {
 }
 
 func observe(w *unstructured.Unstructured, names OutputParameters, req execution.Request) *execution.Run {
-	return observeWithDiagnostic(w, names, req, func(string, string) {})
+	return observeWithAuthorization(w, names, req, true)
 }
 
-func observeWithDiagnostic(w *unstructured.Unstructured, names OutputParameters, req execution.Request, diagnostic func(string, string)) *execution.Run {
+func observeWithAuthorization(w *unstructured.Unstructured, names OutputParameters, req execution.Request, authorizationRequired bool) *execution.Run {
 	status := obj(w.Object["status"])
 	native := str(status["phase"])
 	phase := execution.Running
@@ -198,6 +196,9 @@ func observeWithDiagnostic(w *unstructured.Unstructured, names OutputParameters,
 	for _, p := range arr(obj(status["outputs"])["parameters"]) {
 		param := obj(p)
 		key := str(param["name"])
+		if key == "" {
+			continue
+		}
 		switch key {
 		case names.State, names.Authorization, names.Result, names.ResolvedSource:
 			value, ok := param["value"].(string)
@@ -228,6 +229,9 @@ func observeWithDiagnostic(w *unstructured.Unstructured, names OutputParameters,
 		out.Progress = &progress
 	}
 	if raw := outputs[names.Authorization]; raw != "" {
+		if !authorizationRequired {
+			return invalid()
+		}
 		var approval execution.Authorization
 		if !decode(raw, &approval) || approval.Identity != req.Identity ||
 			!opaque.MatchString(approval.Token) || out.Resolution == nil {
@@ -250,8 +254,8 @@ func observeWithDiagnostic(w *unstructured.Unstructured, names OutputParameters,
 				out.Phase = execution.Succeeded
 			}
 		case execution.Verified:
-			if out.Resolution == nil || out.Authorization == "" || (terminal && native != "Succeeded") {
-				return invalid("InconsistentVerified", names.Result)
+			if out.Resolution == nil || (authorizationRequired && out.Authorization == "") || (terminal && native != "Succeeded") {
+				return invalid()
 			}
 			if terminal {
 				out.Phase = execution.Succeeded

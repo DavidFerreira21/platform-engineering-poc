@@ -24,12 +24,16 @@ type RetryPolicy struct {
 	MaxInterval string `json:"maxInterval,omitempty"`
 	MaxRetries  int    `json:"maxRetries,omitempty"`
 }
+type WorkflowRef struct {
+	Name string `json:"name"`
+}
 type StackSpec struct {
-	SourceRef SourceRef         `json:"sourceRef"`
-	Context   map[string]string `json:"context,omitempty"`
-	DependsOn []Dependency      `json:"dependsOn,omitempty"`
-	Suspend   bool              `json:"suspend,omitempty"`
-	Lifecycle struct {
+	WorkflowRef *WorkflowRef      `json:"workflowRef,omitempty"`
+	SourceRef   SourceRef         `json:"sourceRef"`
+	Context     map[string]string `json:"context,omitempty"`
+	DependsOn   []Dependency      `json:"dependsOn,omitempty"`
+	Suspend     bool              `json:"suspend,omitempty"`
+	Lifecycle   struct {
 		Destroy                    bool `json:"destroy,omitempty"`
 		DestroyResourcesOnDeletion bool `json:"destroyResourcesOnDeletion,omitempty"`
 	} `json:"lifecycle,omitempty"`

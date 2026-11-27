@@ -3,16 +3,21 @@ controller:
   stackNamespace: platform-system
   workers: 4
   leaderElection: true
-workflow:
-  namespace: argo-workflows
-  templateRef:
-    name: terraformstack
-  serviceAccountName: terraformstack-executor
-  parameters:
-    input:
-      intent: intent
-    output:
-      state: execution-state
-      authorization: authorization-request
-      result: execution-result
-      resolvedSource: resolved-source
+# O nome da integração é a referência opcional em spec.workflowRef.name.
+defaultWorkflow: terraformstack
+workflows:
+  - name: terraformstack
+    namespace: argo-workflows
+    templateRef:
+      name: terraformstack
+    serviceAccountName: terraformstack-executor
+    contract:
+      authorization: true
+    parameters:
+      input:
+        intent: intent
+      output:
+        state: execution-state
+        authorization: authorization-request
+        result: execution-result
+        resolvedSource: resolved-source
