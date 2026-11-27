@@ -28,11 +28,11 @@ type ContractConfig struct {
 }
 
 type WorkflowConfig struct {
-	Contract ContractConfig `json:"contract,omitempty"`
-	Namespace          string      `json:"namespace"`
-	TemplateRef        TemplateRef `json:"templateRef"`
-	ServiceAccountName string      `json:"serviceAccountName"`
-	Parameters         Parameters  `json:"parameters"`
+	Contract           ContractConfig `json:"contract,omitempty"`
+	Namespace          string         `json:"namespace"`
+	TemplateRef        TemplateRef    `json:"templateRef"`
+	ServiceAccountName string         `json:"serviceAccountName"`
+	Parameters         Parameters     `json:"parameters"`
 }
 
 func validName(label, v string, ns bool) error {
