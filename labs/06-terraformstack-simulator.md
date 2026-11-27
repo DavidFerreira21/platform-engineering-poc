@@ -10,7 +10,7 @@ O Argo CD sincroniza a intenção em Git. O controller abre um Workflow e a pipe
 
 ## Por que fizemos assim
 
-O mesmo caminho de reconciliação atende o primeiro plan, as mudanças declaradas e a observação periódica do ambiente. Mantemos o state em um PVC por stack, com locking do backend local, e o plano binário em um diretório por execução. O OPA avalia o JSON derivado do plano. Antes do apply, a pipeline confere o hash do binário e compara o efeito previsto com um novo plan. A função `claim()` confere a intenção e a autorização vigentes no CR e registra `status.claim` por atualização condicional. O apply usa o binário salvo. [Autorização final do apply](../docs/flows/terraformstack.md#autorização-final-do-apply)
+Este lab exercita a integração de referência `terraformstack`, com `contract.authorization: true`. Não altere esse campo para `false` no template atual: ele depende do handshake. O mesmo caminho de reconciliação atende o primeiro plan, as mudanças declaradas e a observação periódica do ambiente. Mantemos o state em um PVC por stack, com locking do backend local, e o plano binário em um diretório por execução. O OPA avalia o JSON derivado do plano. Antes do apply, a pipeline confere o hash do binário e compara o efeito previsto com um novo plan. A função `claim()` confere a intenção e a autorização vigentes no CR e registra `status.claim` por atualização condicional. O apply usa o binário salvo. [Autorização final do apply](../docs/flows/terraformstack.md#autorização-final-do-apply)
 
 O perfil local da pipeline autoriza os dois nomes do exercício, a raiz Terraform do repositório e o destino lógico `entity-a/simulator`. O Simulator lê Configuration com o perfil de dados `entity-a/uat`. O código Terraform das revisões aceitas é mantido pelo Platform Team. O Workflow usa o perfil `simulator`, composto de `common` e `simulator`, em um pacote imutável; o status publica a decisão, o hash do plano e o SHA-256 do pacote. [Contrato](../docs/flows/terraformstack.md) · [Política OPA](../workflow-plane/policy-engine/README.md)
 
@@ -154,7 +154,7 @@ hub -n platform-system get terraformstack simulator-network -w \
   -o 'custom-columns=GEN:.metadata.generation,WORKFLOW:.status.execution.workflow,GATILHO:.status.execution.trigger,CONDICAO:.status.conditions[?(@.status=="True")].type,DRIFT:.status.lastDriftTime'
 ```
 
-Sem novo commit ou sync, aguarde `DriftCheck` na mesma revisão, a condição `DriftDetected` ou o horário de drift persistido e o retorno do CIDR ao baseline. Confira o Workflow periódico e a próxima checagem sem mudanças. O intervalo desta solicitação é 45 segundos.
+Sem novo commit ou sync, aguarde `DriftCheck` na mesma revisão, a condição `DriftDetected` ou o horário de drift persistido e o retorno do CIDR ao baseline. Confira o Workflow periódico e a próxima checagem sem mudanças. O intervalo desta solicitação é 45 segundos. Com o runtime consolidado, confira também `status.driftPending` durante a remediação, `status.lastSuccessTime` após `Ready` e a métrica `terraformstack_drift_pending` pelo endpoint da Etapa 05. O campo pode estar ausente antes do primeiro drift reportado; a condição `DriftDetected` pode ser transitória.
 
 Com outro Workflow aguardando aprovação, sincronize a mesma revisão e confira que o nome da execução permanece. Em seguida, confira a troca de líder com o gate ainda aberto.
 
@@ -251,6 +251,7 @@ hub -n terraformstack-simulator delete serviceaccount "$approver"
 - `status.observedGeneration`, `resolvedSource` e `execution.workflow` ligam intenção, commit e execução. O GitOps mostra a sincronização do CR. Leia a condição pelo par `type` e `reason`, como `ExecutionWaiting / Waiting`. `lastCheckTime` e `lastDriftTime` registram a última tentativa concluída e a última detecção de drift. [Condições e diagnóstico](../docs/flows/terraformstack.md#6-status-e-diagnóstico)
 - `status.result` guarda resultado, diagnósticos e detalhes como a decisão e o hash do plano. `status.claim` relaciona intenção, Workflow e autorização. O log de auditoria do Hub confirma a identidade que retomou o gate. As evidências são o status, o ConfigMap e a ausência de mudança em um segundo plan.
 - Um Workflow pode terminar em `Succeeded` após registrar `Deny` ou uma rejeição. Nesses casos, o CR exibe `ReconcileBlocked` e o ConfigMap preserva o último valor aplicado.
+- Consulte `hub -n platform-system describe terraformstack simulator-network` para ver os Events ainda retidos pela API. Correlacione logs do controller com o Workflow e o hash da intenção, sem publicar tokens ou payloads. [Métricas e diagnóstico](../control-plane/terraformstack/controller/README.md#observabilidade-operacional).
 - Guarde revisão, ID ou digest de imagem e resultados do exercício. O PVC contém os planos e states locais.
 
 ## 5. Executar o mesmo fluxo com OpenTofu
@@ -263,7 +264,11 @@ Após o destroy verificado, remova os recursos do ensaio conforme a seção ante
 
 ## Evidências de aceite
 
-### Contrato atual
+### Validação automatizada do runtime consolidado
+
+Os PRs #60–#62 acrescentaram logging, seleção de integrações, autorização opcional e observabilidade por CR. A CI do [PR #62](https://github.com/DavidFerreira21/platform-engineering-poc/pull/62) passou nas validações do controller e do runner. Os cenários de múltiplos aliases e `authorization: false` têm cobertura automatizada; a integração de referência permanece com handshake habilitado. As evidências de execução real abaixo correspondem às revisões registradas, anteriores a essa consolidação. Não representam uma nova execução de ponta a ponta do runtime atualizado.
+
+### Aceite do contrato na revisão do PR #58
 
 O aceite usou o Hub `kind` `platform-management` com as revisões da refatoração. Depois do merge, repetimos as Etapas 01 a 06 com a `main` em `ce89b5f`. Os cenários versionaram somente dados do Simulator e as mudanças aplicadas foram ConfigMaps locais. [PR #58](https://github.com/DavidFerreira21/platform-engineering-poc/pull/58).
 
