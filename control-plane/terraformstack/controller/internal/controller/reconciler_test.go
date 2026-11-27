@@ -378,8 +378,12 @@ func TestEnvtestStatusCAS(t *testing.T) {
 	o.SetUID("")
 	o.SetResourceVersion("")
 	o.SetGeneration(0)
+	obj(o.Object["spec"])["workflowRef"] = M{"name": "custom-workflow"}
 	if e = c.Create(context.Background(), o); e != nil {
 		t.Fatal(e)
+	}
+	if obj(obj(o.Object["spec"])["workflowRef"])["name"] != "custom-workflow" {
+		t.Fatal("workflowRef pruned by CRD")
 	}
 	stale := o.DeepCopy()
 	o.Object["status"] = M{"claim": M{"workflow": "test-wf", "intentHash": strings.Repeat("a", 64), "authorization": "test-token"}}
@@ -618,6 +622,37 @@ func TestWithoutAuthorizationDestroy(t *testing.T) {
 	workflowStatus(t, r, "Succeeded", "", "Verified", "")
 	tick(t, r, 1)
 	if reason(t, r) != "Verified" || getRun(t, r)["result"] != "Destroyed" {
+		t.Fatal(getRun(t, r))
+	}
+}
+
+func TestAuthorizationConfigurationChangeDuringExecution(t *testing.T) {
+	r, _ := fixture(t)
+	tick(t, r, 4)
+	old := getRun(t, r)["workflow"]
+	disabled := false
+	r.Engines[r.DefaultWorkflow].(*argo.Adapter).Config.Contract.Authorization = &disabled
+	tick(t, r, 1)
+	if reason(t, r) != "IntegrationChanged" || getRun(t, r)["workflow"] != old ||
+		obj(current(t, r).Object["spec"])["shutdown"] != nil {
+		t.Fatal("active execution configuration changed")
+	}
+}
+
+func TestWithoutAuthorizationSuspensionPreservesExecution(t *testing.T) {
+	r, _ := fixture(t)
+	disabled := false
+	r.Engines[r.DefaultWorkflow].(*argo.Adapter).Config.Contract.Authorization = &disabled
+	tick(t, r, 4)
+	old := getRun(t, r)["workflow"]
+	change(t, r, "suspend", true)
+	tick(t, r, 2)
+	if getRun(t, r)["workflow"] != old || obj(current(t, r).Object["spec"])["shutdown"] != nil {
+		t.Fatal("execution interrupted on suspend")
+	}
+	workflowStatus(t, r, "Succeeded", "", "Verified", "")
+	tick(t, r, 3)
+	if reason(t, r) != "Suspended" || getRun(t, r)["workflow"] != old {
 		t.Fatal(getRun(t, r))
 	}
 }
