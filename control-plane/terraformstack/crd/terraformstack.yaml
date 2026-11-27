@@ -133,6 +133,9 @@ spec:
                     workflowRef:
                       type: string
                       description: Alias da integração selecionada para a tentativa.
+                    scheduledAt:
+                      type: string
+                      format: date-time
                     launchAttempted:
                       type: boolean
                       description: Registro de submissão antes da criação de Workflow sem autorização.
@@ -192,6 +195,12 @@ spec:
                 deletionIntent:
                   type: object
                   x-kubernetes-preserve-unknown-fields: true
+                driftPending:
+                  type: boolean
+                  description: Drift reportado e ainda não confirmado como reconciliado; ausente quando desconhecido.
+                lastSuccessTime:
+                  type: string
+                  format: date-time
                 lastDriftTime:
                   type: string
                   format: date-time
