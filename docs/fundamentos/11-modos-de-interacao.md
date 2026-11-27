@@ -8,7 +8,7 @@ Na colaboração, dois times trabalham próximos para descobrir e resolver incer
 
 ## Evolução natural de um produto
 
-Ao definir o primeiro Domain, podemos colaborar com um time consumidor fictício; depois consolidamos o XRD e a documentação para consumo autônomo.
+Ao definir o primeiro Domain, podemos colaborar com um time consumidor fictício; depois consolidamos o contrato, os perfis e a documentação para consumo autônomo. O DevOps Federado pode solicitar evolução de uma Capability, mas não precisa manter a Composition ou administrar o cluster central.
 
 O primeiro Domain da POC pode exigir colaboração para definir namespaces, quotas e permissões adequadas. Depois, uma XRD e uma Composition estáveis possibilitam que outros times consumam o mesmo resultado sem reunião com a equipe mantenedora.
 
