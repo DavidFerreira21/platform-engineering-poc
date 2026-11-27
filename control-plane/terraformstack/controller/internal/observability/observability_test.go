@@ -66,7 +66,7 @@ func TestResourceHealthAndDeletion(t *testing.T) {
 	o := &unstructured.Unstructured{Object: Data{
 		"apiVersion": "platform.example.io/v1alpha1", "kind": "TerraformStack",
 		"metadata": Data{"name": "network", "namespace": "platform-system", "generation": int64(2)},
-		"status": Data{"observedGeneration": int64(2), "driftPending": true, "conditions": []any{Data{"type": "Failed", "status": "True", "reason": "ExecutionFailed"}}},
+		"status":   Data{"observedGeneration": int64(2), "driftPending": true, "conditions": []any{Data{"type": "Failed", "status": "True", "reason": "ExecutionFailed"}}},
 	}}
 	h := ReadHealth(o)
 	if h.Condition != "Failed" || !h.Current || !h.DriftKnown || !h.DriftPending {
