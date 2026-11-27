@@ -20,7 +20,7 @@ Hub `platform-management`, Argo CD e Argo Workflows instalados. CRD estabelecido
 
 ## 1. Construir ou reconstruir as imagens
 
-Confira se o checkout corresponde à revisão que será sincronizada. Os nomes do contrato precisam corresponder ao WorkflowTemplate. Kustomize monta a configuração imutável no controller. Scripts, RBAC e admissão acompanham o mesmo contrato. [Configuração](../control-plane/terraformstack/controller/controller-config.yaml)
+Confira se o checkout corresponde à revisão que será sincronizada. Os nomes do contrato precisam corresponder ao WorkflowTemplate. O `controller-config.yaml` cadastra a integração de referência com `authorization: true`; os CRs do Simulator podem omitir `workflowRef` e usar o default. Não é necessário criar outras pipelines para concluir este lab. Kustomize monta a configuração imutável no controller. Scripts, RBAC e admissão acompanham o mesmo contrato. [Configuração](../control-plane/terraformstack/controller/controller-config.yaml)
 
 No Hub existente, aguarde os Workflows ativos e os gates de aprovação antes de substituir o runner na mesma tag ou alterar o contrato. Se precisar impedir novas execuções durante a atualização, suspenda as solicitações pelo GitOps após concluir as tentativas em curso.
 
@@ -82,6 +82,8 @@ hub -n argo-workflows get pvc simulator-network simulator-dependent
 ## Atualizar um Hub da revisão anterior
 
 Conclua os Workflows antigos e suspenda os CRs pelo GitOps. Antes de trocar de contrato, conclua o destroy aprovado dos recursos descartáveis do Simulator com a revisão antiga. Depois da verificação, remova as solicitações antigas e descarte apenas seus PVCs de teste. Um PVC com state anterior sem vínculo fica bloqueado no runtime novo. Preserve qualquer state que precise ser recuperado e mantenha a revisão que o criou disponível. A POC exige uma migração explícita para reaproveitar esse state.
+
+Para a evolução de seleção de Workflows, sem mudança de binding ou state, basta drenar as tentativas e atualizar CRD, configuração e imagem do controller; não é necessário descartar o PVC por causa da seleção de alias. Mantenha a integração de referência com autorização habilitada.
 
 Sincronize o CRD da Etapa 04, carregue as imagens reconstruídas, sincronize os Workflows e o controller e depois sincronize o Simulator com a mesma revisão. Atualize os manifestos das solicitações para `sourceRef.repository` e `context`. O perfil e os outputs devem corresponder à configuração instalada. [Etapa 04](04-terraformstack-crd.md) · [Execution Contract](../docs/flows/terraformstack-execution-contract.md)
 
