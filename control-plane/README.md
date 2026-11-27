@@ -15,7 +15,7 @@ O Argo CD central sincroniza os CRs de Capability e `TerraformStack` com a Kuber
 
 ## TerraformStack
 
-O Control Plane publica o CRD `TerraformStack` na Etapa 04. Na Etapa 05, instala o controller que valida a intenção declarada, agenda os Workflows e autoriza a execução. A pipeline resolve Git, contexto e state. Cada tentativa é representada por um Workflow, e o controller atualiza o status do CR a partir dos outputs tipados. A Etapa 06 comprova o fluxo no Simulator. [Fluxo do TerraformStack](../docs/flows/terraformstack.md) · [Guia do Simulator](../labs/06-terraformstack-simulator.md)
+O Control Plane publica o CRD `TerraformStack` na Etapa 04. Na Etapa 05, instala o controller que valida a intenção declarada, seleciona a integração cadastrada e mantém no máximo um Workflow ativo por CR. A autorização operacional é habilitada por padrão e pode ser desabilitada por integração compatível. A pipeline de referência resolve Git, contexto e state; outras integrações podem implementar suas próprias etapas. Cada tentativa é representada por um Workflow, e o controller atualiza o status do CR a partir dos outputs tipados. O controller também disponibiliza logs JSON, Events e métricas de saúde por CR, sem depender de uma stack externa de observabilidade. A Etapa 06 comprova o fluxo no Simulator. [Fluxo do TerraformStack](../docs/flows/terraformstack.md) · [Guia do Simulator](../labs/06-terraformstack-simulator.md)
 
 O primeiro apply de Network em UAT está previsto para a Etapa 13, com aprovação humana. As Etapas 28 e 29 validam drift e reconciliação por políticas na AWS. [Roadmap](../docs/learning-roadmap.md) · [ADR-0006](../docs/adr/0006-terraformrun-and-application-ci.md)
 
