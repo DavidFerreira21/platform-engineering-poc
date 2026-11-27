@@ -76,3 +76,31 @@ kubectl get terraformstack <stack> -n platform-system -o json | jq '.status'
 ```
 
 Inspecione também os steps e logs do Workflow correspondente no Argo. Antes de compartilhar diagnósticos, sanitize manifests, status e logs (credenciais, tokens, variáveis, identificadores privados e planos). Informe a revisão Git, versões de Kubernetes/Argo, passos de reprodução e resultado esperado/observado.
+
+
+## Observabilidade operacional
+
+O controller expõe logs JSON em stdout, Events na API Kubernetes e métricas no endpoint existente `:8080/metrics`. Não depende de Prometheus Server, Grafana, Loki ou coletores. O operador decide como consumir os sinais. O package `internal/observability` não interpreta ferramentas ou etapas da pipeline.
+
+| Métrica (prefixo terraformstack_) | Semântica |
+| --- | --- |
+| condition, execution_phase | Condição e fase persistidas; séries atuais com valor 1 |
+| execution_active, suspended, observed_generation_current | Execução não finalizada, suspensão, geração observada |
+| drift_pending | Drift reportado ainda não confirmado convergente; ausência significa desconhecido |
+| last_check_timestamp_seconds, last_success_timestamp_seconds, last_drift_timestamp_seconds | Instantes conhecidos, em Unix seconds |
+| execution_scheduled_timestamp_seconds, retry_attempts | Agendamento da tentativa registrada e número de retry |
+| active_executions, blocked_executions | Quantidades observadas no cache |
+| resource_health_available | 1 se a leitura do cache teve sucesso; 0 se indisponível |
+| executions_total, contract_errors_total, drift_detected_total, retries_total, authorization_requests_total | Contadores locais de transições persistidas observadas pelo processo |
+| execution_duration_seconds | Histograma do agendamento até término, incluindo espera |
+
+Os gauges de recursos são derivados do cache Kubernetes no scrape. Em instalações com múltiplas réplicas, deduplicar os gauges por namespace/stack e dimensão (não somar réplicas); usar apenas amostras de caches disponíveis. Os contadores são locais ao processo e reiniciam com ele; não são um histórico de auditoria exatamente uma vez. As métricas não incluem tokens, payloads, hashes ou nomes individuais de Workflow como labels. Logs e Events não copiam mensagens livres do executor. O status persiste scheduledAt, lastSuccessTime e driftPending sem alterar o contrato do executor. Registros antigos podem não possuir esses campos até novas transições.
+
+```bash
+kubectl -n platform-system describe terraformstack simulator-network
+kubectl -n platform-system port-forward deployment/terraformstack-controller 8080:8080
+# Em outro terminal:
+curl -fsS http://localhost:8080/metrics | grep '^terraformstack_'
+```
+
+O endpoint existente não deve ser publicado externamente sem controles de acesso e rede. A instrumentação não instala ServiceMonitor, dashboards ou regras de alerta. Ao atualizar, drenar execuções e sincronizar CRD e controller na mesma revisão; preservar o state.
