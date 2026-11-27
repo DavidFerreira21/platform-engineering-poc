@@ -50,7 +50,7 @@ Git (TerraformStack) → Argo CD central → Kubernetes API
   → recursos na conta AWS de Entity / Environment
 ```
 
-O processo completo de aprovação e status está documentado no [TerraformStack Flow](terraformstack.md). **Não criar uma segunda pipeline de Terraform dentro do Bridge.**
+Este é o fluxo AWS governado previsto para a POC, não uma obrigação de steps para qualquer integração do controller. A publicação pertence à pipeline confiável ou a uma integração explícita de outputs, não ao controller nem à coleta de métricas. O processo completo de aprovação e status está documentado no [TerraformStack Flow](terraformstack.md). **Não criar uma segunda pipeline de Terraform dentro do Bridge.**
 
 ### 3.2 Publicação após verificação
 
