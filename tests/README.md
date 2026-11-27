@@ -1,6 +1,6 @@
 # ✅ Testes
 
-Os testes cobrirão contratos Kubernetes, validação de schemas, controllers, workflows, segurança e integrações.
+A suíte atual cobre contratos Kubernetes, schemas, controller TerraformStack, runner, políticas, configuração Terraform e documentação. Os aceites reais de Crossplane e integrações AWS seguem os respectivos labs.
 
 - **Padrão:** testes locais, mocks e verificações estáticas sem recursos AWS reais.
 - **Integração AWS:** habilitada apenas quando houver configuração e autorização específicas.
@@ -16,7 +16,7 @@ go mod tidy -diff
 go test -race ./...
 ```
 
-A CI executa testes unitários e envtest em PRs e pushes na main. O envtest verifica a disputa concorrente pelo `resourceVersion`. O runner também passa por testes de resolução de branch, tag, SHA e vínculo de destino em um repositório descartável.
+A CI executa testes unitários e envtest em PRs e pushes na main. O envtest verifica a disputa concorrente pelo `resourceVersion`. Os testes unitários cobrem seleção de integração, autorização opcional, exclusividade e perda de Workflow. `internal/observability` testa transições, drift pendente, remoção de séries e Events sanitizados. O runner também passa por testes de resolução de branch, tag, SHA e vínculo de destino em um repositório descartável.
 
 ```bash
 docker build -t terraformstack-runner:local workflow-plane/terraform-executor
