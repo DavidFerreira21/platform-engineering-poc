@@ -8,7 +8,7 @@ O princípio DevOps de responsabilidade por entrega e operação continua válid
 
 ## Um teste útil
 
-GitOps e automação pertencem à nossa implementação, mas não são suficientes: o diferencial é o contrato de Domain, Database ou ObjectStorage com experiência previsível.
+GitOps e automação pertencem à nossa implementação, mas não são suficientes: o diferencial é a experiência previsível de consumir contratos de infraestrutura e aplicação. Domain é um registro lógico de ownership, não um motor de provisionamento. O Platform Team mantém os contratos e motores; o DevOps Federado administra a intenção de Domain Infrastructure; a squad mantém código, CI/CD e manifests de aplicação em seu repositório.
 
 Se cada time precisar ajustar manifests, redes e credenciais em dezenas de passos exclusivos, apenas mudamos o endereço da complexidade. Uma plataforma bem desenhada permite consumir o produto sem depender do operador da ferramenta a cada mudança.
 
