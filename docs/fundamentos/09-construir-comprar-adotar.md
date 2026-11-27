@@ -10,7 +10,7 @@ Construir internamente oferece controle sobre a interface, mas traz manutenção
 
 Na POC, adotamos Crossplane para Capabilities. Entity, Environment e Domain são inicialmente registros lógicos no Git; não construiremos um controller próprio antes de identificar necessidade real. Backstage é alternativa de experiência, não a API canônica.
 
-Usamos a API Kubernetes e Crossplane para Capabilities porque oferecem contratos e reconciliação sem exigir um controller customizado por serviço. Para a criação futura de contas AWS, avaliaremos Argo Workflows e, somente se necessário, um contrato e controller de lifecycle dedicado.
+Adotamos Kubernetes, Crossplane e Argo Workflows como componentes existentes. Construímos o TerraformStack Controller para coordenar intenção, dependências, tentativas e lifecycle por um contrato próprio; reutilizamos controller-runtime e Argo em vez de escrever um scheduler ou executor Terraform do zero. Essa escolha tem custo de manutenção, testes e evolução, não é uma recomendação universal. Para a criação futura de contas AWS, avaliaremos Argo Workflows e, somente se necessário, um contrato e controller de lifecycle dedicado.
 
 ## Leitura complementar
 
