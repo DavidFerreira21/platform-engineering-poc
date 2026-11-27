@@ -8,7 +8,7 @@ Uma boa persona deriva de atividades e obstáculos observados. Um desenvolvedor 
 
 ## Mapeamento de uma jornada
 
-Desenhe a jornada de pedir Database do pedido à prontidão, incluindo escolha UAT, autenticação, PR, status, mensagens de erro e operação.
+Na jornada-alvo de Database, a squad identifica a necessidade; o DevOps Federado escolhe um perfil e propõe a intenção para UAT; o Platform Team mantém contrato, políticas e motor. A squad consome a configuração autorizada do banco. Cada persona precisa de feedback adequado, sem receber credenciais administrativas do motor. [Personas e ownership](../adr/0007-personas-and-developer-experience.md).
 
 Para Database, observe desde a descoberta do contrato e escolha do ambiente até o resultado Ready. Registre também o que acontece quando a Composition falha ou o usuário não possui autorização. O caminho de erro é parte do produto e merece tanta atenção quanto o caminho de sucesso.
 
