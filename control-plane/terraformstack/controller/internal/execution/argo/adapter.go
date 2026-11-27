@@ -111,7 +111,7 @@ func (a *Adapter) Get(ctx context.Context, req execution.Request) (*execution.Ru
 	if !a.valid(w, req) {
 		return &execution.Run{}, nil
 	}
-	return observe(w, a.Config.Parameters.Output, req), nil
+	return observeWithAuthorization(w, a.Config.Parameters.Output, req, a.Config.RequiresAuthorization()), nil
 }
 
 func (a *Adapter) Cancel(ctx context.Context, req execution.Request) error {
@@ -159,6 +159,10 @@ func decode(raw string, into any) bool {
 }
 
 func observe(w *unstructured.Unstructured, names OutputParameters, req execution.Request) *execution.Run {
+	return observeWithAuthorization(w, names, req, true)
+}
+
+func observeWithAuthorization(w *unstructured.Unstructured, names OutputParameters, req execution.Request, authorizationRequired bool) *execution.Run {
 	status := obj(w.Object["status"])
 	native := str(status["phase"])
 	phase := execution.Running
@@ -181,6 +185,9 @@ func observe(w *unstructured.Unstructured, names OutputParameters, req execution
 	for _, p := range arr(obj(status["outputs"])["parameters"]) {
 		param := obj(p)
 		key := str(param["name"])
+		if key == "" {
+			continue
+		}
 		switch key {
 		case names.State, names.Authorization, names.Result, names.ResolvedSource:
 			value, ok := param["value"].(string)
@@ -211,6 +218,9 @@ func observe(w *unstructured.Unstructured, names OutputParameters, req execution
 		out.Progress = &progress
 	}
 	if raw := outputs[names.Authorization]; raw != "" {
+		if !authorizationRequired {
+			return invalid()
+		}
 		var approval execution.Authorization
 		if !decode(raw, &approval) || approval.Identity != req.Identity ||
 			!opaque.MatchString(approval.Token) || out.Resolution == nil {
@@ -233,7 +243,7 @@ func observe(w *unstructured.Unstructured, names OutputParameters, req execution
 				out.Phase = execution.Succeeded
 			}
 		case execution.Verified:
-			if out.Resolution == nil || out.Authorization == "" || (terminal && native != "Succeeded") {
+			if out.Resolution == nil || (authorizationRequired && out.Authorization == "") || (terminal && native != "Succeeded") {
 				return invalid()
 			}
 			if terminal {
