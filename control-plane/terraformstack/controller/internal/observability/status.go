@@ -124,9 +124,9 @@ func ReadHealth(o *unstructured.Unstructured) Health {
 	return Health{
 		Namespace: o.GetNamespace(), Stack: o.GetName(), Condition: condition, Reason: reason,
 		Phase: boundedPhase(stringValue(run["phase"])), Trigger: boundedTrigger(stringValue(run["trigger"])),
-		Active: stringValue(run["workflow"]) != "" && stringValue(run["finishedAt"]) == "",
-		Suspended: boolean(object(o.Object["spec"])["suspend"]),
-		Current: integer(status["observedGeneration"]) == o.GetGeneration() && condition != "Unknown",
+		Active:     stringValue(run["workflow"]) != "" && stringValue(run["finishedAt"]) == "",
+		Suspended:  boolean(object(o.Object["spec"])["suspend"]),
+		Current:    integer(status["observedGeneration"]) == o.GetGeneration() && condition != "Unknown",
 		DriftKnown: known, DriftPending: drift, Attempt: float64(integer(run["attempt"])),
 		Scheduled: timestamp(run["scheduledAt"]), LastCheck: timestamp(status["lastCheckTime"]),
 		LastSuccess: timestamp(status["lastSuccessTime"]), LastDrift: timestamp(status["lastDriftTime"]),
