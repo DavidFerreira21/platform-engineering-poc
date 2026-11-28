@@ -34,7 +34,7 @@ aws ec2 describe-availability-zones --profile platform-hub --region us-east-1 \
   --query 'AvailabilityZones[].ZoneName' --output table --no-cli-pager
 ```
 
-Conferir o ID da conta no STS. Se a consulta de AZs retornar `UnauthorizedOperation`, verificar a role selecionada no perfil e a atribuição do permission set nessa conta.
+Conferir no STS se a sessão está na conta de plataforma esperada.
 
 Entrar em `foundation/stacks/platform-hub` e preencher `hub.auto.tfvars` a partir do [modelo](../foundation/stacks/platform-hub/hub.tfvars.example). Fixar a conta esperada em `account_id`. A configuração padrão usa o CIDR `10.80.0.0/16`, as AZs `us-east-1a/b/c` e a versão Kubernetes mais recente em suporte padrão. Informar a instância IAM Identity Center, sua região primária e o ID do grupo Argo CD autorizado em `identity_center`. Para acesso do terminal pela internet, preencher `api_public_access_cidrs` com o IP público de saída no formato `/32`.
 
@@ -42,7 +42,7 @@ Configurar `backend_override.tf` com o caminho absoluto do state local, conforme
 
 ## 2. Provisionar a base do Hub
 
-Na pasta `foundation/stacks/platform-hub`:
+Na pasta `foundation/stacks/platform-hub`, inicializar o Terraform, validar a configuração e gerar o plano:
 
 ```bash
 terraform init
@@ -52,7 +52,15 @@ terraform plan
 
 Revisar conta, região, custo e alterações. O plano inicial deve incluir seis subnets privadas, NAT Gateway regional, Internet Gateway, endpoint gateway S3, EKS Auto Mode, capability Argo CD e bucket de state do executor. Conferir que `compute_config` inclui os NodePools e a role IAM dos nós. Se habilitado, o acesso público deve mostrar apenas os CIDRs autorizados.
 
-Após aprovar a operação, rodar `terraform apply` e revisar o plano exibido antes de confirmar. Em caso de falha parcial, usar `terraform state list` para identificar os recursos já registrados e gerar um novo plano a partir do mesmo state. Se `CreateCluster` rejeitar NodePools com `nodeRoleArn` vazio, verificar se o módulo EKS está atualizado para a versão fixada no repositório e rodar `terraform init` para resolver a dependência.
+Após aprovar a operação, executar na mesma pasta:
+
+```bash
+terraform apply
+```
+
+Revisar o plano apresentado pelo `apply` e confirmar apenas se as alterações corresponderem ao que foi aprovado. Aguardar a mensagem `Apply complete!` antes de verificar o EKS e o Argo CD.
+
+Em caso de falha parcial, usar `terraform state list` para identificar os recursos já registrados e gerar um novo plano a partir do mesmo state. Se `CreateCluster` rejeitar NodePools com `nodeRoleArn` vazio, verificar se o módulo EKS está atualizado para a versão fixada no repositório e rodar `terraform init` para resolver a dependência.
 
 ## 3. Verificar EKS e Argo CD
 
