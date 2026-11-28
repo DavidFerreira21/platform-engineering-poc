@@ -46,7 +46,7 @@ Em 28/11/2026, aplicamos os CRs de teste pela API. O runner foi baixado do ECR p
 
 A sequência de checagens periódicas mostrou que checkouts e arquivos de plano acumulados no PVC podiam esgotar seus 1 GiB. A pipeline passou a limpar o diretório da tentativa ao concluir os passos. O state e o marcador de binding ficam na raiz do PVC. Em volumes criados antes dessa mudança, identificar Workflows terminais antes de remover seletivamente seus diretórios. Preservar os arquivos das falhas enquanto o diagnóstico estiver em andamento.
 
-Após remover somente os diretórios das tentativas bem-sucedidas do teste, a ocupação do PVC caiu para 3%. Repetimos a reconciliação com a mesma revisão Git. O Workflow retornou `NoChanges` e o step `cleanup` ficou `Succeeded`.
+Após remover somente os diretórios das tentativas bem-sucedidas do teste, a ocupação do PVC caiu para 3%. Repetimos a reconciliação com a mesma revisão Git. O Workflow retornou `NoChanges` e o step `cleanup` ficou `Succeeded`. Em seguida, alteramos o CIDR fictício do ConfigMap para simular drift. O OPA retornou `AutoApply` e o Simulator restaurou o valor de referência.
 
 ### Validação automatizada do runtime consolidado
 

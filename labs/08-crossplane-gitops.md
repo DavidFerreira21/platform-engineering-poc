@@ -31,7 +31,7 @@ Conferir `Synced` e `Ready`, a rejeição de um XR inválido e os limites do App
 
 ### Aceite do XR no Hub EKS
 
-Em 28/11/2026, o Argo CD gerenciado sincronizou a Application `crossplane-demo` a partir de `main`, com operação `Succeeded`. O `LabMessage` ficou `Ready`, e o Crossplane criou o ConfigMap e restaurou seu conteúdo após uma alteração externa.
+Em 28/11/2026, o Argo CD gerenciado sincronizou a Application `crossplane-demo` a partir de `main`, com operação `Succeeded`. O `LabMessage` ficou `Ready`, e o Crossplane criou o ConfigMap e restaurou seu conteúdo após uma alteração externa. O dry-run rejeitou mensagem vazia. A exclusão do XR pela API removeu o ConfigMap composto, e um novo sync recriou o XR em `Ready`. A remoção por prune no Argo CD segue pendente.
 
 ### Ensaio inicial
 
