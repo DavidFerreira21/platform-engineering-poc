@@ -1,6 +1,6 @@
 # Roteiro prático da POC — Roadmap V2
 
-[← Início](../README.md) · [Arquitetura](architecture.md) · [Guias das etapas](../labs/README.md) · [GitOps](flows/gitops.md) · [TerraformStack](flows/terraformstack.md)
+[← Início](../README.md) · [Arquitetura](architecture.md) · [Guias das etapas](../labs/README.md) · [GitOps](flows/gitops.md) · [TerraformStack](flows/terraformstack.md) · [Observabilidade](flows/observability.md)
 
 A POC é montada em **oito fases e 36 etapas (00–35)**. Cada etapa instala um bloco ou valida um comportamento sobre os blocos já instalados. Os diretórios de implementação seguem os componentes. A numeração organiza os guias e o roteiro. As etapas futuras descrevem entregas e evidências esperadas. [Convenção dos guias](../labs/README.md#como-ler-e-reproduzir-uma-etapa)
 
@@ -55,7 +55,7 @@ Conferir os pré-requisitos da conta de plataforma e consolidar os aceites do Hu
 | **13** | Network e primeiro apply da spoke UAT | Resolver revisões imutáveis e aplicar o mesmo plan aprovado. Verificar e disponibilizar ID da VPC e sub-redes para EKS |
 | **14** | EKS Management em UAT | Consumir outputs verificados de Network e exigir dependência `Ready`. Aplicar o perfil Management, testar acesso privado e iniciar o onboarding |
 | **15** | EKS Non-PCI em UAT | Habilitar Non-PCI na mesma raiz EKS. Verificar dependências, IAM e outputs. PCI segue para a Etapa 30 |
-| **16** | Platform GitOps multicluster e add-ons | Criar Access Entries, registrar ARNs e labels, comprovar sincronização de APIs privadas entre VPCs isoladas pela EKS Capability for Argo CD. ApplicationSets entregam add-ons por perfil; Argo CD local recebe destinos autorizados na própria VPC. [ADR-0008](adr/0008-managed-argocd-connectivity.md) |
+| **16** | Platform GitOps multicluster e add-ons | Criar Access Entries, registrar ARNs e labels, comprovar sincronização de APIs privadas entre VPCs isoladas pela EKS Capability for Argo CD. ApplicationSets entregam add-ons por perfil. Argo CD local recebe destinos autorizados na própria VPC. A instalação dos componentes de observabilidade em UAT entra nas Etapas 26–27. [ADR-0008](adr/0008-managed-argocd-connectivity.md) |
 | **17** | GitOps Bridge | Publicar outputs allowlisted no Parameter Store após verify e comprovar consumo via ESO no Management EKS |
 | **18** | Smoke test HTTP do Non-PCI | Argo CD local sincroniza workload mínimo, verifica serviço e remove os recursos do teste |
 
@@ -104,12 +104,12 @@ Construir uma aplicação **mínima e funcional** usando a infraestrutura pronta
 
 ## Fase 6 — Observabilidade, operação e governança
 
-Integrar a coleta e a visualização dos sinais do Hub e dos clusters do Environment. A Etapa 26 começa com Management e Non-PCI em UAT. As Etapas 30–31 ampliam a validação para PCI e PROD quando disponíveis. [ADR-0010](adr/0010-observability-topology.md) · [Fluxo e critérios de aceite](flows/observability.md) O controller não depende de backends externos. Concluir as validações de lifecycle na AWS. Políticas preventivas essenciais já devem existir desde a introdução de cada componente; esta fase consolida diagnósticos e cenários mais avançados.
+Integrar a coleta e a consulta dos sinais do Hub e dos clusters do Environment. A Etapa 26 começa com Management e Non-PCI em UAT. As Etapas 30–31 ampliam a validação para PCI e PROD quando autorizados. O controller já expõe seus sinais operacionais localmente. A fase também consolida as validações de lifecycle e políticas na AWS. [ADR-0010](adr/0010-observability-topology.md) · [Fluxo e critérios de aceite](flows/observability.md)
 
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
-| **26** | Telemetria do Hub e de UAT | Validar Collectors no Management e no Non-PCI, envio direto ao AMP e scrape do Argo CD local. Correlacionar métrica, log e trace de aplicação no Grafana. Conferir consultas do Grafana a Loki/Tempo via PrivateLink e os sinais essenciais do Hub no CloudWatch. |
-| **27** | Diagnóstico, recuperação e custos | Interromper o OTel Gateway em UAT, confirmar novas amostras no AMP e receber alerta externo ao Management EKS. Medir recuperação e perda de logs/traces, rastreabilidade e custo. |
+| **26** | Telemetria do Hub e de UAT | Validar Collectors no Management e no Non-PCI, envio direto ao AMP e scrape do Argo CD local. Correlacionar métrica, log e trace de aplicação no Managed Grafana. Validar consulta ao AMP via IAM cross-account, a Loki/Tempo via PrivateLink e proxy autenticado. Conferir os sinais essenciais do Hub no CloudWatch. |
+| **27** | Diagnóstico, recuperação e custos | Interromper o OTel Gateway em UAT, confirmar novas amostras no AMP e receber alerta de um check externo ao Management EKS. Após recuperar o Gateway, medir fila, perda de logs e traces e custo. |
 | **28** | Drift Detection do TerraformStack | Validar na AWS `driftCheckInterval` configurável, agendamento idempotente com jitter e verificação periódica; detectar alteração externa em stack UAT, registrar última/próxima checagem e condição/alerta **sem aplicar correção** |
 | **29** | Reconciliação, destroy e políticas | Ampliar as regras OPA da Etapa 13 e comprovar **Auto Apply / Require Approval / Deny** com três planos de teste e evidências da etapa alcançada; testar drift, `plan -destroy` explícito, destroy on deletion com finalizer, proteção de dependências, aprovação humana e bloqueio de ações sensíveis |
 | **30** | EKS PCI e isolamento PCI/Non-PCI em UAT | Reutilizar a **stack EKS** e habilitar PCI somente com autorização/custo aprovados; registrar com perfil restrito, aplicar add-ons autorizados e testar negações entre PCI e Non-PCI, incluindo escrita e consulta de telemetria. Sem PCI real, declarar somente validação lógica, não isolamento operacional |

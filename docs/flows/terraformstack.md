@@ -2,13 +2,11 @@
 
 [Arquitetura](../architecture.md) · [GitOps](gitops.md) · [ADR-0006](../adr/0006-terraformrun-and-application-ci.md) · [Roadmap](../learning-roadmap.md)
 
-O `TerraformStack` declara a infraestrutura desejada de Foundation e Entity Core. Na Etapa 06, o aceite verifica o fluxo de ponta a ponta no Hub `kind`. O Terraform Stack Simulator usa o provider Kubernetes para gerenciar um ConfigMap com a configuração efetiva de Network. A integração com a AWS segue nas etapas do roadmap. [Guia do Simulator](../../labs/06-terraformstack-simulator.md)
+O `TerraformStack` declara a infraestrutura desejada de Foundation e Entity Core. As evidências existentes da Etapa 06 verificam o fluxo de ponta a ponta no lab `kind`. O aceite no Hub EKS ainda precisa ser executado. O Terraform Stack Simulator usa o provider Kubernetes para gerenciar um ConfigMap com a configuração efetiva de Network. A integração com a AWS segue nas etapas do roadmap. [Guia do Simulator](../../labs/06-terraformstack-simulator.md)
 
-O diagrama mostra os caminhos de execução, política e drift validados no Simulator. O painel da conta AWS representa o destino das próximas fases. A seção de status descreve os campos e as condições da API instalada.
+O diagrama ilustra a pipeline de referência com autorização habilitada e os caminhos de execução, política e drift validados no Simulator. O painel da conta AWS representa o destino das próximas fases.
 
 ![Fluxo do TerraformStack e reconciliação de drift](terraformstack-flow.png)
-
-O diagrama ilustra a pipeline governada de referência com autorização habilitada; não prescreve os steps de integrações alternativas.
 
 ## 1. Do Git ao Workflow
 

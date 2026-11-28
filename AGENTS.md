@@ -27,7 +27,7 @@ Escrever os documentos **na voz do próprio projeto**, em português brasileiro 
 - **Observability Plane:** Managed Grafana e CloudWatch do Hub na conta da Plataforma. Cada EKS envia métricas direto ao AMP do ambiente. Logs e traces seguem pelo Gateway para Loki/Tempo no Management EKS, com S3 do ambiente. Validar ingestão e consulta antes de habilitar PCI. [ADR-0010](docs/adr/0010-observability-topology.md).
 - **Data Plane:** `data-plane/<entity>/core-infrastructure/{uat,prod}/` organiza recursos comuns; `data-plane/<entity>/domains/<domain>/` organiza uma identidade única e recursos/aplicações por ambiente. Ambos pertencem ao Data Plane; **Environment não equivale a Core**.
 - **Applications:** Argo CD local do Management EKS aplica namespaces, policies e workloads em PCI/Non-PCI **somente se o isolamento permitir**.
-- **Topologia-alvo:** UAT e PROD são contas AWS separadas; cada uma inclui Management EKS, EKS PCI, EKS Non-PCI e AWS Runtime. EKS Auto Mode preferido, sob validação de custo/operadores/PCI. Hub é `kind` inicialmente. Sem MSK na primeira versão.
+- **Topologia-alvo:** UAT e PROD são contas AWS separadas; cada uma inclui Management EKS, EKS PCI, EKS Non-PCI e AWS Runtime. EKS Auto Mode preferido, sob validação de custo/operadores/PCI. O roteiro começa no Hub EKS Auto Mode. O lab `kind` preserva as evidências locais de TerraformStack e Crossplane. Sem MSK na primeira versão.
 
 - **Policy Engine:** módulos Rego reutilizáveis e perfis YAML em `workflow-plane/policy-engine/`; perfil selecionado pela pipeline confiável. Regras AWS futuras não devem ser ativadas sem implementação e testes. [Policy Engine](workflow-plane/policy-engine/README.md).
 
@@ -54,9 +54,9 @@ Os YAMLs `domain.yaml` e `environment.yaml` são registros lógicos no Git. Vali
 
 ## Sequência inicial e autenticação
 
-1. Preparar a base do Hub `kind` nas Etapas 01–03.
-2. Instalar o CRD e a pipeline canônica do TerraformStack nas Etapas 04–05. Concluir o aceite com o Simulator na Etapa 06.
-3. Completar o fluxo Crossplane com recursos locais nas Etapas 07–08. Na conta de plataforma, preparar Foundation, bootstrap do Hub EKS Auto Mode e reinstalação dos mesmos blocos nas Etapas 09–10. Repetir as validações Kubernetes no novo Hub antes das spokes.
+1. Preparar a base do Hub EKS nas Etapas 01–03. Confirmar o primeiro workload e o primeiro sync com a EKS Capability for Argo CD antes de instalar os blocos seguintes.
+2. Adequar os guias locais ao Hub EKS. Instalar o CRD e a pipeline canônica do TerraformStack nas Etapas 04–05. Concluir o aceite com o Simulator na Etapa 06.
+3. Completar o fluxo Crossplane com recursos Kubernetes de teste nas Etapas 07–08. Preparar a Foundation para as spokes e consolidar as evidências do Hub EKS nas Etapas 09–10.
 4. Validar o registro UAT e o acesso humano por IAM Identity Center na Etapa 11. Validar identidade temporária do executor e backend segregado na Etapa 12. Aplicar Network com aprovação explícita na Etapa 13. Fazer Management e Non-PCI nas Etapas 14–15, onboarding, add-ons e Bridge nas 16–17 e smoke test na 18.
 5. Validar a identidade dedicada do Provider AWS no Hub EKS na Etapa 19. Validar `ObjectStorage` e Aurora nas Etapas 20–21. Validar PROD na Etapa 31 e introduzir o Domain na Etapa 34.
 
@@ -64,7 +64,7 @@ Os YAMLs `domain.yaml` e `environment.yaml` são registros lógicos no Git. Vali
 
 O arquivo [`docs/arquitetura Plataform.png`](docs/arquitetura%20Plataform.png) é o **diagrama de referência do projeto**, exibido no README e na arquitetura detalhada. **Manter essa imagem como referência; não criar desenhos alternativos sem uma decisão de atualização.** Se um ADR alterar personas, ownership, TerraformStack, topologia ou GitOps, verificar a consistência do diagrama e dos documentos, sem declarar componentes propostos como implantados. Não reintroduzir `TerraformRun` como contrato declarativo principal.
 
-O monorepo organiza a implementação por bloco e usa a numeração nos guias e no roteiro. Reutilizar os manifests e a pipeline canônicos na montagem cumulativa. Criar pastas Domain/Foundation somente com conteúdo real das etapas. Manter navegação e links válidos e preservar as 24 aulas em [fundamentos](docs/fundamentos/README.md). O [roteiro](docs/learning-roadmap.md) mantém a numeração contínua das etapas.
+O monorepo organiza a implementação por bloco e usa a numeração nos guias e no roteiro. Reutilizar os manifests e a pipeline canônicos na montagem cumulativa. Criar pastas Domain/Foundation somente com conteúdo real das etapas. Manter navegação e links válidos e preservar as aulas em [fundamentos](docs/fundamentos/README.md). O [roteiro](docs/learning-roadmap.md) mantém a numeração contínua das etapas.
 
 - Escrever cada guia como registro reproduzível de uma decisão da POC. Começar com **Objetivo** e **O que será feito**, explicar a decisão em **Por que fizemos assim** e usar **O que observar** para ligar os sinais do sistema ao resultado. O roteiro principal segue a construção e a verificação do comportamento esperado. Incluir diagnóstico junto aos pontos que podem precisar de investigação e limpar os recursos do exercício quando aplicável. [Convenção dos guias](labs/README.md)
 - Organizar as `Applications` do Hub por componente com ciclo de sincronização próprio. Uma etapa pode reutilizar uma `Application` compartilhada. Manter sync manual nos add-ons das etapas locais e indicar o alvo, a revisão e o diff esperado antes de sincronizar. Para uma etapa de observação, usar consultas, eventos e logs. [ADR-0003](docs/adr/0003-reconciliation-and-gitops.md)

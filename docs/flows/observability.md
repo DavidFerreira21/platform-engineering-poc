@@ -2,9 +2,9 @@
 
 [← Arquitetura](../architecture.md) · [ADR-0010](../adr/0010-observability-topology.md) · [Observability Plane](../../observability-plane/README.md)
 
-O fluxo descreve a **topologia-alvo da POC**. Os sinais do TerraformStack já existem no laboratório. A coleta e os backends AWS entram nas Etapas 26 e 27, começando em UAT. O diagrama mostra uma conta de Environment por vez. UAT e PROD seguem o mesmo modelo com recursos e permissões próprios.
+O fluxo descreve a **topologia-alvo da POC**. O TerraformStack já expõe sinais operacionais no lab local em `kind`. A coleta, os backends e a consulta central entram nas Etapas 26–27, começando por Management e Non-PCI em UAT. O diagrama mostra uma conta de Environment por vez. UAT e PROD seguem o mesmo modelo com recursos e permissões próprios.
 
-![Topologia de observabilidade com Grafana no Hub, Collectors nos três EKS do ambiente, AMP e backends Loki e Tempo no Management EKS](observability-flow.png)
+![Topologia-alvo com Grafana na conta da Plataforma, Collectors por EKS, AMP por ambiente e Loki e Tempo no Management EKS](observability-flow.png)
 
 [Abrir diagrama em tamanho completo](observability-flow.png)
 

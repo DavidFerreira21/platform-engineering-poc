@@ -14,7 +14,7 @@ Os ADRs registram as **decisões arquiteturais vigentes** e, quando necessário,
 | [**0007**](0007-personas-and-developer-experience.md) | Três personas, ownership federado, repositórios e app mínima Python/FastAPI para validar DX no fim da POC |
 | [**0008**](0008-managed-argocd-connectivity.md) | Argo CD central gerenciado e acesso GitOps entre VPCs isoladas |
 | [**0009**](0009-terraformstack-runtime.md) | Runtime Go, integrações Argo selecionáveis, autorização opcional, exclusividade por CR e emissão de telemetria |
-| [**0010**](0010-observability-topology.md) | Coleta local nos EKS, AMP e backends por Environment, consulta central e isolamento |
+| [**0010**](0010-observability-topology.md) | Topologia-alvo de observabilidade: coleta local nos EKS, AMP e backends por Environment, consulta central e isolamento |
 
 Diagrama visual: [Arquitetura de referência com as três personas](../arquitetura%20Plataform.png).
 
