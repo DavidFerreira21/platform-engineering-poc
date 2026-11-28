@@ -68,7 +68,7 @@ Os steps Terraform usam a mesma imagem de runner com ferramentas, e o `pipeline.
 | `Deny` | Tentar configurar `0.0.0.0/0` ou mudar recursos fora do contrato do Simulator. | Encerra antes do apply e preserva o recurso. |
 | `NoChanges` | Plan regular sem diferenças. | Encerra a verificação sem apply. |
 
-Uma falha de avaliação do OPA ou uma decisão incompatível com o plano bloqueia o apply. No caminho manual, o aprovador autorizado abre o nó **approval**, seleciona **Resume**, escolhe `Approve` e informa o hash mostrado em `status.result.details.planHash`. O gate tem `Reject` como padrão. RBAC e admissão limitam a edição do Workflow ao gate ativo, e o aceite no EKS deve verificar se a auditoria registra quem retomou a execução. [Rego](../../workflow-plane/policy-engine/README.md) · [Aprovação pela UI](../../labs/06-terraformstack-simulator.md#2-exercitar-as-decisões-opa-pelo-gitops) · [Referência de admissão](../../control-plane/terraformstack/overlays/kind/admission.yaml)
+Uma falha de avaliação do OPA ou uma decisão incompatível com o plano bloqueia o apply. No caminho manual, o aprovador autorizado abre o nó **approval**, seleciona **Resume**, escolhe `Approve` e informa o hash mostrado em `status.result.details.planHash`. O gate tem `Reject` como padrão. RBAC e admissão limitam a edição do Workflow ao gate ativo, e o aceite no EKS deve verificar se a auditoria registra quem retomou a execução. [Rego](../../workflow-plane/policy-engine/README.md) · [Aprovação pela UI](../../labs/06-terraformstack-simulator.md#2-exercitar-as-decisões-opa-pelo-gitops) · [Referência de admissão](../../control-plane/terraformstack/overlays/eks/admission.yaml)
 
 ### Autorização final do apply
 

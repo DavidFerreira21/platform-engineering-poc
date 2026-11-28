@@ -48,21 +48,11 @@ jobs:
           test -x "$assets/etcd"
           export KUBEBUILDER_ASSETS="$assets"
           go test -race -count=1 ./internal/controller -run TestEnvtest
-      - name: Validar utilitários de identidade e state
+      - name: Validar utilitários de state e publicação
         run: |
           python3 -m py_compile \
-            foundation/scripts/bootstrap-workflow-credentials.py \
-            foundation/scripts/prepare-state-backend.py
-          python3 - <<'PY'
-          from pathlib import Path
-          import yaml
-          job = yaml.safe_load(Path("foundation/iam/executor/verify-uat-executor-job.yaml").read_text())
-          assert job["kind"] == "Job"
-          assert job["metadata"]["namespace"] == "argo-workflows"
-          pod = job["spec"]["template"]["spec"]
-          assert pod["containers"][0]["envFrom"][0]["secretRef"]["name"] == "terraform-executor-bootstrap"
-          assert pod["volumes"][0]["configMap"]["name"] == "terraform-executor-aws-config"
-          PY
+            foundation/scripts/prepare-state-backend.py \
+            foundation/scripts/publish-bridge-outputs.py
       - name: Instalar Terraform para validar o Simulator
         uses: hashicorp/setup-terraform@v3
         with:
@@ -77,22 +67,15 @@ jobs:
           terraform -chdir=foundation/stacks/simulator test -no-color
       - name: Validar sintaxe dos scripts bash
         run: |
-          for file in platform/hub/scripts/*.sh workflow-plane/argo-workflows/terraformstack/pipeline.sh foundation/stacks/simulator/verify.sh; do
+          for file in workflow-plane/argo-workflows/terraformstack/pipeline.sh foundation/stacks/simulator/verify.sh; do
             bash -n "$file"
           done
-      - name: Validar YAML de exemplo e kind
+      - name: Validar registro de Environment de exemplo
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          configs = [
-              Path("platform/hub/kind-config.yaml"),
-              Path("platform/hub/namespaces.yaml"),
-              Path("platform/hub/traefik/values.yaml"),
-              Path("platform/hub/traefik/demo.yaml"),
-              Path("platform/hub/traefik/chart-version.txt"),
-              Path("foundation/environment.example.yaml"),
-          ]
-          for config in configs:
-              assert config.is_file() and config.read_text(encoding="utf-8").strip(), f"Configuração ausente ou vazia: {config}"
-          print("Configurações de laboratório presentes.")
+          import yaml
+          environment = yaml.safe_load(Path("foundation/environment.example.yaml").read_text())
+          assert environment["entity"] and environment["environment"]
+          assert environment["aws"]["region"]
           PY

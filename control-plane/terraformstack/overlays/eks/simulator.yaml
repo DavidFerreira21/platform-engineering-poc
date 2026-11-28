@@ -9,6 +9,7 @@ metadata:
   name: simulator-network
   namespace: argo-workflows
 spec:
+  storageClassName: terraformstack-simulator-eks
   accessModes: [ReadWriteOnce]
   resources:
     requests:
@@ -20,6 +21,7 @@ metadata:
   name: simulator-dependent
   namespace: argo-workflows
 spec:
+  storageClassName: terraformstack-simulator-eks
   accessModes: [ReadWriteOnce]
   resources:
     requests:
