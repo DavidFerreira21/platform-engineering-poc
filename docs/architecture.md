@@ -9,7 +9,7 @@
 
 A POC demonstra uma plataforma **Kubernetes-native** de governança central e consumo federado. Existem duas dimensões distintas:
 
-- **Planos:** Experience Layer, Control Plane, Workflow Plane, Observability Plane e Data Plane. Os três planos técnicos centrais ficam na conta da plataforma em torno do Hub EKS.
+- **Planos:** Experience Layer, Control Plane, Workflow Plane, Observability Plane e Data Plane. Control Plane e Workflow Plane ficam na conta da Plataforma em torno do Hub EKS. O Observability Plane distribui coleta e armazenamento por Environment e centraliza a consulta.
 - **Quatro camadas de ownership:** **Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications**. Elas classificam responsabilidade de mudança e lifecycle, **não** representam planos ou clusters adicionais.
 
 A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) é o contexto de uma conta AWS. O **Domain** é a unidade lógica de negócio, consumo, ownership e governança: possui Capabilities e aplicações em um ou mais Environments. **Capability** é o produto técnico provisionável, como `ObjectStorage`.
@@ -18,7 +18,7 @@ A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) �
 
 ## 2. Visão geral
 
-**Fluxos declarativos detalhados:** [GitOps Flow](flows/gitops.md) · [Diagrama PNG](flows/gitops-flow.png) · [TerraformStack Flow](flows/terraformstack.md) · [GitOps Bridge Flow](flows/gitops-bridge.md). O fluxo diferencia Platform Addons, Capabilities Crossplane, TerraformStack e aplicações locais, incluindo a divisão de ownership.
+**Fluxos técnicos.** [GitOps Flow](flows/gitops.md) · [TerraformStack Flow](flows/terraformstack.md) · [GitOps Bridge Flow](flows/gitops-bridge.md) · [Fluxo de observabilidade](flows/observability.md).
 
 ![Diagrama de arquitetura de referência com Hub, contas AWS UAT/PROD, quatro camadas e três personas](arquitetura%20Plataform.png)
 
@@ -26,15 +26,15 @@ A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) �
 
 A [Etapa 01](../labs/01-platform-management-cluster.md) documenta o Hub EKS provisionado com Argo CD gerenciado. O smoke test com workload e o primeiro sync da [Etapa 02](../labs/02-argocd-central.md) ainda precisam ser executados. O Simulator e o Crossplane serão exercitados nesse Hub com recursos Kubernetes de teste. [Evidências do Simulator](../labs/06-terraformstack-simulator.md#evidências-de-aceite) · [Crossplane Core](../labs/07-crossplane-core.md) · [Roadmap](learning-roadmap.md).
 
-O Hub EKS, as spokes, o consumo de Capabilities AWS, o GitOps Bridge e a stack de telemetria central compõem a arquitetura-alvo. A Foundation mantém raízes reutilizáveis e utilitários versionados para as etapas AWS. A entrega das aplicações usará o repositório da squad e o Argo CD local. [Foundation](../foundation/README.md) · [GitOps Bridge](flows/gitops-bridge.md).
+O Hub EKS, as spokes, o consumo de Capabilities AWS, o GitOps Bridge e a topologia de observabilidade por ambiente compõem a arquitetura-alvo. A Foundation mantém raízes reutilizáveis e utilitários versionados para as etapas AWS. A entrega das aplicações usará o repositório da squad e o Argo CD local. [Foundation](../foundation/README.md) · [GitOps Bridge](flows/gitops-bridge.md).
 
 | Plano | Responsabilidade |
 | :--- | :--- |
 | **Experience Layer** | Consumidores independentes: Backstage, CLI, PR GitOps, AI/MCP; Backstage não é gateway obrigatório |
 | **Control Plane** | Kubernetes API Server, Crossplane central, TerraformStack Controller, RBAC e admission Kubernetes |
 | **Workflow Plane** | Argo CD central, Argo Workflows, runner e Policy Engine da implementação de referência |
-| **Observability Plane** | OpenTelemetry, Grafana, Loki, Tempo, métricas, eventos e auditoria |
-| **Data Plane** | Contas AWS das Entities, Core compartilhado, Domains, Management EKS com Argo CD local/Operators/gateway de logs e EKS PCI/Non-PCI |
+| **Observability Plane** | Managed Grafana e CloudWatch na conta da Plataforma. Collectors por cluster, AMP/S3 por Environment e Gateway/Loki/Tempo no Management EKS do ambiente. |
+| **Data Plane** | Contas AWS das Entities, Core compartilhado, Domains, Management EKS com Argo CD local e EKS PCI/Non-PCI |
 
 ## 3. Quatro conceitos e seus contratos
 
@@ -86,9 +86,9 @@ Esses YAMLs **não são manifests Kubernetes** e não devem ser sincronizados di
 
 - **Contrato Terraform.** `TerraformStack` é o CRD Kubernetes próprio do Hub que representa **infraestrutura desejada** de Foundation/Entity Core. O Argo CD central sincroniza o manifesto. O controller Go coordena a execução inicial, as checagens periódicas e as dependências, preservando um Workflow ativo por CR. O CR seleciona um alias cadastrado ou o default. A autorização operacional é habilitada por padrão, mas configurável por integração. A pipeline de referência em Argo Workflows resolve Git, contexto e state, avalia o plano com OPA e aplica a alteração autorizada após o claim. O adapter entrega o resultado tipado ao controller, que atualiza o status do CR. [ADR-0009](adr/0009-terraformstack-runtime.md) · [Execution Contract](flows/terraformstack-execution-contract.md).
 - **Domain Applications:** as squads manterão **código, GitHub Actions e manifests Kubernetes da aplicação em repositório próprio**, separado deste monorepo e previsto para uma etapa posterior. O pipeline faz build/testes/scans e publicação, propõe atualização declarativa GitOps; **Argo CD local** em cada Management EKS faz o deploy nos EKS PCI/Non-PCI autorizados. O workflow CI existente neste monorepo só valida a POC.
-- **Management EKS:** **Operators ainda a estudar**; usar **OpenTelemetry Collector/gateway** para encaminhar telemetria à camada central, não assumir Loki instalado dentro de todos os Management EKS.
+- **Management EKS.** Argo CD local, Operators a escolher, Collector local e serviços de ingestão de logs e traces do ambiente. O Collector captura também as métricas do Argo CD local.
 - **Observabilidade do controller:** logs JSON, Events Kubernetes e métricas nativas e por CR já são disponibilizados sem dependência de coletores ou backends externos. A saúde deriva do status persistido; a coleta e os alertas pertencem ao operador. [Operação](../control-plane/terraformstack/controller/README.md).
-- **Observabilidade central:** **OpenTelemetry, Grafana, Loki e Tempo**; estratégia de métricas/Prometheus, retenção e fronteiras PCI a validar no laboratório.
+- **Observabilidade por ambiente.** Collectors enviam métricas diretamente ao AMP. Logs e traces vão ao OTel Gateway no Management EKS e seguem para Loki e Tempo com armazenamento S3. O Grafana do Hub consulta AMP via IAM cross-account e Loki/Tempo via PrivateLink. CloudWatch recebe os sinais essenciais do Hub. [ADR-0010](adr/0010-observability-topology.md) · [Diagrama e critérios de aceite](flows/observability.md)
 
 ### Personas, limites de abstração e modelo de consumo
 
@@ -243,7 +243,7 @@ O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicaçã
 
 ## 10. Decisões vigentes e pontos abertos
 
-**Em aberto.** A arquitetura prevê o Argo CD local nos Management EKS e reserva a seleção dos Operators para os respectivos add-ons. Coleta central de métricas, retenção e fronteiras PCI serão verificadas com a stack de telemetria prevista no roadmap; a emissão de sinais pelo TerraformStack já existe.
+**Observabilidade.** A topologia por Environment e a consulta pelo Hub estão definidas no [ADR-0010](adr/0010-observability-topology.md). Dimensionamento, retenção, recuperação após falha de ingestão e fronteiras PCI serão verificados no roadmap. A seleção de Operators locais segue por add-on.
 
 **Fechado:** Domain como unidade lógica de consumo/ownership, Environment como destino AWS, Entity como organização, Capability como XRD especializado, quatro camadas (incluindo **Domain Applications**), monorepo, Crossplane central sem cascata, Terraform para Foundation/EKS, GitOps central de infra e local de aplicações, AWS real gradual e Auto Mode como preferência.
 

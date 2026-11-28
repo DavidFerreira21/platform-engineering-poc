@@ -1,6 +1,6 @@
 # 🏗️ Platform Management Cluster
 
-O **Platform Management Cluster** hospeda os componentes lógicos de **Control Plane**, **Workflow Plane** e **Observability Plane**.
+O **Platform Management Cluster** hospeda os componentes de **Control Plane** e **Workflow Plane**. Na topologia AWS, a conta da Plataforma usa Managed Grafana para a consulta central e CloudWatch para os sinais essenciais do Hub. Os caminhos de ingestão dos workloads ficam nos respectivos Environments. [Fluxo de observabilidade](../../docs/flows/observability.md)
 
 - **Etapa 01 — cluster base e networking:** [roteiro](../../labs/01-platform-management-cluster.md), [kind-config.yaml](kind-config.yaml), [namespaces.yaml](namespaces.yaml), Traefik instalado em etapa separada via Helm, Ingress HTTP de demonstração.
 - **Passos locais:** `bash platform/hub/scripts/create.sh` → `bash platform/hub/scripts/install-traefik.sh` → `bash platform/hub/scripts/verify.sh`.

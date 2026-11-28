@@ -104,16 +104,16 @@ Construir uma aplicação **mínima e funcional** usando a infraestrutura pronta
 
 ## Fase 6 — Observabilidade, operação e governança
 
-Integrar a coleta e a visualização dos sinais já emitidos pelo TerraformStack e instrumentar os demais componentes implantados. O controller não depende de backends externos. Concluir as validações de lifecycle na AWS. Políticas preventivas essenciais já devem existir desde a introdução de cada componente; esta fase consolida diagnósticos e cenários mais avançados.
+Integrar a coleta e a visualização dos sinais do Hub e dos clusters do Environment. A Etapa 26 começa com Management e Non-PCI em UAT. As Etapas 30–31 ampliam a validação para PCI e PROD quando disponíveis. [ADR-0010](adr/0010-observability-topology.md) · [Fluxo e critérios de aceite](flows/observability.md) O controller não depende de backends externos. Concluir as validações de lifecycle na AWS. Políticas preventivas essenciais já devem existir desde a introdução de cada componente; esta fase consolida diagnósticos e cenários mais avançados.
 
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
-| **26** | Telemetria de plataforma e aplicação | OpenTelemetry Collector/gateway no Data Plane e integração com Grafana, Loki e Tempo; logs/traces correlacionados da API, dos Workflows e dos controllers; consumir métricas nativas e por CR do TerraformStack, sem alterar sua reconciliação |
-| **27** | Diagnóstico, recuperação e custos | Investigar uma falha controlada, recuperar a operação e conferir rastreabilidade e custos AWS |
+| **26** | Telemetria do Hub e de UAT | Validar Collectors no Management e no Non-PCI, envio direto ao AMP e scrape do Argo CD local. Correlacionar métrica, log e trace de aplicação no Grafana. Conferir consultas do Grafana a Loki/Tempo via PrivateLink e os sinais essenciais do Hub no CloudWatch. |
+| **27** | Diagnóstico, recuperação e custos | Interromper o OTel Gateway em UAT, confirmar novas amostras no AMP e receber alerta externo ao Management EKS. Medir recuperação e perda de logs/traces, rastreabilidade e custo. |
 | **28** | Drift Detection do TerraformStack | Validar na AWS `driftCheckInterval` configurável, agendamento idempotente com jitter e verificação periódica; detectar alteração externa em stack UAT, registrar última/próxima checagem e condição/alerta **sem aplicar correção** |
 | **29** | Reconciliação, destroy e políticas | Ampliar as regras OPA da Etapa 13 e comprovar **Auto Apply / Require Approval / Deny** com três planos de teste e evidências da etapa alcançada; testar drift, `plan -destroy` explícito, destroy on deletion com finalizer, proteção de dependências, aprovação humana e bloqueio de ações sensíveis |
-| **30** | EKS PCI e isolamento PCI/Non-PCI em UAT | Reutilizar a **stack EKS** e habilitar PCI somente com autorização/custo aprovados; registrar com perfil restrito, aplicar addons autorizados e testar negações entre PCI e Non-PCI. Sem PCI real, declarar somente validação lógica, não isolamento operacional |
-| **31** | Registro de PROD e isolamento por Environment | Registrar conta PROD distinta, validar identity/mapping/negações e políticas UAT/PROD. Provisionamento real em PROD depende de autorização separada; não presumir EKS PROD já criado |
+| **30** | EKS PCI e isolamento PCI/Non-PCI em UAT | Reutilizar a **stack EKS** e habilitar PCI somente com autorização/custo aprovados; registrar com perfil restrito, aplicar add-ons autorizados e testar negações entre PCI e Non-PCI, incluindo escrita e consulta de telemetria. Sem PCI real, declarar somente validação lógica, não isolamento operacional |
+| **31** | Registro de PROD e isolamento por Environment | Registrar conta PROD distinta, validar identity/mapping/negações e políticas UAT/PROD. Após provisionamento autorizado, validar segregação de workspaces, armazenamento e consulta, e testar continuidade da telemetria PROD durante falha em UAT. |
 
 **Lifecycle de destruição na Etapa 29.** Validar na AWS o destroy explícito e o destroy na exclusão com finalizer. O Simulator já exercita os dois caminhos com plano salvo, proteção de dependências e aprovação humana. A exclusão padrão retém o recurso. A validação AWS inclui a política de retenção/orphan e usa o controller e a pipeline aprovados no Hub. [Dependências e destruição](flows/terraformstack.md#5-dependências-e-destruição)
 

@@ -14,7 +14,7 @@ A POC possui três contas AWS (Platform, UAT e PROD), cada uma com sua VPC isola
 - Registrar explicitamente o Hub e os clusters remotos por ARN. Criar Access Entries nos destinos para a IAM Capability Role da conta Platform e conceder RBAC adequado ao escopo. O serviço AWS fornece conectividade gerenciada; a CLI ou o Secret de cluster apenas registra o destino.
 - Usar ApplicationSets com labels de Entity, Environment e perfil para distribuir add-ons e configurações de plataforma. Usar AppProjects e permissões de destino para limitar o alcance.
 - Manter Argo CD local no Management EKS de cada Environment para Domain Applications, com acesso aos EKS de sua própria VPC conforme autorização. O Argo central instala e mantém sua configuração-base; nenhum recurso terá dois reconciliadores GitOps.
-- Crossplane, Argo Workflows e TerraformStack Controller permanecem autogerenciados no Hub. A conectividade da capability não é um túnel genérico para Pods, kubectl, bancos de dados ou telemetria. Fluxos de observabilidade e acesso operacional privado exigem soluções próprias, sem presumir roteamento entre VPCs.
+- Crossplane, Argo Workflows e TerraformStack Controller permanecem autogerenciados no Hub. A conectividade da capability não é um túnel genérico para Pods, kubectl, bancos de dados ou telemetria. Fluxos de observabilidade e acesso operacional privado exigem soluções próprias. A consulta de Loki e Tempo pelo Grafana usa PrivateLink conforme o [ADR-0010](0010-observability-topology.md).
 
 ## Implementação e evidências
 

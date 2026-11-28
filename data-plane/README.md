@@ -6,7 +6,7 @@ O Data Plane é composto de **Entities**, com Environments UAT/PROD e duas área
 
 ## Management EKS e AWS Runtime (topologia-alvo)
 
-Em cada conta UAT/PROD, a topologia prevê **Management EKS**, **EKS PCI** e **EKS Non-PCI**. O Management EKS será o ponto local de **Argo CD**, **Operators ainda a estudar** e **OpenTelemetry Collector/gateway** para encaminhar logs, métricas e traces. A visão centralizada ficará no Observability Plane do Hub; não pressupor uma instalação de Loki em cada ambiente.
+Em cada conta UAT/PROD, a topologia prevê **Management EKS**, **EKS PCI** e **EKS Non-PCI**. O Management EKS hospeda o **Argo CD local**, Operators a escolher e os backends de logs e traces do ambiente. Cada cluster coleta sua própria telemetria e envia métricas direto ao **AMP da conta**. Logs e traces seguem ao Gateway do Management EKS e são armazenados por Loki/Tempo no S3 da conta. O perfil de telemetria de PCI depende da validação de isolamento. [Fluxo de observabilidade](../docs/flows/observability.md)
 
 O **AWS Runtime** engloba Core Infrastructure (recursos compartilhados) e Domain Infrastructure (recursos de cada domínio). **Terraform** cria Foundation e Entity Core como rede, dependências e EKS; **Crossplane** reconcilia Capabilities AWS de Domain, e pode operar Capabilities comuns quando o ownership for explícito. Um recurso não terá Terraform e Crossplane como owners simultâneos.
 
