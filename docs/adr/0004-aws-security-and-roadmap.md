@@ -1,8 +1,8 @@
 # ADR-0004 — AWS real, segurança e entrega incremental
 
-**Estado:** decisão vigente, implementação pendente · **Data:** 19/11/2026
+**Estado:** decisão vigente, implementação em andamento · **Data:** 19/11/2026
 
-**Decisão.** A plataforma conclui o TerraformStack e depois o Crossplane com recursos Kubernetes no Hub `kind`. As Etapas 09–10 preparam Foundation, módulos e acesso da conta de plataforma. O bootstrap externo provisiona o Hub EKS Auto Mode. Os componentes centrais são reinstalados do Git e os dois aceites são repetidos antes de preparar as spokes. [Roteiro](../learning-roadmap.md)
+**Decisão.** O bootstrap manual da Etapa 01 provisiona o Hub EKS Auto Mode na conta de plataforma. A Etapa 02 valida o primeiro sync GitOps. O Hub recebe o TerraformStack e depois o Crossplane para os aceites com recursos Kubernetes. As Etapas 09–10 consolidam os pré-requisitos das spokes. [Roteiro](../learning-roadmap.md)
 
 **Identidade.** A Etapa 11 valida o registro UAT e o acesso humano via IAM Identity Center. A Etapa 12 comprova a sessão temporária de origem do Pod no Hub EKS, a assunção da role autorizada de UAT e o backend S3 segregado. A Etapa 13 aplica a Network da spoke com aprovação vinculada ao plano. Management, Non-PCI, GitOps e Bridge seguem nas Etapas 14–18. [Registro UAT](../learning-roadmap.md#etapa-11--registro-de-uat) · [Identidade do executor](../learning-roadmap.md#etapa-12--identidade-do-executor-e-state)
 
@@ -12,4 +12,4 @@
 
 [Arquitetura](../architecture.md) · [Roadmap](../learning-roadmap.md)
 
-**Conectividade GitOps:** VPCs Platform, UAT e PROD isoladas, com NAT e APIs EKS privadas; Argo CD central gerenciado pela AWS acessa os destinos por ARN e Access Entries. Ver [ADR-0008](0008-managed-argocd-connectivity.md).
+**Conectividade GitOps:** VPCs Platform, UAT e PROD isoladas, com NAT e endpoints EKS privados. O Hub admite acesso público restrito ao CIDR do operador durante o bootstrap; Argo CD central gerenciado pela AWS acessa os destinos por ARN e Access Entries. Ver [ADR-0008](0008-managed-argocd-connectivity.md).

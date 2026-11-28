@@ -1,7 +1,7 @@
 terraform {
   required_version = ">= 1.10"
   required_providers {
-    aws = { source = "hashicorp/aws", version = ">= 5.83, < 6" }
+    aws = { source = "hashicorp/aws", version = ">= 6.40, < 7.0" }
   }
   backend "s3" {}
 }
@@ -12,6 +12,15 @@ variable "account_id" { type = string }
 provider "aws" {
   region              = var.region
   allowed_account_ids = [var.account_id]
+
+  default_tags {
+    tags = {
+      Project     = "platform-engineering-poc"
+      ManagedBy   = "terraform"
+      Entity      = var.entity
+      Environment = var.environment
+    }
+  }
 }
 module "configuration" {
   source      = "../../modules/configuration"

@@ -98,7 +98,7 @@ for line in sys.stdin:
           event.get("responseStatus", {}).get("code"))'
 ```
 
-Correlacione a entrada de auditoria bem-sucedida com o Workflow e o hash do plano. Os eventos completos ficam no nó do Hub `platform-management`. Se o arquivo estiver ausente, confira a opção de auditoria do API Server na Etapa 01. [Reexaminar o Hub existente](01-platform-management-cluster.md#etapa-6--reexaminar-o-hub-existente)
+Correlacione a entrada de auditoria bem-sucedida com o Workflow e o hash do plano. Os eventos completos ficam no nó do Hub `platform-management`. Se o arquivo estiver ausente, confira a política de auditoria montada pelo [ambiente local do Simulator](../platform/hub/kind-config.yaml).
 
 Para provar falha fechada no Hub local, altere o Rego para uma expressão inválida em uma revisão de teste. Sincronize **terraformstack-workflows** nessa revisão e depois sincronize o Simulator com uma mudança de CIDR. Observe o step OPA falhar, o status indicar `PolicyError` e o ConfigMap preservar o valor anterior. Restaure o WorkflowTemplate com o sync da revisão válida. Os ConfigMaps de scripts e política são imutáveis e têm nomes derivados do conteúdo. Deixe a limpeza das versões antigas para depois que seus Workflows concluírem.
 

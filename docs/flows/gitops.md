@@ -1,6 +1,6 @@
 # GitOps Flow — Platform Engineering POC
 
-As Etapas 01 a 06 validaram o Hub `kind`, o catálogo do Argo CD e o Terraform Stack Simulator. Crossplane Core tem um smoke test local na Etapa 07. A topologia AWS prevê a EKS Capability for Argo CD no Hub e Argo CD autogerenciado em cada Management EKS. [Roadmap](../learning-roadmap.md) · [ADR-0008](../adr/0008-managed-argocd-connectivity.md)
+A Etapa 01 provisiona o Hub EKS com a capability Argo CD. A Etapa 02 valida o primeiro sync no próprio Hub. O Argo CD autogerenciado dos Management EKS atende à entrega de workloads nos destinos locais autorizados. [Roadmap](../learning-roadmap.md) · [ADR-0008](../adr/0008-managed-argocd-connectivity.md)
 
 ![Fluxo GitOps: Platform Addons, Crossplane, TerraformStack e Domain Applications](./gitops-flow.png)
 
@@ -23,17 +23,9 @@ O GitOps abrange quatro fluxos complementares:
 
 ## 2. Bootstrap do Control Plane
 
-### Hoje: Hub local com kind
+A [Etapa 01](../../labs/01-platform-management-cluster.md) usa a stack Terraform `platform-hub` para provisionar o cluster e a **EKS Capability for Argo CD** com IAM Identity Center. A [Etapa 02](../../labs/02-argocd-central.md) registra o Hub por ARN, configura permissões e sincroniza o primeiro recurso do Git.
 
-O bootstrap inicial utiliza os scripts existentes de `platform/hub/scripts/` para criar o cluster, configurar Traefik e instalar Argo CD por Helm. O manifesto `platform/hub/addons/bootstrap.yaml` configura AppProjects e o ApplicationSet `hub-addons`, que lê **arquivos** de `platform/hub/addons/catalog/*.yaml`.
-
-Cada entrada válida do catálogo gera uma Application própria. O laboratório inicialmente mantém **sincronização manual**, permitindo inspecionar diff e revisão. **Descoberta de Applications** pelo ApplicationSet e **auto-sync/self-heal** são controles distintos; não presumir que a descoberta já habilita a reconciliação automática.
-
-O Argo CD não precisa estar instalado antes do script de bootstrap: o script estabelece o primeiro mecanismo GitOps, e o catálogo passa a entregar componentes subsequentes.
-
-### Futuro: Hub na AWS
-
-Terraform poderá provisionar o EKS do Control Plane e configurar seu mecanismo inicial de GitOps. A **EKS Capability for Argo CD** é a escolha para o Hub AWS, com IAM Identity Center, IAM Capability Role, registro explícito do Hub por ARN e permissões de destino. Custo, disponibilidade e isolamento serão validados. Os laboratórios `kind` continuam autogerenciados.
+O catálogo em `platform/hub/addons/catalog/` organiza uma Application por componente. A instalação no EKS depende da adaptação dos AppProjects, do destino e das configurações de cada add-on à capability. A descoberta de Applications pelo ApplicationSet e o sync são operações distintas. Inspecionar revisão, destino e diff antes do sync manual.
 
 ## 3. Platform GitOps — governança dos add-ons
 
@@ -124,17 +116,17 @@ Na Etapa 17, o GitOps Bridge publica outputs selecionados do Terraform no Parame
 
 | Etapa | Evidência principal |
 | --- | --- |
-| 01–03 | Hub `kind`, Argo CD central e Argo Workflows |
+| 01–03 | Hub EKS, Argo CD gerenciado e Argo Workflows |
 | 04–06 | CRD, controller, pipeline e Simulator com Terraform e OpenTofu |
 | 07–08 | Crossplane Core com recurso local e aceite GitOps |
-| 09–13 | Foundation, Hub EKS, UAT, identidade, state e primeiro apply de Network |
+| 09–13 | Aceites do Hub, UAT, identidade, state e primeiro apply de Network |
 | 14–18 | Management e Non-PCI, GitOps multicluster, Bridge e smoke test HTTP |
 | 19–21 | Identidade Crossplane e Capabilities AWS |
 | 22–25 | Aplicação FastAPI com Aurora/S3, GitHub Actions, ECR e Argo CD local |
 | 26–31 | Observabilidade, drift, reconciliação por políticas e isolamento |
 | 32–35 | Experience Layer e Golden Path integrado |
 
-Os laboratórios iniciais permanecem em **kind**; adicionar dependências AWS antes da etapa correspondente não faz parte desta aprovação.
+O bootstrap manual do Hub e o primeiro sync precedem a instalação dos add-ons.
 
 ## 11. Princípios arquiteturais
 
@@ -145,7 +137,7 @@ Os laboratórios iniciais permanecem em **kind**; adicionar dependências AWS an
 5. Cada recurso Kubernetes possui **um único owner de reconciliação**.
 6. Bootstrap, registro de cluster, configuração e operação são atividades distintas.
 7. `Synced` na API Kubernetes não implica infraestrutura AWS convergida.
-8. O desenho lógico deve poder evoluir do kind para EKS preservando os contratos.
+8. O desenho lógico preserva os contratos entre o Hub EKS e os destinos autorizados.
 
 ## 12. Documentos relacionados
 

@@ -5,13 +5,16 @@ O [roteiro prático](../docs/learning-roadmap.md) organiza a montagem cumulativa
 | Etapa | Guia |
 | :--- | :--- |
 | **00** | [Documentação e monorepo](../docs/repository-structure.md) |
-| **01** | [Hub kind e Traefik](01-platform-management-cluster.md) |
-| **02** | [Argo CD central e catálogo de add-ons](02-argocd-central.md) |
+| **01** | [Bootstrap do Hub EKS Auto Mode](01-platform-management-cluster.md) |
+| **02** | [Primeiro sync no Argo CD gerenciado](02-argocd-central.md) |
 | **03** | [Argo Workflows](03-argo-workflows.md) |
 | **04** | [API do TerraformStack via GitOps](04-terraformstack-crd.md) |
 | **05** | [Controller e pipeline do TerraformStack](05-terraformstack-runtime.md) |
 | **06** | [Terraform Stack Simulator de ponta a ponta no kind](06-terraformstack-simulator.md) |
 | **07** | [Crossplane Core e smoke test](07-crossplane-core.md) |
+| **08** | [Crossplane de ponta a ponta no kind](08-crossplane-gitops.md) |
+
+> O Hub EKS é o ponto de partida da POC. Os guias das Etapas 03–08 ainda precisam adequar contextos, manifests ou evidências ao EKS antes de serem executados nesse destino.
 
 ## Como ler e reproduzir uma etapa
 

@@ -2,6 +2,8 @@
 
 [← Etapa 02](02-argocd-central.md) · [Guias das etapas](README.md)
 
+> A execução desta etapa no Hub EKS exige adaptar o catálogo à capability Argo CD e revisar o acesso ao Argo Server. Os comandos abaixo ainda usam o contexto e a rota do ambiente anterior.
+
 ## Objetivo
 
 Executar um Workflow local e acompanhar na interface do Argo Workflows o estado da execução, o Pod e seus logs.

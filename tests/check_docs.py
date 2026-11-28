@@ -47,7 +47,7 @@ def headings(path):
 
 
 for doc in sorted(ROOT.rglob("*.md")):
-    if ".git" in doc.parts:
+    if any(part in {".git", ".terraform"} for part in doc.parts):
         continue
     content = doc.read_text(encoding="utf-8")
     if content.count(chr(96) * 3) % 2:

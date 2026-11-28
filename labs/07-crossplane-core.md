@@ -87,4 +87,4 @@ hub delete -f "$demo/composition.yaml" -f "$demo/xrd.yaml" -f "$demo/function.ya
 
 Mantenha a Application `crossplane-core` sincronizada para as próximas etapas. [Documentação do Crossplane](https://docs.crossplane.io/latest/guides/function-patch-and-transform/)
 
-A Etapa 08 evolui este fluxo para o aceite via GitOps antes do bootstrap do Hub EKS. [Roteiro](../docs/learning-roadmap.md#fase-2--control-plane-local)
+A Etapa 08 evolui este fluxo para o aceite via GitOps antes do bootstrap do Hub EKS. [Etapa 08](08-crossplane-gitops.md)
