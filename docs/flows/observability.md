@@ -1,0 +1,48 @@
+# Fluxo de observabilidade
+
+[← Arquitetura](../architecture.md) · [ADR-0010](../adr/0010-observability-topology.md) · [Observability Plane](../../observability-plane/README.md)
+
+O fluxo descreve a **topologia-alvo da POC**. Os sinais do TerraformStack já existem no laboratório. A coleta e os backends AWS entram nas Etapas 26 e 27, começando em UAT. O diagrama mostra uma conta de Environment por vez. UAT e PROD seguem o mesmo modelo com recursos e permissões próprios.
+
+![Topologia de observabilidade com Grafana no Hub, Collectors nos três EKS do ambiente, AMP e backends Loki e Tempo no Management EKS](observability-flow.png)
+
+[Abrir diagrama em tamanho completo](observability-flow.png)
+
+## Caminhos de ingestão e consulta
+
+| Origem | Métricas | Logs e traces |
+| :--- | :--- | :--- |
+| EKS Non-PCI | OTel Collector local → AMP do ambiente via `remote_write` | OTel Collector local → OTel Gateway do Management EKS |
+| EKS PCI, após validação do isolamento | OTel Collector local → AMP autorizado | OTel Collector local → Gateway autorizado |
+| Management EKS | OTel Collector local → AMP do ambiente, incluindo o scrape do Argo CD local | OTel Collector local → Gateway no próprio cluster |
+| Hub da Plataforma | Métricas operacionais essenciais → CloudWatch do Hub | Logs e demais sinais operacionais aplicáveis → CloudWatch do Hub |
+
+O Gateway encaminha logs ao **Loki** e traces ao **Tempo**. Os dois backends rodam no Management EKS e persistem seus blocos no S3 do ambiente. Traces entram quando o componente estiver instrumentado e configurado para exportá-los. O Grafana consulta o AMP para métricas e as APIs de Loki e Tempo para logs e traces. O S3 é armazenamento dos backends, e o Gateway recebe telemetria.
+
+No Management EKS, por exemplo, o Argo CD local expõe métricas Prometheus de saúde e sincronização. O Collector faz o scrape e envia as séries diretamente ao AMP. O AMP armazena e disponibiliza séries para consulta, portanto o scrape pode funcionar com o Collector e sem um servidor Prometheus autogerenciado no cluster. [Métricas do Argo CD](https://argo-cd.readthedocs.io/en/stable/operator-manual/metrics/) · [Ingestão de métricas no AMP](https://docs.aws.amazon.com/prometheus/latest/userguide/AMP-ingest-methods.html)
+
+## Fronteiras e ownership
+
+| Recurso | Responsabilidade |
+| :--- | :--- |
+| Collectors, Gateway, Loki e Tempo | Platform Team define configuração e distribuição de add-ons por perfil via Argo CD central. |
+| AMP, S3, conectividade privada, Grafana e IAM | Platform Team provisiona os recursos AWS declarativamente por Terraform e concede acessos por origem e destino. |
+| Instrumentação da aplicação | A squad instrumenta código e configura a exportação no próprio repositório. Argo CD local entrega os manifests nos clusters autorizados. |
+| Alertas e dashboards | A plataforma mantém o baseline de coleta, saúde e falhas de ingestão. As squads definem os sinais da aplicação e os limites operacionais do seu Domain. |
+
+O Managed Grafana usa uma conexão à VPC da Plataforma para alcançar, via PrivateLink, as APIs privadas de leitura de cada ambiente. O desenho prevê interface endpoint na VPC do Hub e endpoint service com NLB e proxy autenticado na VPC do ambiente. O proxy limita o acesso a Loki e Tempo. O Grafana consulta o AMP pela API AWS, com IAM cross-account. Validar DNS, TLS, permissões, conectividade aos endpoints AWS e acesso por datasource na Etapa 26. [Conectividade VPC do Grafana](https://docs.aws.amazon.com/grafana/latest/userguide/AMG-configure-vpc.html) · [Serviços via PrivateLink](https://docs.aws.amazon.com/vpc/latest/privatelink/privatelink-share-your-services.html)
+
+Atribuir Entity, Environment, cluster e serviço aos sinais de forma consistente. Para diagnóstico, correlacionar estado e Events da API Kubernetes com a revisão Git, a aplicação Argo CD, a execução do Workflow e as condições do Crossplane. Aplicar políticas de conteúdo e acesso antes da ingestão e testar consulta com identidades de escopos distintos. Excluir credenciais, dados sensíveis, conteúdo de planos e state da telemetria. Preferir dimensões de cardinalidade controlada para métricas.
+
+## Critérios de aceite
+
+| Etapa | Evidência esperada |
+| :--- | :--- |
+| **26 — UAT** | Gerar métrica, log e trace correlacionáveis a partir de uma aplicação Non-PCI. Consultar os três no Grafana. Confirmar que métricas do Argo CD local chegam ao mesmo AMP via o Collector do Management EKS. Conferir que os sinais essenciais do Hub podem ser consultados no CloudWatch. |
+| **27 — Falha controlada** | Interromper o Gateway em UAT, confirmar novas amostras dos workloads no AMP e receber alerta por um check fora do Management EKS. Após recuperar o Gateway, medir o que ficou em fila e o que se perdeu em logs e traces. Registrar custo de ingestão, consulta e armazenamento. |
+| **30 — PCI, quando autorizado** | Testar acesso à ingestão e consulta com identidades PCI e Non-PCI. Confirmar que acessos indevidos são negados no backend e que permissões na fonte de dados refletem a fronteira aprovada. |
+| **31 — PROD, quando provisionado** | Validar workspaces, armazenamento, identidade e consultas segregadas. Repetir a falha controlada em UAT e confirmar continuidade dos sinais de PROD. |
+
+Quando o Management EKS inteiro estiver indisponível, Loki e Tempo também deixam de servir consultas temporariamente. Dados já persistidos ficam no S3 e as métricas já ingeridas ficam consultáveis no AMP. A retenção em fila é limitada pela configuração e pela capacidade do Collector. [Resiliência dos Collectors](https://opentelemetry.io/docs/collector/resiliency/) · [Permissões de datasources no Managed Grafana](https://docs.aws.amazon.com/grafana/latest/userguide/data-source-permissions.html)
+
+[← Arquitetura](../architecture.md) · [Etapas de observabilidade e operação](../learning-roadmap.md#fase-6--observabilidade-operação-e-governança)

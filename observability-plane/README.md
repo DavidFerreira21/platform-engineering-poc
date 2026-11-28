@@ -1,22 +1,23 @@
 # 📊 Observability Plane
 
-## Stack-alvo da POC
+[← Início](../README.md) · [Arquitetura](../docs/architecture.md) · [Fluxo de observabilidade](../docs/flows/observability.md) · [ADR-0010](../docs/adr/0010-observability-topology.md)
 
-- **OpenTelemetry** — instrumentação, coleta, normalização e encaminhamento de telemetria.
-- **Grafana** — visualização, correlação e dashboards centralizados.
-- **Loki** — backend central de logs.
-- **Tempo** — backend central de traces.
-- **Métricas / Prometheus** — parte do desenho de referência, com arquitetura operacional e retenção a validar nos labs.
-- **Eventos e auditoria** — correlacionar revisão Git, Argo CD, `TerraformStack.status`, Workflow, executores, Crossplane e eventos AWS.
+## Topologia-alvo
 
-Cada **Management EKS** de UAT/PROD deverá ter um **OpenTelemetry Collector/gateway** (ou mecanismo equivalente a validar) para encaminhar a telemetria. **Operators locais permanecem a definir**. O plano central terá visibilidade das entidades, preservando segregação e permissões de ambientes e PCI/Non-PCI. Isso não exige executar Loki/Tempo dentro de cada Management EKS.
+A conta da Plataforma oferece consulta central com **Amazon Managed Grafana** e usa **CloudWatch** para os sinais essenciais do Hub. Cada conta UAT ou PROD tem seus próprios destinos de armazenamento. Os EKS Management, PCI e Non-PCI coletam a telemetria local com OpenTelemetry. A ativação do perfil PCI depende da validação da fronteira de isolamento.
+
+| Sinal | Destino no Environment |
+| :--- | :--- |
+| Métricas | Cada OTel Collector envia diretamente ao **Amazon Managed Service for Prometheus (AMP)** do ambiente. |
+| Logs | Gateway no Management EKS → **Loki** no mesmo cluster → **S3** do ambiente. |
+| Traces | Gateway no Management EKS → **Tempo** no mesmo cluster → **S3** do ambiente. |
+
+O Management EKS também gera telemetria. Seu Collector coleta métricas do Argo CD local e de outros add-ons e envia ao AMP. O Gateway recebe logs e traces locais e dos clusters de workloads. O Grafana consulta AMP via IAM cross-account e Loki/Tempo via PrivateLink.
 
 ## Sinais já disponíveis no TerraformStack
 
-O controller publica logs estruturados JSON em stdout, Events na API Kubernetes e métricas nativas/customizadas em `:8080/metrics`, incluindo condição, fase, drift pendente, horários e tentativas por CR. Os gauges são derivados do cache de status; contadores de transições são locais ao processo. O controlador não instala coletores, backends, ServiceMonitor, dashboards ou regras de alerta. A ausência de sinal de drift não significa convergência; falhas internas antes de persistir status exigem também logs e métricas do runtime. O operador decide como coletar e proteger o endpoint. [Catálogo de métricas e diagnóstico](../control-plane/terraformstack/controller/README.md#observabilidade-operacional).
+O controller publica logs estruturados JSON em stdout, Events na API Kubernetes e métricas nativas/customizadas em `:8080/metrics`, incluindo condição, fase, drift pendente, horários e tentativas por CR. Os gauges são derivados do cache de status e os contadores de transições são locais ao processo. Correlacionar ausência de sinal de drift com status, logs e métricas de runtime para diagnosticar falhas anteriores à persistência do status. [Catálogo de métricas e diagnóstico](../control-plane/terraformstack/controller/README.md#observabilidade-operacional)
 
 ## Etapas de aprendizado
 
-No Hub `kind`, o Simulator correlaciona revisão Git, Workflow, condições, horários de drift e auditoria da aprovação na API Kubernetes. A integração da coleta dos sinais existentes, a instalação dos Collectors, dos backends centrais e a instrumentação dos spokes entram nas Etapas 26 e 27. [Evidências locais](../labs/06-terraformstack-simulator.md#evidências-de-aceite).
-
-[← Página inicial](../README.md) · [Arquitetura](../docs/architecture.md) · [Roteiro](../docs/learning-roadmap.md)
+No Hub `kind`, o Simulator correlaciona revisão Git, Workflow, condições, horários de drift e auditoria da aprovação na API Kubernetes. Na AWS, as Etapas 26–27 integram coletores, backends, sinais do Hub e diagnóstico de perda de ingestão em UAT. As Etapas 30–31 validam as fronteiras PCI e PROD quando esses destinos forem autorizados e provisionados. [Evidências locais](../labs/06-terraformstack-simulator.md#evidências-de-aceite) · [Roteiro](../docs/learning-roadmap.md#fase-6--observabilidade-operação-e-governança)

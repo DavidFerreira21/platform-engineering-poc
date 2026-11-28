@@ -45,10 +45,12 @@ Perfis previstos:
 
 | Perfil | Escopo de add-ons |
 | --- | --- |
-| **Hub (perfil físico central)** | Argo CD central e Argo Workflows (Workflow Plane), Crossplane e controllers (Control Plane), componentes de telemetria previstos (Observability Plane) |
-| **Management** | Argo CD local, componentes de gestão e telemetria |
-| **PCI** | Add-ons corporativos explicitamente aprovados para PCI |
-| **Non-PCI** | Add-ons corporativos do perfil padrão |
+| **Hub (perfil físico central)** | Argo CD central e Argo Workflows (Workflow Plane), Crossplane e controllers (Control Plane), coleta dos sinais operacionais do Hub |
+| **Management** | Argo CD local, OTel Collector, OTel Gateway, Loki e Tempo |
+| **PCI** | Add-ons do perfil PCI, incluindo Collector quando a fronteira de telemetria for aprovada |
+| **Non-PCI** | Add-ons do perfil padrão, incluindo OTel Collector |
+
+O [fluxo de observabilidade](observability.md) detalha os destinos e acessos de cada perfil.
 
 Cada cluster poderá receber labels como `entity`, `environment`, `cluster-role` e `compliance`. Essas labels são **metadados de seleção**, não mecanismo de autorização por si sós. O onboarding estabelece previamente acesso, identidade, RBAC e confiança do cluster.
 

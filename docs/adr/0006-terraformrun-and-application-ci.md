@@ -189,7 +189,7 @@ O código, a pipeline CI/CD **e os manifests Kubernetes da aplicação de exempl
 
 **Domain Applications** permanecem independentes: GitHub Actions de uma aplicação de teste rodará em **outro repositório**; após build/test/scan/publicação, uma atualização de manifesto GitOps será revisada/aprovada e aplicada pelo **Argo CD local**. Nenhuma pipeline de aplicação é criada neste monorepo agora.
 
-**Observabilidade** continua com OpenTelemetry, Grafana, Loki e Tempo; coletor/gateway local em cada Management EKS, Operators a definir.
+**Observabilidade.** O Management EKS inclui Collector local e os serviços de processamento e consulta de logs e traces do ambiente. As métricas dos EKS seguem diretamente para o AMP. O [ADR-0010](0010-observability-topology.md) detalha os caminhos de ingestão e consulta e os sinais operacionais do Hub.
 
 ## Faseamento e pendências
 
