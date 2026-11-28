@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: terraformstack-workflows
+  namespace: argocd
+spec:
+  project: platform-terraformstack-workflows
+  source:
+    repoURL: https://github.com/DavidFerreira21/platform-engineering-poc.git
+    targetRevision: main
+    path: workflow-plane/argo-workflows/terraformstack
+    kustomize:
+      images:
+      - terraformstack-runner=HUB_RUNNER_IMAGE
+  destination:
+    server: HUB_EKS_ARN
+    namespace: argo-workflows

@@ -12,7 +12,7 @@ A POC possui três contas AWS (Platform, UAT e PROD), cada uma com sua VPC isola
 
 - No Hub EKS Auto Mode, adotar **Amazon EKS Capability for Argo CD** como Argo CD central e mecanismo de acesso GitOps às APIs privadas dos EKS em Platform, UAT e PROD. Trata-se de uma capability gerenciada, não de um EKS Managed Add-on nem de uma função exclusiva do Auto Mode.
 - Registrar explicitamente o Hub e os clusters remotos por ARN. Criar Access Entries nos destinos para a IAM Capability Role da conta Platform e conceder RBAC adequado ao escopo. O serviço AWS fornece conectividade gerenciada; a CLI ou o Secret de cluster apenas registra o destino.
-- Usar ApplicationSets com labels de Entity, Environment e perfil para distribuir add-ons e configurações de plataforma. Usar AppProjects e permissões de destino para limitar o alcance.
+- No Hub, declarar uma Application por componente. Na Etapa 16, usar ApplicationSets com labels de Entity, Environment e perfil para distribuir add-ons nos destinos cadastrados. Usar AppProjects e permissões de destino para limitar o alcance.
 - Manter Argo CD local no Management EKS de cada Environment para Domain Applications, com acesso aos EKS de sua própria VPC conforme autorização. O Argo central instala e mantém sua configuração-base; nenhum recurso terá dois reconciliadores GitOps.
 - Crossplane, Argo Workflows e TerraformStack Controller permanecem autogerenciados no Hub. A conectividade da capability não é um túnel genérico para Pods, kubectl, bancos de dados ou telemetria. Fluxos de observabilidade e acesso operacional privado exigem soluções próprias. A consulta de Loki e Tempo pelo Grafana usa PrivateLink conforme o [ADR-0010](0010-observability-topology.md).
 

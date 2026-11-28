@@ -28,6 +28,8 @@ A VPC do Hub tem três subnets privadas de aplicação e três de database, uma 
 
 Durante o bootstrap, o operador pode usar o endpoint público da API, restrito ao IP de saída do seu terminal. O endpoint privado atende ao tráfego interno. A Access Entry dá à role SSO autorizada as permissões Kubernetes. O Argo CD gerenciado tem URL própria e usa o IAM Identity Center da organização para o login.
 
+O perfil de capacidade Graviton é opcional e tem seu próprio aceite. O bootstrap usa os NodePools gerenciados. [Capacidade do Hub](../platform/hub/README.md#capacidade-do-laboratório)
+
 ## 1. Preparar a sessão e os arquivos locais
 
 No assistente SSO, selecionar a conta de plataforma, a role autorizada para o bootstrap e `us-east-1` como região padrão do perfil.

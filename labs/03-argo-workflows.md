@@ -10,7 +10,7 @@ Executar um Workflow de teste no Hub EKS e acompanhar na interface do Argo Workf
 
 ## O que será feito
 
-- Sincronizar a Application `argo-workflows`, gerada pelo `ApplicationSet` da Etapa 02. Conferir o controller, os CRDs, a ServiceAccount do executor e o Argo Server, que serve a interface.
+- Sincronizar a Application `argo-workflows`, definida no [catálogo do Hub](../platform/hub/addons/catalog/argo-workflows/argo-workflows.yaml). Conferir o controller, os CRDs, a ServiceAccount do executor e o Argo Server, que serve a interface.
 - Abrir a interface com acesso de leitura autorizado e observar a execução de exemplo.
 - Remover a execução de exemplo e seu Pod. O controller fica disponível para as próximas etapas.
 

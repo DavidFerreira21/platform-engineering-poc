@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: terraformstack-controller
+  namespace: argocd
+spec:
+  project: platform-terraformstack-controller
+  source:
+    repoURL: https://github.com/DavidFerreira21/platform-engineering-poc.git
+    targetRevision: main
+    path: control-plane/terraformstack/overlays/eks
+    kustomize:
+      images:
+      - terraformstack-controller=HUB_CONTROLLER_IMAGE
+  destination:
+    server: HUB_EKS_ARN
+    namespace: platform-system

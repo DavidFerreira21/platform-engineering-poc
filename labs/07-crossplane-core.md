@@ -8,7 +8,7 @@ Validar a reconciliação de um recurso composto no Hub e observar como o schema
 
 ## O que será feito
 
-- Sincronizar a Application `crossplane-core`, gerada pelo `ApplicationSet` da Etapa 02, para instalar o Crossplane Core e seus CRDs.
+- Sincronizar a Application `crossplane-core`, definida no [catálogo do Hub](../platform/hub/addons/catalog/crossplane/crossplane-core.yaml), para instalar o Crossplane Core e seus CRDs.
 - Instalar a função de composição do exercício, aplicar o XRD de `LabMessage` e sua Composition e criar um `LabMessage` em `platform-system`. Conferir as condições do recurso e o ConfigMap criado pelo Crossplane.
 - Consultar o schema publicado pelo XRD e conferir a mensagem do `LabMessage` no ConfigMap.
 - Remover os recursos do exercício e manter o Crossplane Core instalado.

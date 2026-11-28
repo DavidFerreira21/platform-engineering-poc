@@ -16,7 +16,7 @@ O GitOps abrange quatro fluxos complementares:
 
 | Fluxo | Entrada declarativa | Responsável pela execução/reconciliação | Resultado |
 | --- | --- | --- | --- |
-| **Platform GitOps** | Catálogo de add-ons e Applications | Argo CD central e ApplicationSet | Componentes Kubernetes da plataforma |
+| **Platform GitOps** | Catálogo de add-ons e Applications | Argo CD central | Componentes Kubernetes da plataforma |
 | **Infrastructure GitOps — Crossplane** | CRs de Capabilities | Crossplane central e Provider AWS | S3, Aurora PostgreSQL e demais Capabilities |
 | **Infrastructure GitOps — Terraform** | CR `TerraformStack` | TerraformStack Controller → Argo Workflows → Terraform Executor | ConfigMap no Simulator. Foundation, rede, IAM e EKS no alvo AWS |
 | **Domain GitOps** | Manifests de aplicações no repositório da squad | Argo CD local | Aplicações nos clusters PCI/Non-PCI autorizados |
@@ -27,7 +27,7 @@ O GitOps abrange quatro fluxos complementares:
 
 A [Etapa 01](../../labs/01-platform-management-cluster.md) usa a stack Terraform `platform-hub` para provisionar o cluster e a **EKS Capability for Argo CD** com IAM Identity Center. A [Etapa 02](../../labs/02-argocd-central.md) registra o Hub por ARN, configura permissões e sincroniza o primeiro recurso do Git.
 
-O catálogo em `platform/hub/addons/catalog/` organiza uma Application por componente. A instalação no EKS depende da adaptação dos AppProjects, do destino e das configurações de cada add-on à capability. A descoberta de Applications pelo ApplicationSet e o sync são operações distintas. Inspecionar revisão, destino e diff antes do sync manual.
+O catálogo em `platform/hub/addons/catalog/` organiza uma Application por componente. A instalação no EKS depende da adaptação dos AppProjects, do destino e das configurações de cada add-on à capability. O Hub cria as Applications explicitamente por componente. Inspecionar revisão, destino e diff antes do sync manual.
 
 ## 3. Platform GitOps — governança dos add-ons
 
@@ -35,13 +35,13 @@ O **Platform Team** mantém o padrão de componentes Kubernetes da plataforma ao
 
 O catálogo pode incluir componentes como External Secrets Operator, OTel Collector e add-ons de segurança. Os **recursos AWS associados**, como IAM Roles, são provisionados pelo motor de infraestrutura designado, e não automaticamente pelo Helm Chart.
 
-### Descoberta e seleção
+### Distribuição nas spokes
 
 - **Git Generator:** descobre as entradas versionadas do catálogo.
 - **Cluster Generator:** seleciona clusters **registrados e autorizados** por labels e outras informações de destino.
 - **Matrix Generator:** pode combinar os dois para gerar uma Application por combinação aprovada de componente e cluster.
 
-O laboratório já possui **Git File Generator** no `hub-addons`; a seleção por clusters e a combinação Matrix fazem parte da evolução-alvo, não da implementação atual.
+A automação com ApplicationSets está prevista para a distribuição multicluster da Etapa 16. No Hub, o catálogo contém manifests de Applications separados por componente.
 
 Perfis previstos:
 

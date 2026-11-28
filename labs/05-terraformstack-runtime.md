@@ -33,7 +33,7 @@ O controller inicia com a integração de referência e preserva uma tentativa a
 
 ## Imagens e armazenamento no Hub EKS
 
-Construir as imagens do controller e do runner para a arquitetura dos nós e publicá-las em repositórios privados do ECR autorizados. Registrar a referência imutável por digest na configuração de implantação. Os nós do Auto Mode precisam alcançar o registry e ter permissão de pull. O build na máquina do operador produz as imagens que serão publicadas.
+Construir as imagens do controller e do runner para a arquitetura dos nós e publicá-las em repositórios privados do ECR autorizados. Registrar a referência imutável por digest na configuração de implantação. Os nós do Auto Mode precisam alcançar o registry e ter permissão de pull. O build na máquina do operador produz as imagens que serão publicadas. Para atender aos dois tipos de nó pela mesma referência, publicar um índice multiarch com `docker buildx build --platform linux/amd64,linux/arm64 --tag "$image_tag" --push <contexto>` e confirmar as duas plataformas com `docker buildx imagetools inspect "$image_tag"`. O ensaio no NodePool Graviton depende desse build e da verificação das imagens e providers do Workflow.
 
 O [overlay EKS](../control-plane/terraformstack/overlays/eks/kustomization.yaml) usa a StorageClass `terraformstack-simulator-eks` para os dois PVCs do Simulator. Ela usa volumes gp3 criptografados pelo provisionador do EKS Auto Mode. Com `WaitForFirstConsumer`, um PVC fica `Pending` até a criação do primeiro Pod que o utiliza. [StorageClass do Auto Mode](https://docs.aws.amazon.com/eks/latest/userguide/create-storage-class.html)
 

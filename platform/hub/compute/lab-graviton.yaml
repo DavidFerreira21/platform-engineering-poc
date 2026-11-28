@@ -1,0 +1,30 @@
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: lab-graviton
+spec:
+  limits:
+    cpu: "4"
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 1m
+  template:
+    spec:
+      nodeClassRef:
+        group: eks.amazonaws.com
+        kind: NodeClass
+        name: default
+      taints:
+        - key: platform.example.io/lab-graviton
+          value: "true"
+          effect: NoSchedule
+      requirements:
+        - key: kubernetes.io/arch
+          operator: In
+          values: [arm64]
+        - key: node.kubernetes.io/instance-type
+          operator: In
+          values: [t4g.medium]
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: [on-demand]
