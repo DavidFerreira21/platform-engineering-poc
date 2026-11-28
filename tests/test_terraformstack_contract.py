@@ -93,7 +93,7 @@ class TerraformStackContractTest(unittest.TestCase):
         self.assertEqual(inputs, {transport["input"]["intent"]})
         templates = {item["name"]: item for item in template["spec"]["templates"]}
         steps = lambda name: [item["name"] for group in templates[name]["steps"] for item in group]
-        self.assertEqual(steps("reconcile"), ["resolve", "prepare", "execute"])
+        self.assertEqual(steps("reconcile"), ["resolve", "prepare", "execute", "cleanup"])
         self.assertEqual(steps("execute"), ["init", "validate", "plan", "opa", "decision",
                                             "approval", "authorize", "apply", "verify"])
         outputs = {p["globalName"] for t in templates.values()
@@ -101,9 +101,12 @@ class TerraformStackContractTest(unittest.TestCase):
         self.assertTrue(set(transport["output"].values()).issubset(outputs))
         self.assertEqual(templates["opa"]["container"]["command"], ["/opa"])
         self.assertNotIn("volumes", templates["resolve"])
+        cleanup_step = template["spec"]["templates"][0]["steps"][-1][0]
+        self.assertEqual(cleanup_step["continueOn"], {"failed": True, "error": True})
+        self.assertEqual(templates["cleanup"]["container"]["args"], ["cleanup"])
         confirmed = {p.get("globalName") for p in templates["prepare"]["outputs"]["parameters"]}
         self.assertIn(transport["output"]["resolvedSource"], confirmed)
-        for name in ["resolve", "prepare", "init", "validate", "plan", "apply", "verify"]:
+        for name in ["resolve", "prepare", "init", "validate", "plan", "apply", "verify", "cleanup"]:
             self.assertEqual(templates[name]["container"]["image"], "terraformstack-runner:local")
 
 

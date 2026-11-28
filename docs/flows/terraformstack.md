@@ -59,6 +59,7 @@ Os steps Terraform usam a mesma imagem de runner com ferramentas, e o `pipeline.
 | `approval` | Abre um nó suspenso na UI quando a política retorna `RequireApproval`. |
 | `authorize` | Emite o hash como pedido de apply quando a decisão permite. No caminho manual, exige `Approve` e o hash correto. |
 | `apply` e `verify` | Revalidam e aplicam o binário salvo, executam o `verify.sh` da stack quando presente e exigem um plan pós-apply sem mudanças. |
+| `cleanup` | Libera o diretório da tentativa quando a execução dos passos termina. Preserva state e vínculo. Uma falha na limpeza é observada no Workflow e não invalida o resultado funcional. |
 
 | Decisão | Exemplo no Simulator | Efeito |
 | --- | --- | --- |
@@ -121,7 +122,7 @@ O controller publica a condição corrente em `status.conditions`, preservando c
 | `Failed` | `ExecutionFailed`, `ExecutionMissing` | O Workflow falhou ou desapareceu. Consulte os Pods e a última execução antes de intervir no state. |
 | `Destroyed` | `Verified` | O teardown foi aplicado e verificado. |
 
-Correlacione `status.observedGeneration` com a geração do CR e `status.resolvedSource.reference` com o commit efetivo. `status.resolvedSource.binding` identifica o destino autorizado. `status.execution` guarda a intenção, a fase, a referência do Workflow e o gatilho. O `status.result` informa o resultado e o diagnóstico do executor, como `PolicyDenied`, `PolicyError`, `ApprovalRejected` e `StateBindingMismatch`. O resultado acompanha a tentativa registrada em `status.execution`. Uma suspensão ou dependência pode atualizar a condição antes de existir uma nova tentativa. O binário, o JSON integral e o state ficam no volume. [Consultas do exercício](../../labs/06-terraformstack-simulator.md#o-que-observar)
+Correlacione `status.observedGeneration` com a geração do CR e `status.resolvedSource.reference` com o commit efetivo. `status.resolvedSource.binding` identifica o destino autorizado. `status.execution` guarda a intenção, a fase, a referência do Workflow e o gatilho. O `status.result` informa o resultado e o diagnóstico do executor, como `PolicyDenied`, `PolicyError`, `ApprovalRejected` e `StateBindingMismatch`. O resultado acompanha a tentativa registrada em `status.execution`. Uma suspensão ou dependência pode atualizar a condição antes de existir uma nova tentativa. O binário e o JSON integral ficam no diretório da tentativa durante a execução. A etapa `cleanup` remove esse diretório após a pipeline concluir seus passos. O state e o vínculo permanecem no PVC. Para diagnosticar falhas operacionais que interrompam a sequência, verificar a fase do Workflow antes de remover seu diretório. [Consultas do exercício](../../labs/06-terraformstack-simulator.md#o-que-observar)
 
 ## 7. Operação do controller
 

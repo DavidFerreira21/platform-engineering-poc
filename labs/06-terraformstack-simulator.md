@@ -14,7 +14,7 @@ Este lab exercita a integração de referência `terraformstack`, com `contract.
 
 O perfil local da pipeline autoriza os dois nomes do exercício, a raiz Terraform do repositório e o destino lógico `entity-a/simulator`. O Simulator lê Configuration com o perfil de dados `entity-a/uat`. O código Terraform das revisões aceitas é mantido pelo Platform Team. O Workflow usa o perfil `simulator`, composto de `common` e `simulator`, em um pacote imutável; o status publica a decisão, o hash do plano e o SHA-256 do pacote. [Contrato](../docs/flows/terraformstack.md) · [Política OPA](../workflow-plane/policy-engine/README.md)
 
-> A instalação e o aceite desta etapa no Hub EKS estão pendentes. Os critérios abaixo descrevem a entrega prevista.
+> O primeiro apply do Simulator foi validado no Hub EKS. Os critérios de aprovação, negativa, retry e destroy permanecem para a rodada completa no EKS.
 
 ## Pré-requisitos
 
@@ -38,9 +38,19 @@ Correlacionar revisão Git, Workflow, hash do plano, claim e condições do Terr
 
 ## Evidências de aceite
 
+### Primeiro apply no Hub EKS
+
+Em 28/11/2026, aplicamos os CRs de teste pela API. O runner foi baixado do ECR privado por digest e o PVC de `simulator-network` ficou `Bound` com a StorageClass do EKS Auto Mode. O Workflow concluiu em `Succeeded`, o TerraformStack informou `Verified` e o ConfigMap de teste foi criado.
+
+### Uso do PVC em checagens periódicas
+
+A sequência de checagens periódicas mostrou que checkouts e arquivos de plano acumulados no PVC podiam esgotar seus 1 GiB. A pipeline passou a limpar o diretório da tentativa ao concluir os passos. O state e o marcador de binding ficam na raiz do PVC. Em volumes criados antes dessa mudança, identificar Workflows terminais antes de remover seletivamente seus diretórios. Preservar os arquivos das falhas enquanto o diagnóstico estiver em andamento.
+
+Após remover somente os diretórios das tentativas bem-sucedidas do teste, a ocupação do PVC caiu para 3%. Repetimos a reconciliação com a mesma revisão Git. O Workflow retornou `NoChanges` e o step `cleanup` ficou `Succeeded`.
+
 ### Validação automatizada do runtime consolidado
 
-Os PRs #60–#62 acrescentaram logging, seleção de integrações, autorização opcional e observabilidade por CR. A CI do [PR #62](https://github.com/DavidFerreira21/platform-engineering-poc/pull/62) passou nas validações do controller e do runner. Os cenários de múltiplos aliases e `authorization: false` têm cobertura automatizada; a integração de referência permanece com handshake habilitado. As evidências de execução real abaixo correspondem às revisões registradas, anteriores a essa consolidação. Não representam uma nova execução de ponta a ponta do runtime atualizado.
+Os PRs #60–#62 acrescentaram logging, seleção de integrações, autorização opcional e observabilidade por CR. A CI do [PR #62](https://github.com/DavidFerreira21/platform-engineering-poc/pull/62) passou nas validações do controller e do runner. Os cenários de múltiplos aliases e `authorization: false` têm cobertura automatizada. A integração de referência mantém o handshake habilitado. As subseções dos ensaios iniciais abaixo identificam as revisões e os resultados de cada execução.
 
 ### Aceite do contrato na revisão do PR #58
 

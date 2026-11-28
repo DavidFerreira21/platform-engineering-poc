@@ -288,5 +288,11 @@ case "$1" in
     fi
     result Verified PlanVerified 'O plano aplicado foi verificado.'
     ;;
+  cleanup)
+    [[ "$WORKFLOW" =~ ^tf-[a-z0-9][a-z0-9-]*$ ]]
+    bind_state
+    # Remover somente o workspace deste Workflow. State e vínculo ficam na raiz do PVC.
+    rm -rf -- "$workspace"
+    ;;
   *) exit 2 ;;
 esac

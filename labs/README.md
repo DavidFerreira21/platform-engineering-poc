@@ -5,16 +5,16 @@ O lab usa o **Hub EKS Auto Mode**. As etapas seguem a ordem de dependências do 
 | Etapa | Guia | Disponibilidade |
 | :--- | :--- | :--- |
 | **00** | [Documentação e monorepo](../docs/repository-structure.md) | Referência da estrutura |
-| **01** | [Bootstrap do Hub EKS Auto Mode](01-platform-management-cluster.md) | Procedimento disponível. Workload de teste pendente |
-| **02** | [Primeiro sync no Argo CD gerenciado](02-argocd-central.md) | Procedimento disponível. Primeiro sync pendente |
-| **03** | [Argo Workflows](03-argo-workflows.md) | Critérios de aceite no EKS |
-| **04** | [API do TerraformStack via GitOps](04-terraformstack-crd.md) | Critérios de aceite no EKS |
-| **05** | [Controller e pipeline do TerraformStack](05-terraformstack-runtime.md) | Critérios de aceite no EKS |
-| **06** | [Terraform Stack Simulator de ponta a ponta](06-terraformstack-simulator.md) | Critérios de aceite no EKS e evidências do ensaio inicial |
-| **07** | [Crossplane Core e smoke test](07-crossplane-core.md) | Critérios de aceite no EKS |
-| **08** | [Crossplane de ponta a ponta](08-crossplane-gitops.md) | Critérios de aceite no EKS e evidências do ensaio inicial |
+| **01** | [Bootstrap do Hub EKS Auto Mode](01-platform-management-cluster.md) | Procedimento e workload de teste validados |
+| **02** | [Primeiro sync no Argo CD gerenciado](02-argocd-central.md) | Procedimento e primeiro sync comprovados no EKS |
+| **03** | [Argo Workflows](03-argo-workflows.md) | Smoke test com Helm no EKS |
+| **04** | [API do TerraformStack via GitOps](04-terraformstack-crd.md) | CRD estabelecido e sincronizado no EKS |
+| **05** | [Controller e pipeline do TerraformStack](05-terraformstack-runtime.md) | Runtime com ECR e duas réplicas no EKS |
+| **06** | [Terraform Stack Simulator de ponta a ponta](06-terraformstack-simulator.md) | Primeiro apply validado no EKS |
+| **07** | [Crossplane Core e smoke test](07-crossplane-core.md) | Core e API de demonstração validados no EKS |
+| **08** | [Crossplane de ponta a ponta](08-crossplane-gitops.md) | XR sincronizado e drift corrigido no EKS |
 
-Os procedimentos de instalação e os manifests das Etapas 03–08 para o Hub EKS estão em preparação. As etapas seguintes estão no [roteiro](../docs/learning-roadmap.md).
+A instalação dos add-ons pelo catálogo e os cenários restantes do Simulator seguem com aceites próprios. As etapas seguintes estão no [roteiro](../docs/learning-roadmap.md).
 
 > **Nota histórica.** Os primeiros testes do Control Plane e do Workflow Plane foram feitos em `kind`. Quem quiser repetir o ensaio em um cluster local pode adaptar os manifests por conta própria.
 

@@ -4,9 +4,9 @@ O **Platform Management Cluster** hospeda os componentes de **Control Plane** e 
 
 ## Hub EKS
 
-- **Etapa 01.** A raiz Terraform `platform-hub` provisiona rede, EKS Auto Mode, EKS Capability for Argo CD e bucket de state do executor. O acesso à API, os NodePools e a capability já foram verificados. O teste com workload segue pendente. [Guia da Etapa 01](../../labs/01-platform-management-cluster.md)
-- **Etapa 02.** Registrar o Hub por ARN, limitar permissões e validar o primeiro sync a partir da `main` publicada. [Guia da Etapa 02](../../labs/02-argocd-central.md)
-- **Etapas 03–08.** O catálogo em `addons/catalog/` organiza uma Application por componente. Os AppProjects, destinos e configurações dos add-ons precisam ser adequados à capability para reproduzir os aceites no EKS. [Guias das etapas](../../labs/README.md)
+- **Etapa 01.** A raiz Terraform `platform-hub` provisiona rede, EKS Auto Mode, EKS Capability for Argo CD e bucket de state do executor. O acesso à API, os NodePools e a capability já foram verificados. O workload de teste validou agendamento, DNS e HTTP. [Guia da Etapa 01](../../labs/01-platform-management-cluster.md)
+- **Etapa 02.** O primeiro sync a partir da `main` foi validado com destino por ARN e permissões de escrita limitadas ao exercício. [Guia da Etapa 02](../../labs/02-argocd-central.md)
+- **Etapas 03–08.** O catálogo em `addons/catalog/` organiza uma Application por componente. O Argo Workflows, o runtime do TerraformStack, o Simulator e o Crossplane têm evidências no EKS. A instalação completa pelo catálogo segue com aceite próprio. [Guias das etapas](../../labs/README.md)
 
 ## Ciclo das Applications
 

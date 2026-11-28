@@ -8,8 +8,8 @@ A POC é montada em **oito fases e 36 etapas (00–35)**. Cada etapa instala um 
 
 | Marco | Evidência registrada | Próximo aceite |
 | --- | --- | --- |
-| Hub EKS | Acesso à API, NodePools em `Ready` e capability Argo CD em `ACTIVE` no bootstrap inicial. [Etapa 01](../labs/01-platform-management-cluster.md#o-que-observar) | Validar workload descartável e primeiro sync gerenciado. [Etapas 01–02](../labs/README.md) |
-| TerraformStack e Crossplane | O Simulator e a Composition de demonstração reconciliaram recursos Kubernetes de teste nos ensaios iniciais. [Simulator](../labs/06-terraformstack-simulator.md#evidências-de-aceite) · [Crossplane](../labs/08-crossplane-gitops.md#evidências-de-aceite) | Preparar os procedimentos e manifests para reproduzir os aceites das Etapas 03–08 no Hub EKS. |
+| Hub EKS | Workload descartável concluído e primeiro sync gerenciado a partir de `main`. [Etapa 01](../labs/01-platform-management-cluster.md#o-que-observar) · [Etapa 02](../labs/02-argocd-central.md#evidência-no-hub-eks) | Consolidar o catálogo de add-ons no EKS. |
+| TerraformStack e Crossplane | O Simulator terminou em `Verified` e o Crossplane reconciliou o ConfigMap de demonstração no Hub EKS. [Simulator](../labs/06-terraformstack-simulator.md#evidências-de-aceite) · [Crossplane](../labs/08-crossplane-gitops.md#evidências-de-aceite) | Consolidar a instalação GitOps e repetir os cenários restantes de governança no EKS. |
 | Spokes AWS e observabilidade | As raízes reutilizáveis de Network e EKS estão versionadas. A topologia de observabilidade está definida. [Raízes Terraform](../foundation/stacks/README.md) · [ADR-0010](adr/0010-observability-topology.md) | Preparar UAT, validar identidade e backend, aplicar a rede da spoke e avançar até o aceite de observabilidade nas Etapas 26–27. |
 
 Os quadros das fases descrevem **evidências esperadas para aceitar cada etapa**. O estado acima registra o que foi observado nas execuções documentadas.

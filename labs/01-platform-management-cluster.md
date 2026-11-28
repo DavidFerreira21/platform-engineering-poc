@@ -122,4 +122,4 @@ hub -n default delete pod hub-network-smoke --ignore-not-found
 - O workload de teste provoca a criação de um nó e termina com sucesso após as consultas de DNS e HTTP.
 - A capability Argo CD aparece `ACTIVE` e fornece a URL de acesso.
 
-Na execução inicial, foram confirmados o acesso pelo WSL, os dois NodePools em `Ready` e a capability `ACTIVE` sem alertas. O teste com workload e o primeiro sync GitOps ainda precisam ser executados. [Etapa 02 — Primeiro sync no Argo CD](02-argocd-central.md)
+Na execução inicial, foram confirmados o acesso pelo WSL, os dois NodePools em `Ready` e a capability `ACTIVE` sem alertas. Em 28/11/2026, repetimos o bootstrap e o Pod de teste terminou em `Succeeded`, confirmando provisionamento do nó, download da imagem, DNS e saída HTTP. A primeira consulta ao log retornou erro TLS do kubelet. As consultas de log funcionaram durante o [smoke test de Argo Workflows](03-argo-workflows.md#evidência-no-hub-eks). [Etapa 02 — Primeiro sync no Argo CD](02-argocd-central.md)
