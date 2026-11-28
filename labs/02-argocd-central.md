@@ -1,111 +1,121 @@
-# Etapa 02 — Argo CD central no Hub kind
+# Etapa 02 — Primeiro sync GitOps no Hub EKS
 
 [← Etapa 01](01-platform-management-cluster.md) · [Guias das etapas](README.md)
 
 ## Objetivo
 
-Configurar o Argo CD para descobrir os add-ons do Hub no Git e acompanhar a entrega de um recurso a partir da branch `main`.
+Validar que o Argo CD gerenciado consegue ler o Git e sincronizar um recurso no próprio Hub EKS.
 
 ## O que será feito
 
-- Instalar o Argo CD central via Helm e abrir sua interface HTTPS pelo Traefik.
-- Aplicar o bootstrap do `ApplicationSet` `hub-addons` e conferir as Applications de Argo Workflows e Crossplane Core geradas a partir do catálogo no Git.
-- Criar o AppProject `lab02` e a Application `lab02-gitops-demo`. Sincronizar manualmente a Application para entregar o ConfigMap de demonstração de `main` em `platform-system`.
-- Remover os recursos de demonstração e manter o bootstrap dos add-ons para as etapas seguintes.
-
-O exercício roda no Hub local e tem custo AWS zero.
+- Validar o login no Argo CD com o IAM Identity Center.
+- Registrar o Hub por ARN e configurar as permissões para o teste.
+- Sincronizar manualmente o ConfigMap de demonstração a partir de `main` e conferir a revisão e o valor aplicado.
 
 ## Por que fizemos assim
 
-O Argo CD entrega os componentes do Hub a partir do Git. A rota da sua interface entra no mesmo release Helm e usa o Traefik da Etapa 01 para encaminhar HTTPS até o Argo CD. O catálogo gera uma Application por componente para que cada um tenha sua revisão e seu diff. A Application de demonstração acompanha `main` e permite observar como o Argo CD aplica o manifesto do ConfigMap no Hub.
+A stack da Etapa 01 já cria a capability. Nesta etapa, comprovamos a entrega de ponta a ponta. O registro por ARN permite que o Argo CD reconheça o EKS como destino. O AppProject limita o repositório, o namespace e o tipo de recurso permitidos. A role da capability precisa de autorização Kubernetes para executar a sincronização. [Registro de clusters](https://docs.aws.amazon.com/eks/latest/userguide/argocd-register-clusters.html) · [Permissões do Argo CD](https://docs.aws.amazon.com/eks/latest/userguide/argocd-permissions.html)
 
-## Pré-requisitos
+## 1. Conferir a capability e o destino
 
-- Etapa 01 concluída, com `kind`, `kubectl`, `helm` e o provider de CRDs do Traefik habilitado.
-- Catálogo dos add-ons e manifesto do ConfigMap de demonstração publicados em `main`.
-- Conectividade do Hub ao GitHub e aos registries das imagens.
-
-Execute os comandos da raiz do monorepo.
-
-Se a interface e o `ApplicationSet` `hub-addons` já estiverem disponíveis, use as consultas do passo 2 para observar as Applications. Para repetir a entrega do ConfigMap, comece no passo 3.
-
-## 1. Instalar e acessar o Argo CD
-
-Se o Hub ainda usa a configuração antiga do Traefik, execute `bash platform/hub/scripts/install-traefik.sh` com a versão atual do repositório antes de instalar ou atualizar o Argo CD.
+Execute da raiz do repositório com o perfil `platform-hub` autenticado. Confira a conta e o destino antes dos comandos que alteram o cluster.
 
 ```bash
-bash platform/hub/scripts/verify.sh
-bash platform/hub/scripts/install-argocd.sh
-kubectl --context kind-platform-management -n argocd get deployments,statefulsets,pods,svc
-kubectl --context kind-platform-management -n argocd get ingressroutetcp argocd-server
+aws sts get-caller-identity --profile platform-hub --no-cli-pager
+hub_arn="$(aws eks describe-cluster --profile platform-hub --region us-east-1 \
+  --name platform-hub --query 'cluster.arn' --output text)"
+argo_role_arn="$(aws eks describe-capability --profile platform-hub --region us-east-1 \
+  --cluster-name platform-hub --capability-name argocd --query 'capability.roleArn' --output text)"
+hub() { kubectl --context "$hub_arn" "$@"; }
+
+aws eks describe-capability --profile platform-hub --region us-east-1 \
+  --cluster-name platform-hub --capability-name argocd \
+  --query 'capability.{Status:status,Issues:health.issues,URL:configuration.argoCd.serverUrl}'
+hub -n argocd get applications,applicationsets,appprojects
 ```
 
-O chart fixado instala os CRDs de `Application`, `AppProject` e `ApplicationSet`, além do controller de `ApplicationSet`. O Service `argocd-server` deve aparecer como `ClusterIP`. [Versão do chart](../workflow-plane/argocd/chart-version.txt)
+Com a capability em `ACTIVE`, abra a URL retornada, autentique-se pelo IAM Identity Center e confirme que o grupo autorizado consegue abrir a interface. Se houver falha no login, confira o mapeamento do grupo e o estado retornado em `Issues`.
 
-Abra **https://argocd.localhost:8443**. O Traefik encaminha a conexão ao Argo CD, que apresenta o certificado autoassinado do laboratório. Para o primeiro acesso, use o usuário `admin` e consulte a senha inicial no terminal local. [Referência do IngressRouteTCP](https://doc.traefik.io/traefik/reference/routing-configuration/kubernetes/crd/tcp/ingressroutetcp/)
+## 2. Registrar o Hub e autorizar o sync
+
+Criar `platform-system` se ainda estiver ausente. Os bindings abaixo usam o grupo da Access Entry da capability. O teste concede leitura para a descoberta de recursos no cluster e limita a escrita a ConfigMaps em `platform-system`.
 
 ```bash
-kubectl --context kind-platform-management -n argocd \
-  get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 --decode
-printf '\n'
+hub create namespace platform-system --dry-run=client -o yaml | hub apply -f -
+
+hub apply -f - <<'EOF_RBAC'
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: lab02-argocd-discovery
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+EOF_RBAC
+hub create clusterrolebinding lab02-argocd-discovery --clusterrole=lab02-argocd-discovery \
+  --group="eks-access-entry:$argo_role_arn" --dry-run=client -o yaml | hub apply -f -
+hub -n platform-system create role lab02-argocd-deploy --resource=configmaps \
+  --verb=get,list,watch,create,update,patch,delete --dry-run=client -o yaml | hub apply -f -
+hub -n platform-system create rolebinding lab02-argocd-deploy --role=lab02-argocd-deploy \
+  --group="eks-access-entry:$argo_role_arn" --dry-run=client -o yaml | hub apply -f -
+
+hub apply -f - <<EOF_HUB
+apiVersion: v1
+kind: Secret
+metadata:
+  name: platform-hub
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: cluster
+stringData:
+  name: platform-hub
+  server: "$hub_arn"
+EOF_HUB
 ```
 
-Após o login, troque a senha em **User Info → Update Password**. Mantenha as credenciais fora do Git e de registros compartilhados. Se a URL responder com `404 page not found`, confira o `IngressRouteTCP` e a atualização do Traefik no passo 1.
+Se o Hub já estiver registrado, reutilize o cadastro existente. Confira o destino em **Settings → Clusters** na interface. Os ARNs são resolvidos na sessão do operador e ficam fora do Git. [Configuração do destino local](https://docs.aws.amazon.com/eks/latest/userguide/argocd-register-clusters.html#argocd-register-local)
 
-## 2. Configurar os add-ons do Hub
+## 3. Sincronizar o ConfigMap
+
+Usar os manifests canônicos do [AppProject](../workflow-plane/argocd/bootstrap/project.yaml) e da [Application](../workflow-plane/argocd/bootstrap/application.yaml), ajustando o destino e autorizando o namespace de origem na sessão atual. A Application lê `workflow-plane/argocd/demo` na branch `main`.
 
 ```bash
-hub() { kubectl --context kind-platform-management "$@"; }
-hub apply -f platform/hub/addons/bootstrap.yaml
-hub -n argocd wait --for=condition=ResourcesUpToDate --timeout=180s \
-  applicationset/hub-addons
-hub -n argocd wait --timeout=180s \
-  --for='jsonpath={.metadata.ownerReferences[?(@.kind=="ApplicationSet")].name}=hub-addons' \
-  application/argo-workflows application/crossplane-core
-hub -n argocd get applicationset hub-addons
-hub -n argocd get application argo-workflows crossplane-core \
-  -o 'custom-columns=APP:.metadata.name,OWNER:.metadata.ownerReferences[?(@.kind=="ApplicationSet")].name,SYNC:.status.sync.status'
+sed -e "s|https://kubernetes.default.svc|$hub_arn|g" \
+  -e '/^spec:$/a\  sourceNamespaces: [argocd]' \
+  workflow-plane/argocd/bootstrap/project.yaml | hub apply -f -
+
+sed "s|https://kubernetes.default.svc|$hub_arn|g" \
+  workflow-plane/argocd/bootstrap/application.yaml | hub apply -f -
 ```
 
-O `ApplicationSet` lê `platform/hub/addons/catalog/*.yaml` em `main` e gera uma `Application` por arquivo. O bootstrap também declara os AppProjects que limitam a origem, o destino e os tipos de recurso de cada add-on. A coluna `OWNER` deve mostrar `hub-addons` nas duas linhas. Em um Hub novo, cada add-on aguarda o sync manual indicado nas Etapas 03 e 07. [Bootstrap do Hub](../platform/hub/addons/bootstrap.yaml)
-
-Se o Hub já tiver essas Applications, use os mesmos comandos. O `ApplicationSet` assume as Applications com os nomes existentes e mantém as versões dos charts, as configurações e os nomes dos releases. Confira a coluna `OWNER` antes de seguir.
-
-Se uma Application estiver ausente ou sem owner, consulte `hub -n argocd describe applicationset hub-addons` e os logs de `deployment/argocd-applicationset-controller` no namespace `argocd`. Confira se a revisão `main` contém o catálogo e se o Hub alcança o GitHub. Em seguida, repita a verificação.
-
-## 3. Sincronizar o ConfigMap a partir de main
-
-O monorepo é público. A Application aponta para `main` e para o diretório do manifesto de demonstração.
+Abra `lab02-gitops-demo` na UI. Confira o commit, o destino `platform-system` e o diff do ConfigMap. Selecione **Sync → Synchronize** e consulte o resultado:
 
 ```bash
-kubectl --context kind-platform-management -n argocd apply \
-  -f workflow-plane/argocd/bootstrap/project.yaml \
-  -f workflow-plane/argocd/bootstrap/application.yaml
-```
-
-O AppProject `lab02` restringe a origem ao monorepo e permite apenas ConfigMaps em `platform-system` no Hub. Na UI, abra `lab02-gitops-demo`. Confira no diff o ConfigMap `lab02-gitops-demo`. Antes do primeiro sync, a Application aparece como `OutOfSync` e o ConfigMap como `Missing`. Selecione **Sync → Synchronize** para aplicar o manifesto.
-
-```bash
-kubectl --context kind-platform-management -n argocd get application lab02-gitops-demo \
+hub -n argocd get application lab02-gitops-demo \
   -o 'custom-columns=SYNC:.status.sync.status,HEALTH:.status.health.status,REVISION:.status.sync.revision'
-kubectl --context kind-platform-management -n platform-system get configmap lab02-gitops-demo \
+hub -n platform-system get configmap lab02-gitops-demo \
   -o 'jsonpath={.data.mensagem}{"\n"}'
 ```
 
-O valor esperado é `definido-no-git`. Se a aplicação mostrar `Unknown` ou `ComparisonError`, inspecione `kubectl --context kind-platform-management -n argocd describe application lab02-gitops-demo`. Confira a conectividade ao GitHub e o caminho do manifesto em `main`. Consulte os logs de `deployment/argocd-repo-server` no namespace `argocd` se a comparação continuar falhando.
+Se a Application não resolver o Git ou o destino, confira `hub -n argocd describe application lab02-gitops-demo`. Em caso de `Forbidden`, verifique o ARN da role, os bindings e as restrições do AppProject.
 
 ## O que observar
 
-- As Applications `argo-workflows` e `crossplane-core` têm `hub-addons` como owner e podem ser sincronizadas separadamente.
-- A Application de demonstração fica `Synced` e `Healthy`. A coluna `REVISION` mostra o commit de `main` que o Argo CD resolveu. O ConfigMap contém `definido-no-git`.
+- A interface abre com o login SSO. Em **Settings → Clusters**, o Hub aparece registrado pelo ARN.
+- A Application fica `Synced` e `Healthy`. A revisão corresponde ao commit de `main`.
+- O ConfigMap no namespace `platform-system` contém `definido-no-git`.
 
-## 4. Limpar o exercício
+## Limpar o exercício
+
+Remover a Application, o ConfigMap, o AppProject e os bindings exclusivos do teste. Preservar o cadastro do Hub e o namespace para os próximos componentes.
 
 ```bash
-kubectl --context kind-platform-management -n argocd delete application lab02-gitops-demo --ignore-not-found
-kubectl --context kind-platform-management -n platform-system delete configmap lab02-gitops-demo --ignore-not-found
-kubectl --context kind-platform-management -n argocd delete appproject lab02 --ignore-not-found
-bash platform/hub/scripts/verify.sh
+hub -n argocd delete application lab02-gitops-demo --ignore-not-found
+hub -n platform-system delete configmap lab02-gitops-demo --ignore-not-found
+hub -n argocd delete appproject lab02 --ignore-not-found
+hub -n platform-system delete rolebinding,role lab02-argocd-deploy --ignore-not-found
+hub delete clusterrolebinding,clusterrole lab02-argocd-discovery --ignore-not-found
 ```
 
-Mantenha o Argo CD, a rota e o `ApplicationSet` `hub-addons` para a Etapa 03. [Operações do Hub](../platform/hub/README.md)
+O catálogo de add-ons entra no Hub com AppProjects e destinos adaptados à capability. A [Etapa 03](03-argo-workflows.md) acompanha a instalação e o aceite do primeiro add-on.

@@ -1,43 +1,30 @@
-variable "name" { type = string }
-variable "vpc_id" { type = string }
-variable "subnets" { type = map(list(string)) }
-variable "kubernetes_version" { type = string }
-variable "clusters" {
-  type = object({ hub = optional(bool, false), management = bool, nonPci = bool, pci = bool })
-  validation {
-    condition     = !(var.clusters.hub && (var.clusters.management || var.clusters.nonPci || var.clusters.pci))
-    error_message = "Use o perfil Hub ou os perfis da spoke em cada state."
-  }
-}
-variable "private_endpoint" {
-  type = bool
-  validation {
-    condition     = var.private_endpoint
-    error_message = "O perfil de laboratório requer endpoint EKS privado."
-  }
-}
-variable "api_client_cidrs" {
-  description = "CIDRs privados autorizados a acessar a API via HTTPS a partir da rede de gestão."
-  type        = list(string)
-}
-variable "admin_role_arn" { type = string }
-data "aws_partition" "current" {}
 locals {
   enabled = { for k, v in { hub = var.clusters.hub, management = var.clusters.management, nonpci = var.clusters.nonPci, pci = var.clusters.pci } : k => v if v }
+  subnet_group = {
+    hub        = contains(keys(var.subnets), "app") ? "app" : "web-nonpci"
+    management = "web-nonpci"
+    nonpci     = "web-nonpci"
+    pci        = "web-pci"
+  }
 }
 module "cluster" {
-  for_each                        = local.enabled
-  source                          = "terraform-aws-modules/eks/aws"
-  version                         = "20.37.2"
-  cluster_name                    = "${var.name}-${each.key}"
-  cluster_version                 = var.kubernetes_version
-  vpc_id                          = var.vpc_id
-  subnet_ids                      = var.subnets[each.key == "pci" ? "web-pci" : "web-nonpci"]
-  cluster_endpoint_private_access = var.private_endpoint
-  cluster_endpoint_public_access  = false
-  cluster_compute_config          = { enabled = true, node_pools = ["system", "general-purpose"] }
-  authentication_mode             = "API"
-  cluster_security_group_additional_rules = length(var.api_client_cidrs) == 0 ? {} : {
+  for_each                                 = local.enabled
+  source                                   = "terraform-aws-modules/eks/aws"
+  version                                  = "21.1.0"
+  name                                     = "${var.name}-${each.key}"
+  kubernetes_version                       = var.kubernetes_version
+  vpc_id                                   = var.vpc_id
+  subnet_ids                               = var.subnets[local.subnet_group[each.key]]
+  endpoint_private_access                  = var.private_endpoint
+  endpoint_public_access                   = length(var.api_public_access_cidrs) > 0
+  endpoint_public_access_cidrs             = length(var.api_public_access_cidrs) > 0 ? var.api_public_access_cidrs : null
+  compute_config                           = { enabled = true, node_pools = ["system", "general-purpose"] }
+  authentication_mode                      = "API"
+  enable_cluster_creator_admin_permissions = false
+  enabled_log_types = each.key == "hub" ? [
+    "api", "audit", "authenticator", "controllerManager", "scheduler"
+  ] : ["audit", "api", "authenticator"]
+  security_group_additional_rules = length(var.api_client_cidrs) == 0 ? {} : {
     management = {
       description = "HTTPS a partir da rede de gestao"
       protocol    = "tcp"
@@ -58,7 +45,4 @@ module "cluster" {
       }
     }
   }
-}
-output "clusters" {
-  value = { for k, cluster in module.cluster : k => { name = cluster.cluster_name, endpoint = cluster.cluster_endpoint } }
 }

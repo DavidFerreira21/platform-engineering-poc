@@ -8,29 +8,29 @@ A POC é montada em **oito fases e 36 etapas (00–35)**. Cada etapa instala um 
 
 | Fase | Etapas | Marco técnico |
 | --- | --- | --- |
-| **1 — Base do Hub local** | 00–03 | Hub `kind`, Argo CD e Argo Workflows |
-| **2 — Control Plane local** | 04–08 | TerraformStack e Crossplane validados com recursos Kubernetes locais |
-| **3 — Hub EKS e spokes** | 09–18 | Hub EKS Auto Mode, rede e clusters UAT, GitOps e Bridge |
+| **1 — Base do Hub EKS** | 00–03 | Hub EKS Auto Mode, Argo CD gerenciado e Argo Workflows |
+| **2 — Control Plane no Hub** | 04–08 | TerraformStack e Crossplane validados com recursos Kubernetes de teste |
+| **3 — Foundation e spokes** | 09–18 | Preparação para UAT, rede e clusters das spokes, GitOps e Bridge |
 | **4 — Domain Infrastructure** | 19–21 | Capabilities S3 e Aurora PostgreSQL via Crossplane |
 | **5 — Primeira aplicação e CI/CD** | 22–25 | FastAPI, Aurora, S3, GitHub Actions, ECR e deploy GitOps |
 | **6 — Observabilidade e operação** | 26–31 | Telemetria, diagnóstico, drift, políticas e isolamento |
 | **7 — Experience Layer** | 32–33 | Personas, permissões, catálogo e Starter Kit |
 | **8 — Golden Path ponta a ponta** | 34–35 | Solicitação federada e entrega integrada da aplicação |
 
-As Etapas 01 a 06 foram reproduzidas na `main` no Hub `kind` `platform-management`. A Etapa 07 tem guia e manifests para smoke test local. O aceite GitOps do Crossplane na Etapa 08 e as entregas AWS a partir da Etapa 09 seguem no roteiro. [Evidências do Simulator](../labs/06-terraformstack-simulator.md#evidências-de-aceite).
+A Etapa 01 parte da conta de plataforma e documenta o bootstrap do Hub EKS. O acesso ao cluster e a saúde da capability Argo CD foram verificados. O aceite com workloads e o primeiro sync GitOps seguem nas Etapas 01–02. Os guias 03–08 aguardam adequação ao Hub EKS. [Evidências do Simulator](../labs/06-terraformstack-simulator.md#evidências-de-aceite).
 
-## Fase 1 — Base do Hub local
+## Fase 1 — Base do Hub EKS
 
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
 | **00** | [Documentação e monorepo](repository-structure.md) | Estrutura, camadas e ownership definidos |
-| **01** | [Hub kind e Traefik](../labs/01-platform-management-cluster.md) | Cluster, namespaces, DNS, Ingress e auditoria local preparados |
-| **02** | [Argo CD central e catálogo de add-ons](../labs/02-argocd-central.md) | ApplicationSet gera Applications e um ConfigMap de teste é sincronizado |
+| **01** | [Bootstrap do Hub EKS Auto Mode](../labs/01-platform-management-cluster.md) | Rede, EKS, Argo CD gerenciado e bucket do executor provisionados por stack manual. Acesso, NodePools e primeiro workload verificados |
+| **02** | [Primeiro sync no Argo CD gerenciado](../labs/02-argocd-central.md) | Login SSO, registro do Hub por ARN e ConfigMap sincronizado a partir de main |
 | **03** | [Argo Workflows](../labs/03-argo-workflows.md) | Workflow executado com Pod, resultado e logs observáveis |
 
-## Fase 2 — Control Plane local
+## Fase 2 — Control Plane no Hub
 
-Concluir o ciclo TerraformStack antes do Crossplane. Cada reconciliador gerencia seu próprio recurso de teste no Kubernetes. Os aceites usam o Hub `kind` com dados fictícios.
+Concluir o ciclo TerraformStack antes do Crossplane. Cada reconciliador gerencia seu próprio recurso de teste no Kubernetes. Os aceites no Hub EKS usam dados fictícios e recursos de teste.
 
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
@@ -38,18 +38,18 @@ Concluir o ciclo TerraformStack antes do Crossplane. Cada reconciliador gerencia
 | **05** | [Controller e pipeline do TerraformStack](../labs/05-terraformstack-runtime.md) | Controller Go e adapter Argo, configuração e perfil local imutáveis, runner e WorkflowTemplate instalados via GitOps; duas réplicas saudáveis, Lease e RBAC verificados; endpoint de métricas, logs JSON e Events disponíveis |
 | **06** | [Terraform Stack Simulator](../labs/06-terraformstack-simulator.md) | GitOps, Terraform real, três decisões OPA, aprovação auditada, claim, drift, retry e destroy comprovados no ConfigMap e no status. OpenTofu validado com state próprio |
 | **07** | [Crossplane Core e smoke test](../labs/07-crossplane-core.md) | Core disponível, Function saudável, XRD estabelecido e Composition local observável |
-| **08** | Crossplane de ponta a ponta no `kind` | Argo CD sincroniza XR e o Crossplane cria, atualiza e remove um ConfigMap distinto do Simulator. Conferir schema, `Synced`, `Ready`, ownership, re-sync e permissões |
+| **08** | [Crossplane de ponta a ponta](../labs/08-crossplane-gitops.md) | Argo CD sincroniza XR e o Crossplane cria, atualiza e remove um ConfigMap distinto do Simulator. Conferir schema, `Synced`, `Ready`, ownership, re-sync e permissões |
 
-**Marco da fase.** TerraformStack e Crossplane reconciliam pelo GitOps com os mesmos blocos que serão reinstalados no Hub EKS. A identidade AWS do Provider Crossplane e as Capabilities reais entram nas Etapas 19–21.
+**Marco da fase.** TerraformStack e Crossplane reconciliam pelo GitOps com os blocos instalados no Hub EKS. A identidade AWS do Provider Crossplane e as Capabilities reais entram nas Etapas 19–21.
 
-## Fase 3 — Hub EKS, spokes e GitOps Bridge
+## Fase 3 — Foundation, spokes e GitOps Bridge
 
-Preparar a conta de plataforma e provisionar o Hub EKS Auto Mode por bootstrap externo. Reinstalar os blocos centrais e repetir as validações antes de preparar as spokes. Cada destino mantém identidade e state próprios. Aplicações e workloads de negócio entram nas fases seguintes.
+Conferir os pré-requisitos da conta de plataforma e consolidar os aceites do Hub EKS antes de preparar as spokes. Cada destino mantém identidade e state próprios. Aplicações e workloads de negócio entram nas fases seguintes.
 
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
-| **09** | Foundation da conta de plataforma e módulos AWS | Conferir acesso humano, conta, região, backend e rede de plataforma. Completar os módulos Configuration, Network e EKS usados pelas raízes reutilizáveis e validar os planos |
-| **10** | Bootstrap externo e reinstalação do Hub EKS Auto Mode | Provisionar a rede e o Hub na conta de plataforma por execução autorizada com states separados. Publicar imagens por digest, validar acesso ao Git e aos registries, preparar armazenamento, criar EKS Capability for Argo CD com IAM Identity Center, registrar Hub por ARN, reinstalar os blocos do Git e repetir os dois aceites Kubernetes no EKS |
+| **09** | Foundation e módulos para as spokes | Conferir o escopo do state do executor, os destinos e os planos das raízes reutilizáveis de Network e EKS |
+| **10** | Aceite operacional do Hub EKS | Consolidar as evidências de TerraformStack e Crossplane, acesso ao Git e aos registries, imagens por digest e armazenamento antes do primeiro apply de spoke |
 | **11** | Registro de UAT | Validar o registro de destino, conta, região, acesso humano por IAM Identity Center e STS |
 | **12** | Identidade do executor e state | Provar a sessão temporária do Pod no Hub EKS, assunção da role UAT, bloqueio de destino indevido e operação do backend S3 com locking |
 | **13** | Network e primeiro apply da spoke UAT | Resolver revisões imutáveis e aplicar o mesmo plan aprovado. Verificar e disponibilizar ID da VPC e sub-redes para EKS |
@@ -152,11 +152,11 @@ Reutilizar a mesma aplicação de Rastreamento de Encomendas e a pipeline constr
 - **Um reconciliador por recurso:** Argo CD central mantém addons corporativos e entrega CRs de infraestrutura; Crossplane reconcilia Capabilities; TerraformStack governa Terraform; Argo CD local entrega Domain Applications.
 - **CI separado de CD:** GitHub Actions testa, constrói, verifica e publica a imagem; Git registra o digest desejado; Argo CD local efetua o deploy. O workflow da aplicação pertence ao repositório da squad, não a este monorepo.
 - **Segurança na etapa de origem:** IAM/STS, RBAC, validação de destino, state/plan protegido, custos e política de deleção são requisitos das operações correspondentes — não ficam pendentes até a Fase 6.
-- **Arquitetura lógica versus implementação:** `kind` serve ao Hub inicial; EKS e integrações cross-account exigem testes reais de identidade/conectividade. UAT, PROD, PCI e Non-PCI são escopos distintos; não afirmar validação real de recursos não criados.
+- **Arquitetura lógica versus implementação:** o Hub EKS e as integrações cross-account exigem testes de identidade e conectividade. UAT, PROD, PCI e Non-PCI são escopos distintos; não afirmar validação real de recursos não criados.
 - **Custos e limpeza:** Aurora, EKS e outros serviços AWS têm custo; confirmar autorização e teardown antes de provisionar. Remover um CR `TerraformStack` não implica `destroy` automático.
 
 ## Evoluções opcionais
 
-EKS Auto Mode e EKS Capability for Argo CD integram a arquitetura AWS nas Etapas 09–16; validar custo e disponibilidade. Avaliar posteriormente portal Backstage, um contrato abstrato de aplicação e automação de criação de contas.
+EKS Auto Mode e EKS Capability for Argo CD entram nas Etapas 01–02 e são exercitados nas spokes a partir da Etapa 14; validar custo e disponibilidade. Avaliar posteriormente portal Backstage, um contrato abstrato de aplicação e automação de criação de contas.
 
 [Arquitetura](architecture.md) · [GitOps](flows/gitops.md) · [TerraformStack](flows/terraformstack.md) · [GitOps Bridge](flows/gitops-bridge.md) · [Guia das etapas](../labs/README.md)

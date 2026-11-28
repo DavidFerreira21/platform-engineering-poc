@@ -1,0 +1,8 @@
+
+/.terraform/
+
+/backend_override.tf
+/terraform.tfstate*
+
+/hub.tfvars
+/hub.auto.tfvars

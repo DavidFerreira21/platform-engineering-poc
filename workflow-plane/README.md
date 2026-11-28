@@ -19,7 +19,7 @@ No Hub `kind`, Argo CD central é autogerenciado. No Hub EKS, adotar EKS Capabil
 
 [ADR-0006](../docs/adr/0006-terraformrun-and-application-ci.md)
 
-O Workflow Plane usa o Hub local. A integração com o Terraform Executor faz parte da [Fase 2 do roteiro](../docs/learning-roadmap.md#fase-2--control-plane-local).
+O Workflow Plane usa o Hub local. A integração com o Terraform Executor faz parte da [Fase 2 do roteiro](../docs/learning-roadmap.md#fase-2--control-plane-no-hub).
 
 [← Início](../README.md) · [Arquitetura](../docs/architecture.md)
 

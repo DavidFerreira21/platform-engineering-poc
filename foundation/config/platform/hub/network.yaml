@@ -1,0 +1,6 @@
+network:
+  layout: hub
+  vpc:
+    cidr: 10.80.0.0/16
+  nat:
+    mode: regional

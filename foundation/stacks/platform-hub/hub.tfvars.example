@@ -1,0 +1,18 @@
+# Overrides opcionais. Mantenha os valores da conta fora do Git.
+# account_id = "ID_DA_CONTA_PLATAFORMA"
+# region     = "us-east-1"
+# azs        = ["us-east-1a", "us-east-1b", "us-east-1c"]
+# kubernetes_version = "VERSAO_EM_SUPORTE_PADRAO"
+# api_client_cidrs   = []
+# api_public_access_cidrs = ["203.0.113.10/32"] # Substitua pelo IP público do operador.
+# admin_role_arn     = "ARN_IAM_DA_ROLE_ADMINISTRATIVA_DO_EKS"
+# executor_state_bucket_name = "NOME_GLOBALMENTE_UNICO_DO_BUCKET"
+
+# Para habilitar a capability Argo CD, informe a instância e o grupo autorizados.
+# identity_center = {
+#   instance_arn = "ARN_DA_INSTANCIA_IAM_IDENTITY_CENTER"
+#   region       = "REGIAO_DO_IDENTITY_CENTER"
+#   groups = {
+#     ADMIN = ["ID_DO_GRUPO_ADMIN_AUTORIZADO"]
+#   }
+# }

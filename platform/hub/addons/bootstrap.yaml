@@ -167,3 +167,34 @@ spec:
   clusterResourceWhitelist: []
   namespaceResourceWhitelist:
     - {group: platform.example.io, kind: TerraformStack}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform-crossplane-demo-api
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://github.com/DavidFerreira21/platform-engineering-poc.git
+  destinations:
+    - {server: "https://kubernetes.default.svc", namespace: platform-system}
+  clusterResourceWhitelist:
+    - {group: pkg.crossplane.io, kind: Function}
+    - {group: apiextensions.crossplane.io, kind: CompositeResourceDefinition}
+    - {group: apiextensions.crossplane.io, kind: Composition}
+  namespaceResourceBlacklist:
+    - {group: "*", kind: "*"}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform-crossplane-demo
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://github.com/DavidFerreira21/platform-engineering-poc.git
+  destinations:
+    - {server: "https://kubernetes.default.svc", namespace: platform-system}
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist:
+    - {group: lab.platform.example, kind: LabMessage}

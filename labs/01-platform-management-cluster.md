@@ -1,145 +1,100 @@
-# Etapa 01 — Preparação do Platform Management Cluster: kind, rede e Traefik
+# Etapa 01 — Bootstrap do Hub EKS Auto Mode na conta de plataforma
 
-[← Guias das etapas](README.md) · [Arquitetura](../docs/architecture.md) · [Fundamentos: planos](../docs/fundamentos/17-planos-e-responsabilidades.md) · [Roadmap](../docs/learning-roadmap.md)
+[← Guias das etapas](README.md) · [Arquitetura](../docs/architecture.md) · [Roteiro](../docs/learning-roadmap.md)
 
 ## Objetivo
 
-Preparar um Hub Kubernetes local reproduzível e verificar o caminho de uma requisição HTTP do host até um Pod.
+Provisionar a base do Hub `platform-hub` na conta de plataforma e confirmar que o operador consegue acessar a API Kubernetes. A Etapa 02 usa essa base para validar a entrega pelo Argo CD.
 
 ## O que será feito
 
-- Criar ou reutilizar o cluster kind `platform-management` para as etapas locais e preparar os namespaces `platform-system`, `traefik`, `argocd` e `crossplane-system`. Os dois últimos ficam reservados para as próximas etapas.
-- Instalar o Traefik via Helm e publicar o Deployment, o Service e o Ingress do serviço de demonstração `echo`.
-- Validar `demo.localhost:8080` e acompanhar o caminho da requisição até o Pod.
-- Conferir como revisitar o exercício em um Hub que já tem etapas posteriores.
-
-O exercício roda no Hub local e tem custo AWS zero.
+- Configurar o perfil AWS `platform-hub` com IAM Identity Center e validar a conta de destino.
+- Executar a stack Terraform [`platform-hub`](../foundation/stacks/platform-hub/main.tf) para criar rede, EKS Auto Mode, capability gerenciada do Argo CD e bucket S3 para os futuros states do TerraformStack.
+- Confirmar a conectividade com a API, a prontidão dos NodePools e o estado da capability. Usar um workload curto para validar o provisionamento de nós, DNS e HTTP.
 
 ## Por que fizemos assim
 
-Começamos com um cluster `kind` e uma rota HTTP local para verificar a base que receberá os componentes da plataforma. O serviço `echo` permite seguir uma requisição do host ao Ingress, ao Service e ao Pod antes de instalar o Argo CD.
+O bootstrap roda manualmente porque estabelece a infraestrutura que vai hospedar o próprio TerraformStack. A stack mantém seu state local, fora do checkout, e usa referências entre os módulos para criar a rede, o cluster e o Argo CD em ordem. O bucket S3 com versionamento e locking por arquivo atende aos states das execuções posteriores.
 
-## Pré-requisitos
+A VPC do Hub tem três subnets privadas de aplicação e três de database, uma de cada por AZ. O NAT Gateway regional dá saída às subnets de aplicação pelo Internet Gateway. As subnets de database mantêm a rota local. O EKS Auto Mode usa as subnets de aplicação e os NodePools gerenciados `system` e `general-purpose`. [Módulo Network](../foundation/modules/network/main.tf) · [Módulo EKS](../foundation/modules/eks/main.tf)
 
-- Docker funcional, `kind`, `kubectl`, `helm` e `curl` no PATH.
-- Conexão para baixar imagens e o Helm chart oficial do Traefik.
-- Portas **8080 e 8443 TCP** disponíveis no host para o kind. O bind é exclusivamente em **127.0.0.1** (não expõe o laboratório na LAN).
-- Os comandos de interação com o Hub selecionam `kind-platform-management` explicitamente.
-- Ambiente local com recursos suficientes para kind, Traefik e pod de teste.
+Durante o bootstrap, o operador pode usar o endpoint público da API, restrito ao IP de saída do seu terminal. O endpoint privado atende ao tráfego interno. A Access Entry dá à role SSO autorizada as permissões Kubernetes. O Argo CD gerenciado tem URL própria e usa o IAM Identity Center da organização para o login.
 
-Se o Hub já estiver em uso, use **Reexaminar o Hub existente** para observar a base e revisitar os testes HTTP.
+## 1. Preparar a sessão e os arquivos locais
 
-Verifique antes:
+Usar AWS CLI v2, Terraform 1.10 ou superior e `kubectl`. No assistente SSO, selecionar a conta de plataforma, a role autorizada para o bootstrap e `us-east-1` como região padrão do perfil.
 
 ```bash
-docker info
-kind version
-kubectl version --client
-helm version
+aws configure sso --profile platform-hub
+aws sso login --profile platform-hub
+aws sts get-caller-identity --profile platform-hub --no-cli-pager
+
+aws ec2 describe-availability-zones --profile platform-hub --region us-east-1 \
+  --filters Name=state,Values=available Name=zone-type,Values=availability-zone \
+  --query 'AvailabilityZones[].ZoneName' --output table --no-cli-pager
 ```
 
-## Etapa 1 — Entender a rede e criar o cluster
+Conferir o ID da conta no STS. Se a consulta de AZs retornar `UnauthorizedOperation`, verificar a role selecionada no perfil e a atribuição do permission set nessa conta.
 
-Abra [`kind-config.yaml`](../platform/hub/kind-config.yaml): **host 127.0.0.1:8080 → node container:30080**, e **host 127.0.0.1:8443 → node container:30443**. Esses números correspondem aos **NodePorts** do Service Traefik definidos em [`values.yaml`](../platform/hub/traefik/values.yaml).
+Entrar em `foundation/stacks/platform-hub` e preencher `hub.auto.tfvars` a partir do [modelo](../foundation/stacks/platform-hub/hub.tfvars.example). Fixar a conta esperada em `account_id`. A configuração padrão usa o CIDR `10.80.0.0/16`, as AZs `us-east-1a/b/c` e a versão Kubernetes mais recente em suporte padrão. Informar a instância IAM Identity Center, sua região primária e o ID do grupo Argo CD autorizado em `identity_center`. Para acesso do terminal pela internet, preencher `api_public_access_cidrs` com o IP público de saída no formato `/32`.
+
+Configurar `backend_override.tf` com o caminho absoluto do state local, conforme o [guia da stack](../foundation/stacks/README.md#preparar-o-acesso-e-as-entradas). Em uma retomada, usar o mesmo arquivo de state. O Git ignora o override e o `hub.auto.tfvars`. Manter o state e seu backup em diretório protegido.
+
+## 2. Provisionar a base do Hub
+
+Na pasta `foundation/stacks/platform-hub`:
 
 ```bash
-unset HUB_KIND_NAME HUB_HTTP_PORT HUB_HTTPS_PORT
-bash platform/hub/scripts/create.sh
+terraform init
+terraform validate
+terraform plan
 ```
 
-As etapas locais usam o mesmo Hub `platform-management`, no contexto `kind-platform-management` e nas portas 8080 e 8443. O script prepara os namespaces e reutiliza o Hub se ele já existir. O mapeamento de portas e a política de auditoria do TerraformStack são definidos na criação do cluster. Em seguida, confira o Hub.
+Revisar conta, região, custo e alterações. O plano inicial deve incluir seis subnets privadas, NAT Gateway regional, Internet Gateway, endpoint gateway S3, EKS Auto Mode, capability Argo CD e bucket de state do executor. Conferir que `compute_config` inclui os NodePools e a role IAM dos nós. Se habilitado, o acesso público deve mostrar apenas os CIDRs autorizados.
+
+Após aprovar a operação, rodar `terraform apply` e revisar o plano exibido antes de confirmar. Em caso de falha parcial, usar `terraform state list` para identificar os recursos já registrados e gerar um novo plano a partir do mesmo state. Se `CreateCluster` rejeitar NodePools com `nodeRoleArn` vazio, verificar se o módulo EKS está atualizado para a versão fixada no repositório e rodar `terraform init` para resolver a dependência.
+
+## 3. Verificar EKS e Argo CD
 
 ```bash
-kubectl --context kind-platform-management cluster-info
-kubectl --context kind-platform-management get nodes -o wide
-kubectl --context kind-platform-management get pods -n kube-system
+aws eks update-kubeconfig --profile platform-hub --region us-east-1 --name platform-hub
+hub_context="$(aws eks describe-cluster --profile platform-hub --region us-east-1 \
+  --name platform-hub --query 'cluster.arn' --output text)"
+hub() { kubectl --context "$hub_context" "$@"; }
+
+hub get --raw=/readyz
+hub get nodepools
+hub get nodes
+aws eks describe-capability --profile platform-hub --region us-east-1 \
+  --cluster-name platform-hub --capability-name argocd \
+  --query 'capability.{Status:status,Issues:health.issues,URL:configuration.argoCd.serverUrl}'
 ```
 
-**Resultado esperado:** nó `Ready`, API acessível, CoreDNS e componentes Kubernetes básicos operacionais.
+A API deve responder ao `kubectl`. Os NodePools podem aparecer com zero nós até haver Pods para agendar. A capability deve ficar `ACTIVE`. Se o `kubectl` expirar pelo WSL, verificar o IP de saída e a lista `api_public_access_cidrs`; se retornar `Unauthorized`, conferir a sessão SSO e a Access Entry. [Diagnóstico do EKS Auto Mode](https://docs.aws.amazon.com/eks/latest/userguide/auto-troubleshoot.html)
 
-## Etapa 2 — Entender os namespaces
+## 4. Exercitar o primeiro workload
 
-Abra [`namespaces.yaml`](../platform/hub/namespaces.yaml). Os namespaces `platform-system`, `traefik`, `argocd` e `crossplane-system` foram aplicados pelo `create.sh`. Os dois últimos são **somente reservas lógicas**: não há Argo CD nem Crossplane instalados.
+Com o Hub e o contexto conferidos, criar um Pod descartável para testar que a imagem é baixada, que o Pod é agendado e que o DNS do cluster e a saída HTTP funcionam:
 
 ```bash
-kubectl --context kind-platform-management get namespaces --show-labels
+hub -n default run hub-network-smoke --image=busybox:1.37.0 --restart=Never --command -- \
+  sh -ec 'nslookup kubernetes.default.svc.cluster.local; wget -q -O /dev/null http://example.com'
+hub -n default wait --for=jsonpath='{.status.phase}'=Succeeded pod/hub-network-smoke --timeout=8m
+hub -n default logs hub-network-smoke
+hub get nodes
 ```
 
-**Conceito:** namespace não é um Domain. O Hub central e os Domains do Data Plane possuem responsabilidades diferentes.
-
-## Etapa 3 — Instalar Traefik, com script independente
-
-Examine as configurações [`values.yaml`](../platform/hub/traefik/values.yaml) e [versão do Helm chart](../platform/hub/traefik/chart-version.txt). O chart usa uma **versão fixa** para reprodução. O Service é `NodePort`, não `LoadBalancer`; no kind, não é necessário cloud load balancer nem MetalLB.
+Se o Pod ficar em `Pending`, consultar `hub -n default describe pod hub-network-smoke` e `hub get nodeclaims`. Se o teste falhar depois de agendado, conferir os logs do Pod. Ao terminar, remover apenas o Pod de teste:
 
 ```bash
-bash platform/hub/scripts/install-traefik.sh
-kubectl --context kind-platform-management -n traefik get deployment,pods,service
+hub -n default delete pod hub-network-smoke --ignore-not-found
 ```
-
-O script instala/atualiza o Traefik via Helm, espera o Deployment e aplica um **Deployment + Service + Ingress Kubernetes nativo** de demonstração, definido em [`demo.yaml`](../platform/hub/traefik/demo.yaml).
-
-O serviço `echo` usa o Ingress nativo do Kubernetes para demonstrar o roteamento HTTP. O Traefik também carrega seu provider de CRDs para publicar as interfaces do Argo CD e do Argo Workflows nas Etapas 02 e 03.
-
-## Etapa 4 — Validar o caminho de rede
-
-```bash
-bash platform/hub/scripts/verify.sh
-curl --noproxy '*' --resolve demo.localhost:8080:127.0.0.1 http://demo.localhost:8080/
-```
-
-**Resposta esperada:** `platform-management-ok`. A URL também funciona no navegador em ambientes que resolvem `.localhost` como loopback: [http://demo.localhost:8080/](http://demo.localhost:8080/).
-
-```text
-Browser / curl (127.0.0.1:8080)
-    → Docker port mapping (kind node :30080)
-    → Traefik Service NodePort :30080
-    → Traefik Pod (IngressClass traefik)
-    → Ingress demo.localhost
-    → Service echo :80
-    → Deployment echo :5678
-```
-
-A porta 8443 recebe as rotas HTTPS do Argo CD e do Argo Workflows nas etapas seguintes. O serviço `echo` demonstra a entrada HTTP na porta 8080.
-
-## Etapa 5 — Conferir a configuração e os logs
-
-```bash
-kubectl --context kind-platform-management -n platform-system get ingress,svc,deploy,pods
-kubectl --context kind-platform-management -n traefik logs deploy/traefik --tail=100
-```
-
-O Ingress associa o host `demo.localhost` ao Service `echo`. Se houver `connection refused`, confira o mapeamento de portas. Para `503`, confira os endpoints e o estado do backend. Para `404` na rota esperada, confira a `IngressClass` e a regra de host.
-
-## Etapa 6 — Reexaminar o Hub existente
-
-Se você voltar a esta etapa depois de instalar outros componentes, use a verificação do Hub e repita os testes de requisição HTTP.
-
-```bash
-bash platform/hub/scripts/verify.sh
-```
-
-Antes do teste de aprovação do Simulator, confira se o API Server do Hub foi iniciado com a política de auditoria.
-
-```bash
-kubectl --context kind-platform-management -n kube-system \
-  get pod kube-apiserver-platform-management-control-plane \
-  -o jsonpath='{.spec.containers[0].command}' |
-  grep -F -- '--audit-policy-file=/var/local/terraformstack-audit/policy.yaml'
-```
-
-Se a opção estiver ausente, os testes locais continuam no mesmo Hub. A evidência de auditoria da aprovação depende da configuração aplicada na criação do cluster. [Teste de aprovação](06-terraformstack-simulator.md#2-exercitar-as-decisões-opa-pelo-gitops)
-
-O serviço `echo` fica disponível para a verificação do Hub em etapas posteriores. A exclusão completa do cluster é uma operação de manutenção separada. [Operações do Hub](../platform/hub/README.md)
 
 ## O que observar
 
-- [ ] API Kubernetes e CoreDNS funcionam, nó está `Ready`.
-- [ ] Namespaces esperados disponíveis para os componentes do Hub.
-- [ ] Traefik está saudável e usando NodePorts 30080/30443.
-- [ ] `demo.localhost:8080` retorna `platform-management-ok`.
+- A stack registra a infraestrutura no mesmo state local entre execuções.
+- O operador consulta a API Kubernetes a partir do WSL. Os dois NodePools aparecem em `Ready`.
+- O workload de teste provoca a criação de um nó e termina com sucesso após as consultas de DNS e HTTP.
+- A capability Argo CD aparece `ACTIVE` e fornece a URL de acesso.
 
-## Próximas etapas
-
-Siga para a [Etapa 02 — Argo CD central](02-argocd-central.md). Ao adotar Traefik no Argo CD, documentar uma **transferência de ownership Helm → Argo CD**, sem dois reconciliadores gerenciando o release simultaneamente. Não executar o bootstrap do Traefik manual depois de adotado pelo GitOps.
-
-Fontes: [kind — Configuration](https://kind.sigs.k8s.io/docs/user/configuration/) · [Traefik — Setup on Kubernetes](https://doc.traefik.io/traefik/setup/kubernetes/) · [Traefik Helm Chart](https://github.com/traefik/traefik-helm-chart).
+Na execução inicial, foram confirmados o acesso pelo WSL, os dois NodePools em `Ready` e a capability `ACTIVE` sem alertas. O teste com workload e o primeiro sync GitOps ainda precisam ser executados. [Etapa 02 — Primeiro sync no Argo CD](02-argocd-central.md)

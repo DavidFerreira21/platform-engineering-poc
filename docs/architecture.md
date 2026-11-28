@@ -3,13 +3,13 @@
 [← Início](../README.md) · [Decisões atuais](adr/README.md) · [GitOps Flow](flows/gitops.md) · [Monorepo](repository-structure.md) · [Roadmap](learning-roadmap.md)
 
 > [!NOTE]
-> O Hub `kind` é a implementação inicial desta POC. O desenho descreve a topologia-alvo na AWS e o modelo de ownership que o monorepo exercita. Os exemplos usam entidades e Domains fictícios. Operações AWS exigem autorização por etapa.
+> O Hub da POC começa no EKS Auto Mode da conta de plataforma. O desenho descreve a topologia-alvo na AWS e o modelo de ownership que o monorepo exercita. Os exemplos usam entidades e Domains fictícios. Operações AWS exigem autorização por etapa.
 
 ## 1. Modelo arquitetural
 
 A POC demonstra uma plataforma **Kubernetes-native** de governança central e consumo federado. Existem duas dimensões distintas:
 
-- **Planos:** Experience Layer, Control Plane, Workflow Plane, Observability Plane e Data Plane. O Hub `kind` hospeda os componentes centrais dos cenários locais. Na topologia-alvo, os três planos técnicos centrais ficam na conta da plataforma em torno do Hub EKS.
+- **Planos:** Experience Layer, Control Plane, Workflow Plane, Observability Plane e Data Plane. Os três planos técnicos centrais ficam na conta da plataforma em torno do Hub EKS.
 - **Quatro camadas de ownership:** **Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications**. Elas classificam responsabilidade de mudança e lifecycle, **não** representam planos ou clusters adicionais.
 
 A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) é o contexto de uma conta AWS. O **Domain** é a unidade lógica de negócio, consumo, ownership e governança: possui Capabilities e aplicações em um ou mais Environments. **Capability** é o produto técnico provisionável, como `ObjectStorage`.
@@ -18,13 +18,13 @@ A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) �
 
 ## 2. Visão geral
 
-**Fluxos declarativos detalhados:** [GitOps Flow](flows/gitops.md) · [Diagrama PNG](flows/gitops-flow.png) · [TerraformStack Flow](flows/terraformstack.md) · [GitOps Bridge Flow](flows/gitops-bridge.md). O fluxo diferencia Platform Addons, Capabilities Crossplane, TerraformStack e aplicações locais, incluindo a divisão de ownership e o estado atual do laboratório kind.
+**Fluxos declarativos detalhados:** [GitOps Flow](flows/gitops.md) · [Diagrama PNG](flows/gitops-flow.png) · [TerraformStack Flow](flows/terraformstack.md) · [GitOps Bridge Flow](flows/gitops-bridge.md). O fluxo diferencia Platform Addons, Capabilities Crossplane, TerraformStack e aplicações locais, incluindo a divisão de ownership.
 
 ![Diagrama de arquitetura de referência com Hub, contas AWS UAT/PROD, quatro camadas e três personas](arquitetura%20Plataform.png)
 
 [Abrir diagrama em tamanho completo](arquitetura%20Plataform.png)
 
-As Etapas 01 a 06 foram reproduzidas no Hub `kind` a partir da `main`. O Argo CD sincroniza as solicitações do Simulator e o Workflow aplica alterações em ConfigMaps com Terraform ou OpenTofu. O guia e os manifests da Etapa 07 exercitam Crossplane Core com uma Composition local. A Etapa 08 prevê seu aceite GitOps completo. [Evidências do Simulator](../labs/06-terraformstack-simulator.md#evidências-de-aceite) · [Crossplane Core](../labs/07-crossplane-core.md) · [Roadmap](learning-roadmap.md).
+A [Etapa 01](../labs/01-platform-management-cluster.md) documenta o Hub EKS provisionado com Argo CD gerenciado. O smoke test com workload e o primeiro sync da [Etapa 02](../labs/02-argocd-central.md) ainda precisam ser executados. O Simulator e o Crossplane serão exercitados nesse Hub com recursos Kubernetes de teste. [Evidências do Simulator](../labs/06-terraformstack-simulator.md#evidências-de-aceite) · [Crossplane Core](../labs/07-crossplane-core.md) · [Roadmap](learning-roadmap.md).
 
 O Hub EKS, as spokes, o consumo de Capabilities AWS, o GitOps Bridge e a stack de telemetria central compõem a arquitetura-alvo. A Foundation mantém raízes reutilizáveis e utilitários versionados para as etapas AWS. A entrega das aplicações usará o repositório da squad e o Argo CD local. [Foundation](../foundation/README.md) · [GitOps Bridge](flows/gitops-bridge.md).
 
@@ -121,7 +121,7 @@ Um recurso externo tem **um único owner de reconciliação**. Terraform adminis
 
 ```text
 platform-engineering-poc/
-├── platform/hub/                        # bootstrap kind
+├── platform/hub/                        # catálogo de add-ons e utilitários do Hub
 ├── control-plane/                       # Crossplane, TerraformStack e contratos
 ├── workflow-plane/                      # GitOps central, Workflows, runner e Policy Engine
 ├── observability-plane/
@@ -157,7 +157,7 @@ platform-engineering-poc/
 
 **Repositório da aplicação de teste.** Previsto para a Fase 5 (Etapas 22–25), pertence às **Squads de Produto (Application Team)** e inclui `src/`, `tests/`, `Dockerfile`, `.github/workflows/` e `k8s/{base,overlays/uat,overlays/prod}`. O **Argo CD local** sincroniza esses manifests diretamente desse repositório.
 
-**Esta é a árvore-alvo.** A Etapa 01 cria o Hub `kind` local. O roteiro usa o registro de UAT na Etapa 11 para preparar a primeira execução na AWS e o de PROD na Etapa 31 para testar isolamento. Novos diretórios de Domain e Foundation acompanham as respectivas entregas. A [estrutura](repository-structure.md) especifica essa transição.
+**Esta é a árvore-alvo.** A Etapa 01 provisiona o Hub EKS na conta de plataforma. O roteiro usa o registro de UAT na Etapa 11 para preparar a primeira execução na AWS e o de PROD na Etapa 31 para testar isolamento. Novos diretórios de Domain e Foundation acompanham as respectivas entregas. A [estrutura](repository-structure.md) especifica essa transição.
 
 O monorepo demonstra autonomia via PR, revisão de paths e eventualmente CODEOWNERS. **CODEOWNERS sem regras de proteção não basta;** também são necessários RBAC Kubernetes, admission, IAM por conta e AppProjects Argo CD. Terraform state fica fora do Git.
 
@@ -193,11 +193,11 @@ O controller encaminha a fonte declarada e o mapa de contexto. A interface de ex
 
 ### Evolução planejada do TerraformStack
 
-1. **Etapas 04–06.** O TerraformStack e a pipeline passaram pelo aceite local com o Simulator. Crossplane segue as Etapas 07–08 com recurso Kubernetes próprio.
-2. **Etapas 09–10.** Preparar Foundation e provisionar o Hub EKS Auto Mode por bootstrap externo. Reinstalar os mesmos blocos via Git e repetir os aceites no EKS.
+1. **Etapas 01–02.** Provisionar o Hub EKS e validar o primeiro sync com Argo CD gerenciado.
+2. **Etapas 04–10.** Aceitar TerraformStack e Crossplane no Hub, consolidar evidências e preparar os requisitos para as spokes.
 3. **Etapas 11–13.** Preparar UAT e o backend. Gerar, aprovar e aplicar o mesmo plano da rede da spoke.
 
-No Simulator, a alteração verificada chega a um ConfigMap no `kind`. A integração das raízes AWS ao mesmo contrato de execução entra nas Etapas 12–13. As Etapas 28–29 exercitam drift e políticas em UAT.
+No Simulator, a alteração verificada chega a um ConfigMap no Hub. A integração das raízes AWS ao mesmo contrato de execução entra nas Etapas 12–13. As Etapas 28–29 exercitam drift e políticas em UAT.
 
 ### Domain Infrastructure: Argo CD central + Crossplane
 
@@ -239,7 +239,7 @@ O código, as pipelines GitHub Actions **e os manifests Kubernetes da aplicaçã
 
 **Fluxo operacional alvo.** Foundation cria ou adota contas e rede → Entity Core prepara EKS e Argo CD local → manifests de Capabilities aprovados são reconciliados por Crossplane central → workloads de Domain Applications são entregues por Argo CD local.
 
-**Ordem incremental da POC.** Hub local → TerraformStack e Crossplane locais → Foundation e Hub EKS → Network UAT → EKS dos Environments, onboarding, Platform GitOps e Bridge → Capabilities com Crossplane → primeira aplicação FastAPI e esteira CI/CD → observabilidade, drift e isolamento → Experience Layer → Golden Path. O [Roadmap V2](learning-roadmap.md) organiza o trabalho em **8 fases e Etapas 00–35**. A UAT recebe os primeiros recursos reais; PCI e PROD exigem autorização específica e testes compatíveis com a infraestrutura realmente criada.
+**Ordem incremental da POC.** Hub EKS e primeiro sync GitOps → TerraformStack e Crossplane → Foundation das spokes → Network UAT → EKS dos Environments, onboarding, Platform GitOps e Bridge → Capabilities com Crossplane → primeira aplicação FastAPI e esteira CI/CD → observabilidade, drift e isolamento → Experience Layer → Golden Path. O [Roadmap V2](learning-roadmap.md) organiza o trabalho em **8 fases e Etapas 00–35**. A UAT recebe os primeiros recursos das spokes; PCI e PROD exigem autorização específica e testes compatíveis com a infraestrutura realmente criada.
 
 ## 10. Decisões vigentes e pontos abertos
 
