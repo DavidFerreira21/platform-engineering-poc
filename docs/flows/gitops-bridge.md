@@ -1,6 +1,6 @@
 # GitOps Bridge Flow — Platform Engineering POC
 
-[← Arquitetura](../architecture.md) · [GitOps Flow](gitops.md) · [TerraformStack Flow](terraformstack.md) · [Roadmap](../learning-roadmap.md)
+[← Arquitetura](../architecture.md) · [GitOps Flow](gitops.md) · [TerraformStack Flow](terraformstack.md) · [Roadmap](../learning-roadmap.md) · [Padrões em avaliação](../../README.md#padrões-em-avaliação)
 
 O Simulator termina com a verificação do ConfigMap local. As raízes AWS expõem `bridge_parameters` e o publicador já está versionado. A Etapa 17 integra a publicação após `verify` ao SSM da conta do Environment e valida o consumo por External Secrets Operator (ESO) no Management EKS. O diagrama mostra a topologia-alvo. [Raízes e publicador](../../foundation/stacks/README.md)
 

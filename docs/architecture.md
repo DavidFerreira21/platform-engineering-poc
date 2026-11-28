@@ -3,7 +3,7 @@
 [← Início](../README.md) · [Decisões atuais](adr/README.md) · [GitOps Flow](flows/gitops.md) · [Monorepo](repository-structure.md) · [Roadmap](learning-roadmap.md)
 
 > [!NOTE]
-> O Hub da POC começa no EKS Auto Mode da conta de plataforma. O desenho descreve a topologia-alvo na AWS e o modelo de ownership que o monorepo exercita. Os exemplos usam entidades e Domains fictícios. Operações AWS exigem autorização por etapa.
+> O lab usa o Hub EKS Auto Mode na conta da plataforma. O desenho descreve a topologia-alvo na AWS e o modelo de ownership que o monorepo exercita. Os exemplos usam entidades e Domains fictícios. Operações AWS exigem autorização por etapa.
 
 ## 1. Modelo arquitetural
 
@@ -24,9 +24,7 @@ A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) �
 
 [Abrir diagrama em tamanho completo](arquitetura%20Plataform.png)
 
-A [Etapa 01](../labs/01-platform-management-cluster.md) documenta o Hub EKS provisionado com Argo CD gerenciado. O smoke test com workload e o primeiro sync da [Etapa 02](../labs/02-argocd-central.md) ainda precisam ser executados. As Etapas 03–08 ainda precisam de adequação e aceite no EKS. [Evidências do Simulator](../labs/06-terraformstack-simulator.md#evidências-de-aceite) · [Crossplane Core](../labs/07-crossplane-core.md) · [Roadmap](learning-roadmap.md).
-
-A topologia-alvo inclui o Hub EKS, as spokes, o consumo de Capabilities AWS, o GitOps Bridge e a observabilidade por ambiente. A integração de observabilidade entra nas Etapas 26–27 em UAT. A Foundation mantém raízes reutilizáveis e utilitários versionados para as etapas AWS. A entrega das aplicações usará o repositório da squad e o Argo CD local. [Foundation](../foundation/README.md) · [GitOps Bridge](flows/gitops-bridge.md).
+A topologia-alvo abrange o Hub EKS, as spokes, as Capabilities AWS, o GitOps Bridge e o plano de observabilidade. O estado dos aceites, as dependências entre etapas e as evidências ficam no roteiro. [Estado da POC](learning-roadmap.md#estado-da-poc)
 
 | Plano | Responsabilidade |
 | :--- | :--- |

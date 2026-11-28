@@ -1,6 +1,6 @@
 # 📝 Decisões arquiteturais vigentes
 
-[← Início](../../README.md) · [Arquitetura](../architecture.md)
+[← Início](../../README.md) · [Arquitetura](../architecture.md) · [Estado da POC](../learning-roadmap.md#estado-da-poc)
 
 Os ADRs registram as **decisões arquiteturais vigentes** e, quando necessário, propostas históricas identificadas como adiadas ou em reavaliação. Decisões substituídas também podem ser consultadas no histórico Git. Nenhum ADR comprova implantação de recursos.
 

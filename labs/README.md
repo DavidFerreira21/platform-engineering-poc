@@ -1,20 +1,20 @@
 # Guias das etapas
 
-O [roteiro prático](../docs/learning-roadmap.md) organiza a montagem cumulativa da plataforma. Os guias descrevem os blocos disponíveis e as evidências que permitem avançar. As próximas entregas permanecem no roadmap.
+O lab usa o **Hub EKS Auto Mode**. As etapas seguem a ordem de dependências do roteiro. A coluna de disponibilidade indica se o guia já traz comandos ou descreve a entrega prevista. [Estado da POC e evidências](../docs/learning-roadmap.md#estado-da-poc)
 
-| Etapa | Guia |
-| :--- | :--- |
-| **00** | [Documentação e monorepo](../docs/repository-structure.md) |
-| **01** | [Bootstrap do Hub EKS Auto Mode](01-platform-management-cluster.md) |
-| **02** | [Primeiro sync no Argo CD gerenciado](02-argocd-central.md) |
-| **03** | [Argo Workflows](03-argo-workflows.md) |
-| **04** | [API do TerraformStack via GitOps](04-terraformstack-crd.md) |
-| **05** | [Controller e pipeline do TerraformStack](05-terraformstack-runtime.md) |
-| **06** | [Terraform Stack Simulator de ponta a ponta](06-terraformstack-simulator.md) |
-| **07** | [Crossplane Core e smoke test](07-crossplane-core.md) |
-| **08** | [Crossplane de ponta a ponta](08-crossplane-gitops.md) |
+| Etapa | Guia | Disponibilidade |
+| :--- | :--- | :--- |
+| **00** | [Documentação e monorepo](../docs/repository-structure.md) | Referência da estrutura |
+| **01** | [Bootstrap do Hub EKS Auto Mode](01-platform-management-cluster.md) | Procedimento disponível. Workload de teste pendente |
+| **02** | [Primeiro sync no Argo CD gerenciado](02-argocd-central.md) | Procedimento disponível. Primeiro sync pendente |
+| **03** | [Argo Workflows](03-argo-workflows.md) | Critérios de aceite no EKS |
+| **04** | [API do TerraformStack via GitOps](04-terraformstack-crd.md) | Critérios de aceite no EKS |
+| **05** | [Controller e pipeline do TerraformStack](05-terraformstack-runtime.md) | Critérios de aceite no EKS |
+| **06** | [Terraform Stack Simulator de ponta a ponta](06-terraformstack-simulator.md) | Critérios de aceite no EKS e evidências do ensaio inicial |
+| **07** | [Crossplane Core e smoke test](07-crossplane-core.md) | Critérios de aceite no EKS |
+| **08** | [Crossplane de ponta a ponta](08-crossplane-gitops.md) | Critérios de aceite no EKS e evidências do ensaio inicial |
 
-> O lab usa o Hub EKS Auto Mode. As Etapas 03–08 descrevem as entregas e os critérios de aceite enquanto os procedimentos de instalação e os manifests do Hub EKS são preparados.
+Os procedimentos de instalação e os manifests das Etapas 03–08 para o Hub EKS estão em preparação. As etapas seguintes estão no [roteiro](../docs/learning-roadmap.md).
 
 > **Nota histórica.** Os primeiros testes do Control Plane e do Workflow Plane foram feitos em `kind`. Quem quiser repetir o ensaio em um cluster local pode adaptar os manifests por conta própria.
 

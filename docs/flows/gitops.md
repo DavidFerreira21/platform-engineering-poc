@@ -1,5 +1,7 @@
 # GitOps Flow — Platform Engineering POC
 
+[Padrões em avaliação](../../README.md#padrões-em-avaliação) · [Arquitetura](../architecture.md)
+
 A Etapa 01 provisiona o Hub EKS com a capability Argo CD. A Etapa 02 valida o primeiro sync no próprio Hub. O Argo CD autogerenciado dos Management EKS atende à entrega de workloads nos destinos locais autorizados. [Roadmap](../learning-roadmap.md) · [ADR-0008](../adr/0008-managed-argocd-connectivity.md)
 
 ![Fluxo GitOps: Platform Addons, Crossplane, TerraformStack e Domain Applications](./gitops-flow.png)

@@ -6,6 +6,14 @@ A POC utiliza **um único repositório** para demonstrar responsabilidades que p
 
 O código é organizado pelo componente que a plataforma instala e mantém. A numeração dos guias indica a ordem de montagem. Overlays registram diferenças de destino e reutilizam os manifests base. O Hub EKS usa as raízes Terraform e os blocos organizados por componente.
 
+## Onde encontrar cada parte da POC
+
+| Tema | Caminho |
+| :--- | :--- |
+| Topologia e decisões | [Arquitetura](architecture.md) e [ADRs](adr/README.md) |
+| Fluxos e contratos | [GitOps](flows/gitops.md), [TerraformStack](flows/terraformstack.md), [GitOps Bridge](flows/gitops-bridge.md) e [observabilidade](flows/observability.md) |
+| Evidências e reprodução | [Estado da POC](learning-roadmap.md#estado-da-poc) e [guias das etapas](../labs/README.md) |
+
 ## Divisão por ownership
 
 | Caminho-alvo | Camada e gestão |

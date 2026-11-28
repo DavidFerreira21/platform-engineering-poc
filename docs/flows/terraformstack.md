@@ -1,6 +1,6 @@
 # Fluxo do TerraformStack
 
-[Arquitetura](../architecture.md) · [GitOps](gitops.md) · [ADR-0006](../adr/0006-terraformrun-and-application-ci.md) · [Roadmap](../learning-roadmap.md)
+[Arquitetura](../architecture.md) · [GitOps](gitops.md) · [ADR-0006](../adr/0006-terraformrun-and-application-ci.md) · [Roadmap](../learning-roadmap.md) · [Padrões em avaliação](../../README.md#padrões-em-avaliação)
 
 O `TerraformStack` declara a infraestrutura desejada de Foundation e Entity Core. O ensaio inicial comprovou o fluxo de ponta a ponta do Simulator. O aceite da Etapa 06 no Hub EKS segue no roteiro. O Terraform Stack Simulator usa o provider Kubernetes para gerenciar um ConfigMap com a configuração efetiva de Network. A integração com a AWS segue nas etapas do roadmap. [Guia do Simulator](../../labs/06-terraformstack-simulator.md)
 
