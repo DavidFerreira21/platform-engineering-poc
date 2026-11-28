@@ -32,16 +32,20 @@
 <symbol id="info" viewBox="0 0 60 60"><circle cx="30" cy="30" r="22" fill="none" stroke="#087bfa" stroke-width="4"/><path d="M30 27V44" stroke="#087bfa" stroke-width="4"/><circle cx="30" cy="17" r="3.7" fill="#087bfa"/></symbol>
 </defs>
 <rect x="0" y="0" width="1672" height="941" rx="0" fill="#fff" stroke="none" stroke-width="0" />
-<use href="#cloud" x="95" y="6" width="103" height="93"/>
-<use href="#kube" x="129" y="37" width="49" height="49"/>
-<path d="M220 10V88" stroke="#46658d" stroke-width="2"/>
-<text x="251" y="48" font-size="46" font-weight="800" fill="#07112a" text-anchor="start" xml:space="preserve"><tspan x="251" dy="0">Fluxo GitOps — Platform Engineering POC</tspan></text>
-<text x="253" y="80" font-size="27" font-weight="400" fill="#415d86" text-anchor="start" xml:space="preserve"><tspan x="253" dy="0">Git como fonte de verdade para add-ons, infraestrutura e aplicações</tspan></text>
-<path d="M1247 10V89" stroke="#5f739a" stroke-width="2"/>
-<rect x="1271" y="9" width="327" height="80" rx="24" fill="#e8e4ff" stroke="none" stroke-width="0" />
-<use href="#db" x="1288" y="24" width="57" height="55"/>
-<text x="1350" y="42" font-size="21" font-weight="800" fill="#061842" text-anchor="start" xml:space="preserve"><tspan x="1350" dy="0">UAT e PROD são</tspan></text>
-<text x="1350" y="67" font-size="21" font-weight="800" fill="#061842" text-anchor="start" xml:space="preserve"><tspan x="1350" dy="0">contas AWS distintas</tspan></text>
+<g font-family="Ubuntu, DejaVu Sans, sans-serif">
+<defs>
+  <linearGradient id="flow-header-bg" x2="0" y2="1"><stop stop-color="#ffffff"/><stop offset="1" stop-color="#f9fbff"/></linearGradient>
+  <linearGradient id="flow-header-badge" x2="0" y2="1"><stop stop-color="#f6f1ff"/><stop offset="1" stop-color="#e2dcfc"/></linearGradient>
+</defs>
+<rect width="1672" height="102" fill="url(#flow-header-bg)"/>
+<path d="M51 78c-10 0-18-9-18-19 0-11 8-20 19-21 2-13 14-23 28-23 13 0 24 8 27 20 12 1 22 10 22 23 0 11-9 20-21 20H51z" fill="none" stroke="#087bfa" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M66 37v27m0-9c14 0 23-4 23-17" fill="none" stroke="#075dde" stroke-width="4"/><g fill="#fff" stroke="#075dde" stroke-width="4"><circle cx="66" cy="37" r="4.5"/><circle cx="66" cy="64" r="4.5"/><circle cx="89" cy="37" r="4.5"/></g>
+<path d="M153 16v70" stroke="#9aafd2" stroke-width="1.5"/>
+<text x="179" y="50" font-size="43" font-weight="800" fill="#09172e">Fluxo GitOps</text>
+<text x="181" y="80" font-size="24" fill="#345079">Git como fonte de verdade para add-ons, infraestrutura e aplicações</text>
+<rect x="1234" y="23" width="402" height="56" rx="25" fill="url(#flow-header-badge)" stroke="#d8cdf7"/>
+<text x="1435" y="58" font-size="21" font-weight="700" text-anchor="middle" fill="#30205a">UAT e PROD · contas AWS distintas</text>
+</g>
 <rect x="252" y="113" width="794" height="682" rx="21" fill="#f8fbff" stroke="#0b78fa" stroke-width="1.7" filter="url(#shadow)"/>
 <rect x="1064" y="113" width="578" height="682" rx="22" fill="#f8fff9" stroke="#14ba18" stroke-width="1.7" filter="url(#shadow)"/>
 <rect x="255" y="115" width="789" height="58" rx="19" fill="url(#topblue)" stroke="none" stroke-width="0" />
