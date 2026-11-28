@@ -4,7 +4,7 @@
 
 ## Topologia-alvo
 
-O repositório registra a decisão de arquitetura. A implantação e os testes do fluxo completo começam em UAT nas Etapas 26–27.
+Este diretório registra a topologia. Os manifests dos add-ons e o Terraform dos serviços AWS de observabilidade entram nas etapas de implantação. O primeiro aceite integrado está previsto para Management e Non-PCI em UAT nas Etapas 26–27.
 
 A conta da Plataforma oferece consulta central com **Amazon Managed Grafana** e usa **CloudWatch** para os sinais essenciais do Hub. Cada conta UAT ou PROD tem seus próprios destinos de armazenamento. Os EKS Management, PCI e Non-PCI coletam a telemetria local com OpenTelemetry. A ativação do perfil PCI depende da validação da fronteira de isolamento.
 

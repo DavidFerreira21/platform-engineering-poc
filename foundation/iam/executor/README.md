@@ -46,9 +46,13 @@ Na integração AWS prevista, o destino e as roles autorizadas virão do registr
 
 A role de bootstrap também precisa de uma trust policy para o principal SSO autorizado e o permission set SSO precisa permitir `sts:AssumeRole` nessa role. Não usar `Principal: "*"`, wildcard de roles ou permissões `AdministratorAccess` como atalho.
 
-## Permissões para backend S3
+## Backend do Hub EKS
 
-A verificação usa uma key exclusiva de preflight, segregada dos states das stacks:
+A Etapa 01 provisiona, na conta da Plataforma, o bucket de state do executor e publica sua configuração no output `executor_backend`. A Etapa 12 valida o acesso da identidade autorizada ao backend, com key e lock segregados por destino e stack. A pipeline ainda precisa ligar o registro do destino, a identidade de execução e o vínculo do backend antes do primeiro apply na spoke. [Stack do Hub](../../stacks/README.md) · [Roteiro da Etapa 12](../../../docs/learning-roadmap.md#etapa-12--identidade-do-executor-e-state)
+
+## Backend S3 do diagnóstico local
+
+O diagnóstico abaixo usa uma key exclusiva de preflight, segregada dos states das stacks:
 
 ```text
 s3://<STATE_BUCKET>/platform/entity-a/uat/preflight/validation.tfstate
@@ -88,7 +92,7 @@ A role `PlatformPocTerraformExecution` (na UAT) deve receber uma policy **escopa
 
 A role de bootstrap **não** recebe permissões de S3: somente a role de execução UAT administra o state. O bucket terá versionamento, SSE-S3 e Block Public Access. O uso de `use_lockfile = true` requer Terraform 1.10+; não usamos DynamoDB para locking. Nunca conceder `s3:DeleteObject` sobre o próprio state como atalho.
 
-O bucket é criado por operador com IAM Identity Center usando `prepare-state-backend.py --execute`; não pela role de execução do Workflow. O namespace dos artefatos do Argo e o state do Terraform têm responsabilidades distintas.
+Para o diagnóstico local, um operador com IAM Identity Center pode preparar um bucket de preflight com `prepare-state-backend.py --execute`. O backend do Hub EKS é provisionado pela raiz `platform-hub`. O namespace dos artefatos do Argo e o state do Terraform têm responsabilidades distintas.
 
 ## Como funciona o laboratório
 
@@ -96,6 +100,6 @@ O script `foundation/scripts/bootstrap-workflow-credentials.py` assume a role de
 
 O [Job de diagnóstico](verify-uat-executor-job.yaml) consulta `GetCallerIdentity` com credenciais temporárias. O fluxo da Etapa 12 valida a identidade de Pod no Hub EKS antes de integrar a execução real de Network.
 
-**Limitações intencionais:** Kubernetes Secrets não são um cofre, o bootstrap depende de login humano e a sessão expira. Não há renovação automática, nem EKS Pod Identity em `kind`. Proteger acesso a `Secret`, `Pod`, `Workflow`, `ConfigMap`, `exec` e logs por RBAC/admission; este laboratório é isolado e supervisionado. O primeiro apply exigirá controle de permissão do Pod executor e renovação da sessão antes do gate de aprovação.
+**Limitações intencionais:** Kubernetes Secrets não são um cofre, o bootstrap depende de login humano e a sessão expira. Não há renovação automática, nem EKS Pod Identity em `kind`. Proteger acesso a `Secret`, `Pod`, `Workflow`, `ConfigMap`, `exec` e logs por RBAC/admission; este laboratório é isolado e supervisionado. No diagnóstico local, conferir a validade da sessão antes de executar o Job. O primeiro apply na spoke depende do aceite da identidade de Pod do executor no Hub EKS.
 
 [Registro UAT](../../../docs/learning-roadmap.md#etapa-11--registro-de-uat) · [Identidade e state](../../../docs/learning-roadmap.md#etapa-12--identidade-do-executor-e-state)

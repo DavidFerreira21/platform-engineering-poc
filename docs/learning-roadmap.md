@@ -109,7 +109,7 @@ Integrar a coleta e a consulta dos sinais do Hub e dos clusters do Environment. 
 | Etapa | Entrega | Evidência |
 | :--- | :--- | :--- |
 | **26** | Telemetria do Hub e de UAT | Validar Collectors no Management e no Non-PCI, envio direto ao AMP e scrape do Argo CD local. Correlacionar métrica, log e trace de aplicação no Managed Grafana. Validar consulta ao AMP via IAM cross-account, a Loki/Tempo via PrivateLink e proxy autenticado. Conferir os sinais essenciais do Hub no CloudWatch. |
-| **27** | Diagnóstico, recuperação e custos | Interromper o OTel Gateway em UAT, confirmar novas amostras no AMP e receber alerta de um check externo ao Management EKS. Após recuperar o Gateway, medir fila, perda de logs e traces e custo. |
+| **27** | Diagnóstico, recuperação e custos | Interromper o OTel Gateway em UAT, confirmar amostras no AMP com horário posterior ao início da falha e receber alerta de um check externo ao Management EKS. Após recuperar o Gateway, medir fila, perda de logs e traces e custo. |
 | **28** | Drift Detection do TerraformStack | Validar na AWS `driftCheckInterval` configurável, agendamento idempotente com jitter e verificação periódica; detectar alteração externa em stack UAT, registrar última/próxima checagem e condição/alerta **sem aplicar correção** |
 | **29** | Reconciliação, destroy e políticas | Ampliar as regras OPA da Etapa 13 e comprovar **Auto Apply / Require Approval / Deny** com três planos de teste e evidências da etapa alcançada; testar drift, `plan -destroy` explícito, destroy on deletion com finalizer, proteção de dependências, aprovação humana e bloqueio de ações sensíveis |
 | **30** | EKS PCI e isolamento PCI/Non-PCI em UAT | Reutilizar a **stack EKS** e habilitar PCI somente com autorização/custo aprovados; registrar com perfil restrito, aplicar add-ons autorizados e testar negações entre PCI e Non-PCI, incluindo escrita e consulta de telemetria. Sem PCI real, declarar somente validação lógica, não isolamento operacional |
@@ -132,7 +132,7 @@ Formalizar os canais de consumo **sem colocar Backstage ou uma REST API adiciona
 | **32** | Personas, ownership e permissões | Platform Team, DevOps Federado e Application Team operam com caminhos Git, RBAC, IAM, AppProjects e políticas limitados ao seu escopo |
 | **33** | Catálogo de contratos e Starter Kit | Configuração mínima de aplicação, template de CI, padrão de deployment e instruções de consumo das Capabilities acessíveis por Git/CLI; Backstage permanece opcional |
 
-**Marco da fase:** a experiência padronizada está pronta para ser exercitada por cada persona, sem exigir que a squad mantenha addons corporativos ou módulos Terraform.
+**Marco da fase:** a experiência padronizada está pronta para ser exercitada por cada persona, com add-ons e módulos Terraform sob gestão do Platform Team.
 
 ## Fase 8 — Golden Path ponta a ponta
 
@@ -149,7 +149,7 @@ Reutilizar a mesma aplicação de Rastreamento de Encomendas e a pipeline constr
 
 - **Construção incremental:** cada etapa deve **criar/integrar**, executar uma verificação objetiva e preservar as capacidades necessárias às etapas posteriores. O guia não é um curso exaustivo de cada ferramenta.
 - **Contratos e ownership:** `Entity`, `Environment` e `Domain` são registros lógicos em Git; Capabilities são XRDs/Compositions do Crossplane; `TerraformStack` é um CRD com controller próprio para Foundation/Entity Core. [ADRs](adr/README.md).
-- **Um reconciliador por recurso:** Argo CD central mantém addons corporativos e entrega CRs de infraestrutura; Crossplane reconcilia Capabilities; TerraformStack governa Terraform; Argo CD local entrega Domain Applications.
+- **Um reconciliador por recurso:** Argo CD central mantém add-ons da plataforma e entrega CRs de infraestrutura; Crossplane reconcilia Capabilities; TerraformStack governa Terraform; Argo CD local entrega Domain Applications.
 - **CI separado de CD:** GitHub Actions testa, constrói, verifica e publica a imagem; Git registra o digest desejado; Argo CD local efetua o deploy. O workflow da aplicação pertence ao repositório da squad, não a este monorepo.
 - **Segurança na etapa de origem:** IAM/STS, RBAC, validação de destino, state/plan protegido, custos e política de deleção são requisitos das operações correspondentes — não ficam pendentes até a Fase 6.
 - **Arquitetura lógica versus implementação:** o Hub EKS e as integrações cross-account exigem testes de identidade e conectividade. UAT, PROD, PCI e Non-PCI são escopos distintos; não afirmar validação real de recursos não criados.
