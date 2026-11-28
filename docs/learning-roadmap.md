@@ -17,7 +17,7 @@ A POC é montada em **oito fases e 36 etapas (00–35)**. Cada etapa instala um 
 | **7 — Experience Layer** | 32–33 | Personas, permissões, catálogo e Starter Kit |
 | **8 — Golden Path ponta a ponta** | 34–35 | Solicitação federada e entrega integrada da aplicação |
 
-A Etapa 01 parte da conta de plataforma e documenta o bootstrap do Hub EKS. O acesso ao cluster e a saúde da capability Argo CD foram verificados. O aceite com workloads e o primeiro sync GitOps seguem nas Etapas 01–02. Os guias 03–08 aguardam adequação ao Hub EKS. [Evidências do Simulator](../labs/06-terraformstack-simulator.md#evidências-de-aceite).
+A Etapa 01 parte da conta de plataforma e documenta o bootstrap do Hub EKS. O acesso ao cluster e a saúde da capability Argo CD foram verificados. O aceite com workloads e o primeiro sync GitOps seguem nas Etapas 01–02. As Etapas 03–08 documentam os critérios de aceite. Os procedimentos de instalação e os manifests para o Hub EKS estão pendentes. [Evidências do Simulator](../labs/06-terraformstack-simulator.md#evidências-de-aceite).
 
 ## Fase 1 — Base do Hub EKS
 

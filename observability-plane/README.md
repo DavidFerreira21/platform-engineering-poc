@@ -22,4 +22,4 @@ O controller publica logs estruturados JSON em stdout, Events na API Kubernetes 
 
 ## Etapas de aprendizado
 
-No lab local em `kind`, o Simulator correlaciona revisão Git, Workflow, condições, horários de drift e auditoria da aprovação na API Kubernetes. Na AWS, as Etapas 26–27 integram coletores, backends, sinais do Hub e diagnóstico de perda de ingestão em UAT. As Etapas 30–31 validam as fronteiras PCI e PROD quando esses destinos forem autorizados e provisionados. [Evidências locais](../labs/06-terraformstack-simulator.md#evidências-de-aceite) · [Roteiro](../docs/learning-roadmap.md#fase-6--observabilidade-operação-e-governança)
+O ensaio inicial do Simulator correlacionou revisão Git, Workflow, condições, horários de drift e auditoria da aprovação na API Kubernetes. Na AWS, as Etapas 26–27 integram coletores, backends, sinais do Hub e diagnóstico de perda de ingestão em UAT. As Etapas 30–31 validam as fronteiras PCI e PROD quando esses destinos forem autorizados e provisionados. [Evidências locais](../labs/06-terraformstack-simulator.md#evidências-de-aceite) · [Roteiro](../docs/learning-roadmap.md#fase-6--observabilidade-operação-e-governança)

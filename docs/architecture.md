@@ -24,7 +24,7 @@ A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) �
 
 [Abrir diagrama em tamanho completo](arquitetura%20Plataform.png)
 
-A [Etapa 01](../labs/01-platform-management-cluster.md) documenta o Hub EKS provisionado com Argo CD gerenciado. O smoke test com workload e o primeiro sync da [Etapa 02](../labs/02-argocd-central.md) ainda precisam ser executados. O Simulator e o Crossplane têm evidências no lab local em `kind`. As Etapas 03–08 ainda precisam de adequação e aceite no EKS. [Evidências do Simulator](../labs/06-terraformstack-simulator.md#evidências-de-aceite) · [Crossplane Core](../labs/07-crossplane-core.md) · [Roadmap](learning-roadmap.md).
+A [Etapa 01](../labs/01-platform-management-cluster.md) documenta o Hub EKS provisionado com Argo CD gerenciado. O smoke test com workload e o primeiro sync da [Etapa 02](../labs/02-argocd-central.md) ainda precisam ser executados. As Etapas 03–08 ainda precisam de adequação e aceite no EKS. [Evidências do Simulator](../labs/06-terraformstack-simulator.md#evidências-de-aceite) · [Crossplane Core](../labs/07-crossplane-core.md) · [Roadmap](learning-roadmap.md).
 
 A topologia-alvo inclui o Hub EKS, as spokes, o consumo de Capabilities AWS, o GitOps Bridge e a observabilidade por ambiente. A integração de observabilidade entra nas Etapas 26–27 em UAT. A Foundation mantém raízes reutilizáveis e utilitários versionados para as etapas AWS. A entrega das aplicações usará o repositório da squad e o Argo CD local. [Foundation](../foundation/README.md) · [GitOps Bridge](flows/gitops-bridge.md).
 

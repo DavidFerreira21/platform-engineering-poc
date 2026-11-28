@@ -2,7 +2,7 @@
 
 [← Arquitetura](../architecture.md) · [GitOps Flow](gitops.md) · [TerraformStack Flow](terraformstack.md) · [Roadmap](../learning-roadmap.md)
 
-O Simulator validado no Hub `kind` termina com a verificação do ConfigMap local. As raízes AWS expõem `bridge_parameters` e o publicador já está versionado. A Etapa 17 integra a publicação após `verify` ao SSM da conta do Environment e valida o consumo por External Secrets Operator (ESO) no Management EKS. O diagrama mostra a topologia-alvo. [Raízes e publicador](../../foundation/stacks/README.md)
+O Simulator termina com a verificação do ConfigMap local. As raízes AWS expõem `bridge_parameters` e o publicador já está versionado. A Etapa 17 integra a publicação após `verify` ao SSM da conta do Environment e valida o consumo por External Secrets Operator (ESO) no Management EKS. O diagrama mostra a topologia-alvo. [Raízes e publicador](../../foundation/stacks/README.md)
 
 ![GitOps Bridge — provisionamento, publicação de outputs e consumo no Environment](./gitops-bridge-flow.png)
 
@@ -26,7 +26,7 @@ Na arquitetura AWS futura há pelo menos **duas fronteiras**: a conta de platafo
 
 | Componente | Onde executa / reside | Ownership |
 | --- | --- | --- |
-| **Argo CD central** | EKS Capability for Argo CD na conta da Plataforma. O lab em `kind` usa Argo CD autogerenciado | Platform Team |
+| **Argo CD central** | EKS Capability for Argo CD na conta da Plataforma | Platform Team |
 | **TerraformStack Controller e Argo Workflows** | Hub EKS na topologia-alvo | Platform Team |
 | **VPC, IAM, Management EKS, PCI e Non-PCI** | Conta AWS do Environment selecionado | Foundation / Entity Core, sob governança do Platform Team |
 | **AWS SSM Parameter Store** | **Mesma conta e região autorizadas do Environment** para os parâmetros publicados nesse destino | Publicação governada pela plataforma |

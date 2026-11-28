@@ -4,7 +4,7 @@ A Etapa 12 valida o executor a partir do Hub EKS. Os exemplos abaixo descrevem o
 
 ## Diagnóstico local versus identidade-alvo AWS
 
-Os exemplos de bootstrap via SSO e Secret temporário abaixo são um diagnóstico supervisionado no Hub `kind`, não a identidade definitiva do Workflow no EKS. Na topologia-alvo, Platform, UAT e PROD são contas distintas. Na Etapa 12, validar a identidade de Pod do executor no Hub EKS e a assunção da role UAT por essa identidade; não transportar sessões humanas em Secrets como padrão de operação AWS. O controller não assume a role de provisionamento.
+Os exemplos abaixo registram um diagnóstico inicial supervisionado com SSO e Secret temporário. A Etapa 12 usa a identidade de Pod do Hub EKS. Na topologia-alvo, Platform, UAT e PROD são contas distintas. Na Etapa 12, validar a identidade de Pod do executor no Hub EKS e a assunção da role UAT por essa identidade; não transportar sessões humanas em Secrets como padrão de operação AWS. O controller não assume a role de provisionamento.
 
 ## Papéis do diagnóstico local
 
@@ -100,6 +100,6 @@ O script `foundation/scripts/bootstrap-workflow-credentials.py` assume a role de
 
 O [Job de diagnóstico](verify-uat-executor-job.yaml) consulta `GetCallerIdentity` com credenciais temporárias. O fluxo da Etapa 12 valida a identidade de Pod no Hub EKS antes de integrar a execução real de Network.
 
-**Limitações intencionais:** Kubernetes Secrets não são um cofre, o bootstrap depende de login humano e a sessão expira. Não há renovação automática, nem EKS Pod Identity em `kind`. Proteger acesso a `Secret`, `Pod`, `Workflow`, `ConfigMap`, `exec` e logs por RBAC/admission; este laboratório é isolado e supervisionado. No diagnóstico local, conferir a validade da sessão antes de executar o Job. O primeiro apply na spoke depende do aceite da identidade de Pod do executor no Hub EKS.
+**Limitações intencionais:** Kubernetes Secrets não são um cofre, o bootstrap depende de login humano e a sessão expira. A sessão temporária exige renovação manual no diagnóstico. Proteger acesso a `Secret`, `Pod`, `Workflow`, `ConfigMap`, `exec` e logs por RBAC/admission; este laboratório é isolado e supervisionado. No diagnóstico local, conferir a validade da sessão antes de executar o Job. O primeiro apply na spoke depende do aceite da identidade de Pod do executor no Hub EKS.
 
 [Registro UAT](../../../docs/learning-roadmap.md#etapa-11--registro-de-uat) · [Identidade e state](../../../docs/learning-roadmap.md#etapa-12--identidade-do-executor-e-state)

@@ -25,7 +25,7 @@ O GitOps abrange quatro fluxos complementares:
 
 A [Etapa 01](../../labs/01-platform-management-cluster.md) usa a stack Terraform `platform-hub` para provisionar o cluster e a **EKS Capability for Argo CD** com IAM Identity Center. A [Etapa 02](../../labs/02-argocd-central.md) registra o Hub por ARN, configura permissões e sincroniza o primeiro recurso do Git.
 
-O catálogo em `platform/hub/addons/catalog/` organiza uma Application por componente. A instalação no EKS depende da adaptação dos AppProjects, do destino e das configurações de cada add-on à capability. O lab local em `kind` preserva as evidências existentes das Etapas 03–08. A descoberta de Applications pelo ApplicationSet e o sync são operações distintas. Inspecionar revisão, destino e diff antes do sync manual.
+O catálogo em `platform/hub/addons/catalog/` organiza uma Application por componente. A instalação no EKS depende da adaptação dos AppProjects, do destino e das configurações de cada add-on à capability. A descoberta de Applications pelo ApplicationSet e o sync são operações distintas. Inspecionar revisão, destino e diff antes do sync manual.
 
 ## 3. Platform GitOps — governança dos add-ons
 

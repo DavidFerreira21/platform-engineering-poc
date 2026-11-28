@@ -34,7 +34,7 @@ O exercício implementa uma fatia do **Rastreamento de Encomendas**. Um operador
 
 [**Ver diagrama em tamanho completo**](docs/arquitetura%20Plataform.png) · [Topologia lógica e fluxos detalhados](docs/architecture.md#2-visão-geral)
 
-O diagrama mostra a topologia-alvo. A POC começa com o [bootstrap do Hub EKS Auto Mode](labs/01-platform-management-cluster.md) e o [primeiro sync no Argo CD gerenciado](labs/02-argocd-central.md). O Hub está provisionado. O primeiro workload e o aceite GitOps no EKS ainda precisam ser executados. As evidências existentes do Simulator e do Crossplane são do lab local em `kind`. [Estado da POC](docs/architecture.md#2-visão-geral) · [Evidências do Simulator](labs/06-terraformstack-simulator.md#evidências-de-aceite).
+O diagrama mostra a topologia-alvo. A POC começa com o [bootstrap do Hub EKS Auto Mode](labs/01-platform-management-cluster.md) e o [primeiro sync no Argo CD gerenciado](labs/02-argocd-central.md). O Hub está provisionado. O primeiro workload e o aceite GitOps no EKS ainda precisam ser executados. As Etapas 03–08 ainda aguardam aceite no EKS. [Estado da POC](docs/architecture.md#2-visão-geral) · [Evidências do Simulator](labs/06-terraformstack-simulator.md#evidências-de-aceite).
 
 **Environment é o contexto UAT/PROD associado à conta AWS inteira, não apenas ao Core.** O Data Plane contém **Core Infrastructure compartilhada** e **Domains** de negócio/aplicação. Um Domain pode possuir Capabilities, namespaces e apps em ambos os ambientes. Capabilities continuam entregues por Crossplane central e aplicações por Argo CD local.
 

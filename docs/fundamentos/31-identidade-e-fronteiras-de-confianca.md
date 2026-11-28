@@ -17,7 +17,7 @@ Esses controles se complementam. Uma ServiceAccount autorizada a atualizar um Wo
 
 O Simulator protege a criação do Workflow de referência e limita o executor a registrar o claim vigente. O Platform Team controla templates, RBAC e admissão. A aprovação do PR, o gate de negócio e o handshake operacional são decisões separadas. Desabilitar o handshake requer uma integração compatível; não elimina as demais fronteiras.
 
-A arquitetura AWS prevê identidade temporária de Pod no Hub e AssumeRole para o destino autorizado. O diagnóstico supervisionado via Secret temporário no kind não é o padrão de produção. Na AWS, serão verificados conta, região, permissões, isolamento e custo antes de executar alterações.
+A arquitetura AWS prevê identidade temporária de Pod no Hub e AssumeRole para o destino autorizado. Na AWS, serão verificados conta, região, permissões, isolamento e custo antes de executar alterações.
 
 ## Leitura complementar
 
