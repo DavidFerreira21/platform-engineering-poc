@@ -2,19 +2,27 @@
 
 [← Guias das etapas](README.md) · [Arquitetura](../docs/architecture.md) · [Roteiro](../docs/learning-roadmap.md)
 
+## Requisitos
+
+- Uma conta AWS para a plataforma e acesso administrativo autorizado para o bootstrap. Use uma role via IAM Identity Center com as permissões necessárias para provisionar a stack e acessar o cluster.
+- Uma instância do IAM Identity Center configurada, com a região primária e o ID do grupo autorizado a entrar no Argo CD.
+- Checkout do repositório e **Terraform 1.10 ou superior**, **AWS CLI v2** e **kubectl** instalados na máquina.
+- Conectividade à API do Hub a partir do terminal e um diretório protegido, fora do checkout, para guardar o state local e seu backup.
+
 ## Objetivo
 
 Provisionar a base do Hub `platform-hub` na conta de plataforma e confirmar que o operador consegue acessar a API Kubernetes. A Etapa 02 usa essa base para validar a entrega pelo Argo CD.
 
 ## O que será feito
 
-- Configurar o perfil AWS `platform-hub` com IAM Identity Center e validar a conta de destino.
-- Executar a stack Terraform [`platform-hub`](../foundation/stacks/platform-hub/main.tf) para criar rede, EKS Auto Mode, capability gerenciada do Argo CD e bucket S3 para os futuros states do TerraformStack.
-- Confirmar a conectividade com a API, a prontidão dos NodePools e o estado da capability. Usar um workload curto para validar o provisionamento de nós, DNS e HTTP.
+1. **Preparar o Platform Hub.** Configurar o perfil AWS `platform-hub` com IAM Identity Center, conferir a conta com STS e preencher os arquivos locais de parâmetros e backend.
+2. **Provisionar a base da plataforma.** A stack [`platform-hub`](../foundation/stacks/platform-hub/main.tf) é o código Terraform que combina a rede padronizada, o cluster EKS em Auto Mode, a EKS Capability for Argo CD e o bucket S3 para os futuros states do TerraformStack. Gerar o plano, revisar as alterações e aplicar depois da aprovação.
+3. **Verificar a infraestrutura criada.** Conferir o state local e os outputs da stack. Atualizar o kubeconfig, testar o acesso à API Kubernetes e conferir o estado dos NodePools e da capability Argo CD.
+4. **Exercitar o cluster.** Rodar um workload descartável para verificar o agendamento do Pod, o download da imagem, a resolução DNS e a saída HTTP. Remover o Pod de teste ao terminar.
 
 ## Por que fizemos assim
 
-O bootstrap roda manualmente porque estabelece a infraestrutura que vai hospedar o próprio TerraformStack. A stack mantém seu state local, fora do checkout, e usa referências entre os módulos para criar a rede, o cluster e o Argo CD em ordem. O bucket S3 com versionamento e locking por arquivo atende aos states das execuções posteriores.
+Como este é o primeiro cluster da POC, executamos o Terraform na nossa máquina, com a sessão temporária do IAM Identity Center e o state do bootstrap guardado localmente. A partir daí, os componentes da plataforma rodam na AWS. As execuções posteriores de infraestrutura coordenadas pelo TerraformStack usarão o Hub EKS e terão state no backend S3, com chaves segregadas por destino e stack. A Etapa 12 valida a identidade do executor e o acesso a esse backend. [Roteiro da Etapa 12](../docs/learning-roadmap.md#etapa-12--identidade-do-executor-e-state)
 
 A VPC do Hub tem três subnets privadas de aplicação e três de database, uma de cada por AZ. O NAT Gateway regional dá saída às subnets de aplicação pelo Internet Gateway. As subnets de database mantêm a rota local. O EKS Auto Mode usa as subnets de aplicação e os NodePools gerenciados `system` e `general-purpose`. [Módulo Network](../foundation/modules/network/main.tf) · [Módulo EKS](../foundation/modules/eks/main.tf)
 
@@ -22,7 +30,7 @@ Durante o bootstrap, o operador pode usar o endpoint público da API, restrito a
 
 ## 1. Preparar a sessão e os arquivos locais
 
-Usar AWS CLI v2, Terraform 1.10 ou superior e `kubectl`. No assistente SSO, selecionar a conta de plataforma, a role autorizada para o bootstrap e `us-east-1` como região padrão do perfil.
+No assistente SSO, selecionar a conta de plataforma, a role autorizada para o bootstrap e `us-east-1` como região padrão do perfil.
 
 ```bash
 aws configure sso --profile platform-hub
@@ -63,6 +71,15 @@ Revisar o plano apresentado pelo `apply` e confirmar apenas se as alterações c
 Em caso de falha parcial, usar `terraform state list` para identificar os recursos já registrados e gerar um novo plano a partir do mesmo state. Se `CreateCluster` rejeitar NodePools com `nodeRoleArn` vazio, verificar se o módulo EKS está atualizado para a versão fixada no repositório e rodar `terraform init` para resolver a dependência.
 
 ## 3. Verificar EKS e Argo CD
+
+Na pasta da stack, conferir os recursos registrados e os destinos apresentados nos outputs:
+
+```bash
+terraform state list
+terraform output
+```
+
+Atualizar o kubeconfig e consultar a API do Hub, os NodePools e a capability:
 
 ```bash
 aws eks update-kubeconfig --profile platform-hub --region us-east-1 --name platform-hub
