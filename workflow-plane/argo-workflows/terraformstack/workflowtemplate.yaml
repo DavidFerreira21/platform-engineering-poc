@@ -33,6 +33,10 @@ spec:
         - - name: execute
             template: execute
             when: "{{=steps.resolve.outputs.parameters.allowed == 'true' && steps.prepare.outputs.parameters.allowed == 'true'}}"
+        - - name: cleanup
+            template: cleanup
+            continueOn: {failed: true, error: true}
+            when: "{{=steps.prepare.status == 'Succeeded' && steps.prepare.outputs.parameters.allowed == 'true'}}"
     - name: execute
       steps:
         - - {name: init, template: init}
@@ -261,3 +265,9 @@ spec:
       outputs:
         parameters:
           - {name: execution-result, globalName: execution-result, valueFrom: {path: /tmp/execution-result}}
+    - name: cleanup
+      volumes: *state
+      activeDeadlineSeconds: 60
+      container:
+        <<: *runner
+        args: [cleanup]

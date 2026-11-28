@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: terraformstack-simulator
+  namespace: argocd
+spec:
+  project: platform-terraformstack-simulator
+  source:
+    repoURL: https://github.com/DavidFerreira21/platform-engineering-poc.git
+    targetRevision: main
+    path: control-plane/terraformstack/examples/simulator
+    kustomize:
+      commonAnnotations:
+        platform.example.io/revision: ${ARGOCD_APP_REVISION}
+      commonAnnotationsEnvsubst: true
+  destination:
+    server: HUB_EKS_ARN
+    namespace: platform-system

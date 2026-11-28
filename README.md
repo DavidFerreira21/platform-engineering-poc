@@ -1,93 +1,36 @@
 # Platform Engineering POC
 
-Esta POC é um exercício prático para aprender **Engenharia de Plataforma** construindo uma plataforma interna de ponta a ponta. O percurso começa pelos fundamentos, passa pelas decisões de arquitetura, automação e governança e chega à entrega e à operação de uma aplicação por um time de produto.
+Nesta POC, construímos uma plataforma interna para testar padrões de **Engenharia de Plataforma** e consolidar aprendizados sobre APIs de infraestrutura, GitOps, governança e experiência do desenvolvedor. O repositório registra as decisões, os resultados dos experimentos e os guias para reproduzir a construção por etapas.
 
-Kubernetes, Terraform, Crossplane e Argo são os meios para percorrer esse caminho. Cada ferramenta é explorada na medida necessária para entender como os componentes se conectam, como as responsabilidades são distribuídas e o que a plataforma oferece a quem entrega software.
+## Arquitetura
 
-## Por onde começar
+![Arquitetura de referência da POC com Hub EKS, contas UAT e PROD, três personas e quatro camadas de ownership](docs/arquitetura%20Plataform.png)
 
-1. Leia os [Fundamentos](docs/fundamentos/README.md). As 34 aulas apresentam Engenharia de Plataforma, produto interno, self-service, Golden Paths, governança e os conceitos usados na POC.
-2. Leia a [Arquitetura](docs/architecture.md). Use o diagrama de referência para entender a topologia, as três personas, a responsabilidade de cada plano e como Entity, Environment, Domain e Capability se relacionam.
-3. Siga o roteiro para acompanhar a construção da plataforma. Os guias mostram por que cada decisão foi tomada, como reproduzi-la e o que observar no sistema. [Roteiro prático](docs/learning-roadmap.md) · [Guias das etapas](labs/README.md)
+O desenho mostra a **topologia-alvo**. O Hub EKS concentra o Control Plane e o Workflow Plane. UAT e PROD têm contas AWS separadas, com infraestrutura compartilhada e destinos autorizados para workloads. A observabilidade mantém coleta e armazenamento por ambiente e centraliza a consulta na conta da plataforma.
 
-Para acompanhar a arquitetura na prática, consulte [GitOps Flow](docs/flows/gitops.md) ([diagrama PNG](docs/flows/gitops-flow.png)), [TerraformStack Flow](docs/flows/terraformstack.md), [GitOps Bridge Flow](docs/flows/gitops-bridge.md) e [Fluxo de observabilidade](docs/flows/observability.md) ([diagrama PNG](docs/flows/observability-flow.png)).
+O **Platform Team** mantém a base e os contratos. O **DevOps Federado** gerencia a infraestrutura dos Domains por meio desses contratos. As **squads** mantêm o código, o CI e os manifests das aplicações em seus próprios repositórios. Uma aplicação de referência vai exercitar o consumo de Capabilities e a entrega por GitOps. [Diagrama em tamanho completo](docs/arquitetura%20Plataform.png) · [Arquitetura detalhada](docs/architecture.md) · [Personas e responsabilidades](docs/adr/0007-personas-and-developer-experience.md)
 
-Para consultar detalhes, veja a [estrutura do monorepo](docs/repository-structure.md), as [decisões arquiteturais](docs/adr/README.md) e as [orientações para agentes](AGENTS.md).
+## Onde a POC está hoje
 
-## Cenário de demonstração
+- **Hub EKS.** O workload de teste confirmou agendamento, pull de imagem, DNS e HTTP. O Argo CD gerenciado sincronizou o ConfigMap de demonstração a partir de `main`. [Bootstrap](labs/01-platform-management-cluster.md#o-que-observar) · [Primeiro sync](labs/02-argocd-central.md)
+- **Control Plane.** O primeiro apply do Simulator terminou em `Verified` no EKS. O Argo CD sincronizou o XR do Crossplane, que criou e reconciliou um ConfigMap de teste. A instalação completa pelo catálogo e os cenários restantes de governança seguem no roteiro. [Evidências do Simulator](labs/06-terraformstack-simulator.md#evidências-de-aceite) · [Evidências do Crossplane](labs/08-crossplane-gitops.md#evidências-de-aceite)
+- **Spokes e observabilidade.** A integração com UAT, os primeiros recursos gerenciados por Capabilities e o aceite da telemetria estão no roteiro. [Estado e sequência das etapas](docs/learning-roadmap.md#estado-da-poc)
 
-Uma transportadora global fictícia recebe e distribui encomendas em centros de distribuição de vários países. Cada centro tem suas próprias instalações, equipamentos e rotinas de trabalho. Nos horários de pico, vários centros registram recebimentos ao mesmo tempo.
+## Padrões em avaliação
 
-A POC representa a transportadora como **uma única Entity**, a `entity-a`, com ambientes **UAT** e **PROD**. Dentro dela, as squads de produto cuidam de Domains com responsabilidades distintas.
+| Padrão | Pergunta que a POC investiga | Estado |
+| --- | --- | --- |
+| **GitOps central e local** | Como distribuir add-ons e intenções de infraestrutura pelo Hub e entregar aplicações nos destinos autorizados? | Primeiro sync gerenciado comprovado no Hub. Acesso às spokes a validar. [Fluxo GitOps](docs/flows/gitops.md) |
+| **Terraform por API declarativa** | Como um CRD pode representar a intenção de infraestrutura e coordenar plano, aprovação e reconciliação por uma pipeline? | CRD, controller e pipeline versionados. Simulator exercitado com recursos de teste no EKS. [TerraformStack](docs/flows/terraformstack.md) · [Contrato de execução](docs/flows/terraformstack-execution-contract.md) |
+| **Crossplane como API de infraestrutura** | Como expor Capabilities especializadas e manter o lifecycle sob um único reconciliador? | XRD e Composition exercitados com um ConfigMap no EKS. `ObjectStorage` e `Database` são os casos AWS previstos. [Crossplane no GitOps](docs/flows/gitops.md#4-infrastructure-gitops--crossplane) |
+| **GitOps Bridge** | Como publicar outputs verificados do Terraform para consumo por componentes Kubernetes no ambiente? | Raízes e publicador versionados. Publicação e consumo no ambiente a validar na Etapa 17. [Fluxo do Bridge](docs/flows/gitops-bridge.md) |
+| **Observabilidade por ambiente** | Como concentrar a consulta no Grafana e manter a ingestão de métricas durante uma falha do Gateway? | Topologia definida. Aceite de ingestão, consulta e falha controlada previsto em UAT nas Etapas 26–27. [Fluxo de observabilidade](docs/flows/observability.md) |
+| **Developer Experience e Golden Paths** | O que uma squad precisa conhecer para entregar uma aplicação e o que a plataforma pode oferecer por contratos e padrões reutilizáveis? | Personas e responsabilidades definidas. Starter Kit e jornada ponta a ponta previstos nas Etapas 32–35. [Personas e Developer Experience](docs/adr/0007-personas-and-developer-experience.md) |
 
-| Domain | Responsabilidade da squad |
-| :--- | :--- |
-| **Rastreamento de Encomendas** | Registrar os eventos do percurso e permitir a consulta ao histórico de uma encomenda. |
-| **Estoque** | Controlar a disponibilidade de materiais de embalagem e insumos em cada centro. |
-| **Planejamento de Rotas** | Planejar as transferências entre centros e as rotas de entrega. |
+## Acompanhar ou reproduzir
 
-O exercício implementa uma fatia do **Rastreamento de Encomendas**. Um operador informa o **Código da encomenda**, clica em **Registrar recebimento** e confere o código e o horário na lista de recebimentos. Na **Etapa 18**, um workload HTTP mínimo valida o deploy GitOps no Non-PCI. Nas **Etapas 22–25**, construiremos a aplicação de negócio com **FastAPI + Jinja2**, persistência no **Aurora PostgreSQL**, evidências JSON no **S3** e CI/CD via **GitHub Actions → ECR → Argo CD local**. Na **Etapa 35**, reutilizamos essa aplicação no Golden Path, com solicitações de Capabilities feitas pelo DevOps Federado. [ADR-0007](docs/adr/0007-personas-and-developer-experience.md)
+- **Acompanhar a construção.** O roteiro mostra a sequência, as dependências e os critérios de aceite por etapa. [Roteiro](docs/learning-roadmap.md)
+- **Reproduzir um marco.** O índice distingue guias executáveis de etapas que ainda têm critérios de aceite. O percurso começa no bootstrap do Hub EKS. [Laboratórios](labs/README.md)
+- **Entender as decisões e encontrar os componentes.** [ADRs](docs/adr/README.md) · [Estrutura do monorepo](docs/repository-structure.md) · [Fundamentos de Platform Engineering](docs/fundamentos/README.md)
 
-## 🧱 Visão arquitetural
-
-![Arquitetura de referência da Platform Engineering POC — Hub, Spokes, personas e camadas de recursos](docs/arquitetura%20Plataform.png)
-
-[**Ver diagrama em tamanho completo**](docs/arquitetura%20Plataform.png) · [Topologia lógica e fluxos detalhados](docs/architecture.md#2-visão-geral)
-
-O diagrama mostra a topologia-alvo. A POC começa com o [bootstrap do Hub EKS Auto Mode](labs/01-platform-management-cluster.md) e o [primeiro sync no Argo CD gerenciado](labs/02-argocd-central.md). O Hub está provisionado. O primeiro workload e o aceite GitOps no EKS ainda precisam ser executados. As Etapas 03–08 ainda aguardam aceite no EKS. [Estado da POC](docs/architecture.md#2-visão-geral) · [Evidências do Simulator](labs/06-terraformstack-simulator.md#evidências-de-aceite).
-
-**Environment é o contexto UAT/PROD associado à conta AWS inteira, não apenas ao Core.** O Data Plane contém **Core Infrastructure compartilhada** e **Domains** de negócio/aplicação. Um Domain pode possuir Capabilities, namespaces e apps em ambos os ambientes. Capabilities continuam entregues por Crossplane central e aplicações por Argo CD local.
-
-## 👥 Personas e experiência da plataforma
-
-| Persona | Responsabilidade | Nível de abstração |
-| :--- | :--- | :--- |
-| **Platform Team** | Constrói/opera a plataforma, módulos, contratos, guardrails e Golden Paths | Conhece os motores internos |
-| **DevOps Federado (Federated DevOps Team)** | Gerencia o lifecycle de **Domain Infrastructure** com Capabilities aprovadas; propõe mudanças de EKS, mas não administra o Core compartilhado | Conhece contratos, catálogo e processos de infraestrutura |
-| **Squads de Produto (Application Team)** | Mantêm código, testes, CI/CD e manifests Kubernetes em repositório próprio | Consomem **Golden Paths / Starter Kits**, sem conhecer os motores internos |
-
-A infraestrutura do Domain é simulada em **pastas do monorepo**, sob ownership do **DevOps Federado**. Já **código, GitHub Actions e manifests Kubernetes da aplicação** pertencem ao **repositório separado da squad**. O Argo CD local entrega os manifests do repo da aplicação nos EKS autorizados.
-
-## 🧩 Quatro conceitos fundamentais
-
-| Conceito | Papel | Representação inicial |
-| :--- | :--- | :--- |
-| **Entity** | Organização / responsáveis | Git |
-| **Environment** | Conta AWS UAT/PROD, região e perfis | `environment.yaml`, não CRD |
-| **Domain** | Identidade lógica, ownership, consumo, infraestrutura e aplicações | Um `domain.yaml` por Domain, não XRD |
-| **Capability** | Produto técnico entregue pela plataforma | XRD + Composition + Provider Crossplane |
-
-`ObjectStorage` é a primeira Capability e **`Database` (Aurora PostgreSQL)** vem em seguida; `Messaging` e `ComputeInstance` ficam planejados. Sem MSK inicial ou `CapabilityClaim` genérico.
-
-## 🔐 Quatro camadas de ownership
-
-| Camada | Gestão | Motor |
-| :--- | :--- | :--- |
-| **Foundation** | Central | Terraform / configuração por Entity e Environment |
-| **Entity Core Infrastructure** | Federado propõe; mudanças críticas sob governança | Terraform para EKS |
-| **Domain Infrastructure** | Federado / Domain | Argo CD central → Crossplane → AWS |
-| **Domain Applications** | Application Team (repo próprio com código **e manifests Kubernetes**) | GitHub Actions → Argo CD local → EKS autorizado |
-
-**Um único monorepo** simula a organização por Entity/Domain. O Crossplane é central, sem cascata, e Argo CD local administra aplicações. A definição das contas e o provisioning de Foundation não dependem de criar `AWSEnvironment` ou Environment Controller próprio nesta fase.
-
-## 🔧 Decisões arquiteturais
-
-- **GitOps multicluster.** O Hub EKS adota EKS Capability for Argo CD, registro por ARN e Access Entries, e VPCs isoladas para Platform, UAT e PROD com saída via NAT. O Argo CD local entrega as Domain Applications nos destinos autorizados. [ADR-0008](docs/adr/0008-managed-argocd-connectivity.md)
-- **TerraformStack.** O CRD da Etapa 04 descreve a infraestrutura desejada e chega à API do Hub via Argo CD central. A Etapa 05 instala o controller Go (controller-runtime, Leader Election e watches) e a pipeline de referência do Argo Workflows. O controller reconcilia um Workflow ativo por CR e permite selecionar uma integração cadastrada por `spec.workflowRef.name`, com autorização operacional habilitada por padrão e opcional por integração. O adapter Argo traduz o contrato de execução. A pipeline de referência resolve Git, contexto e state e executa Terraform/OpenTofu, OPA e o handshake de autorização. Outras pipelines compatíveis podem escolher suas ferramentas. A Etapa 06 verifica políticas e drift no Simulator. O primeiro apply na AWS está previsto para a Etapa 13, com aprovação humana. As Etapas 28 e 29 tratam de drift e reconciliação por políticas na AWS. [Execution Contract](docs/flows/terraformstack-execution-contract.md) · [ADR-0009](docs/adr/0009-terraformstack-runtime.md)
-- **Domain Applications:** código Python, testes, **GitHub Actions**, Dockerfile e manifests Kubernetes no **repositório separado da squad** (Fase 5). CI publica imagem no Amazon ECR e propõe atualização declarativa de digest; o Argo CD local entrega a aplicação nos EKS autorizados.
-- **Observabilidade do TerraformStack:** logs JSON, Kubernetes Events e métricas nativas/customizadas por CR já fazem parte do controller; não dependem da instalação de coletores, Prometheus Server ou dashboards. A integração dos sinais essenciais do Hub com CloudWatch entra nas Etapas 26–27. [Operação do controller](control-plane/terraformstack/controller/README.md)
-- **Observability Plane.** Na topologia-alvo, cada EKS envia métricas direto ao Amazon Managed Service for Prometheus (AMP) do ambiente. Logs e traces passam pelo OTel Gateway no Management EKS e seguem para Loki e Tempo, com armazenamento em S3 na conta do ambiente. A conta da Plataforma centraliza as consultas no Amazon Managed Grafana e recebe os sinais essenciais do Hub no CloudWatch. O aceite começa com Management e Non-PCI em UAT nas Etapas 26–27. O perfil PCI depende da validação de isolamento. [ADR-0010](docs/adr/0010-observability-topology.md) · [Fluxo de observabilidade](docs/flows/observability.md)
-- **Ownership:** Foundation → Entity Core Infrastructure → Domain Infrastructure → Domain Applications.
-
-[Decisão de personas e Golden Paths](docs/adr/0007-personas-and-developer-experience.md)
-
-## ☁️ Estratégia AWS
-
-O Simulator gerencia um ConfigMap no Hub. O ensaio local comprovou auto apply, aprovação auditada, bloqueio por política, drift, retry e destroy com Terraform. O OpenTofu usa o mesmo contrato de execução e um state separado. [Guia da Etapa 06](labs/06-terraformstack-simulator.md)
-
-Depois do aceite de TerraformStack e Crossplane no Hub EKS, as Etapas 09–10 consolidam as evidências do Hub e os pré-requisitos das spokes. As Etapas 11–12 preparam UAT e o executor. A primeira Network da spoke, Management EKS e Non-PCI entram nas Etapas 13–15. As Capabilities AWS entram após o smoke test. [Roteiro prático](docs/learning-roadmap.md)
-
-> [!IMPORTANT]
-> Executar AWS somente com conta/região verificadas via STS, IAM mínimo, custo, autorização explícita e plano de cleanup. Não publicar credenciais, kubeconfigs ou Terraform state. Aprovar a documentação **não** autoriza `apply`/`destroy`.
-
-[Arquitetura completa](docs/architecture.md) · [Roteiro](docs/learning-roadmap.md)
+Antes de operar na AWS, confirme identidade, conta, região, permissões, custo e autorização da operação. [Segurança e entrega incremental](docs/adr/0004-aws-security-and-roadmap.md)

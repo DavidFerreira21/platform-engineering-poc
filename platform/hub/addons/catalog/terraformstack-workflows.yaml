@@ -1,7 +1,0 @@
-name: terraformstack-workflows
-project: platform-terraformstack-workflows
-namespace: argo-workflows
-source:
-  repoURL: https://github.com/DavidFerreira21/platform-engineering-poc.git
-  targetRevision: main
-  path: workflow-plane/argo-workflows/terraformstack

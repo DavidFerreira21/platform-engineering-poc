@@ -6,6 +6,14 @@ A POC utiliza **um único repositório** para demonstrar responsabilidades que p
 
 O código é organizado pelo componente que a plataforma instala e mantém. A numeração dos guias indica a ordem de montagem. Overlays registram diferenças de destino e reutilizam os manifests base. O Hub EKS usa as raízes Terraform e os blocos organizados por componente.
 
+## Onde encontrar cada parte da POC
+
+| Tema | Caminho |
+| :--- | :--- |
+| Topologia e decisões | [Arquitetura](architecture.md) e [ADRs](adr/README.md) |
+| Fluxos e contratos | [GitOps](flows/gitops.md), [TerraformStack](flows/terraformstack.md), [GitOps Bridge](flows/gitops-bridge.md) e [observabilidade](flows/observability.md) |
+| Evidências e reprodução | [Estado da POC](learning-roadmap.md#estado-da-poc) e [guias das etapas](../labs/README.md) |
+
 ## Divisão por ownership
 
 | Caminho-alvo | Camada e gestão |
@@ -37,7 +45,7 @@ O repositório mantém os valores em `foundation/config/`. As stacks com configu
 
 ### Implementação atual e aceites pendentes
 
-- `platform/hub/addons/` reúne o bootstrap dos AppProjects e do `ApplicationSet`, além de uma entrada por add-on do Hub. O primeiro sync no EKS é validado na [Etapa 02](../labs/02-argocd-central.md).
+- `platform/hub/addons/` reúne o bootstrap dos AppProjects e manifests de Applications agrupados por Argo Workflows, Crossplane e TerraformStack. O primeiro sync no EKS é validado na [Etapa 02](../labs/02-argocd-central.md).
 - [Guias das etapas](../labs/README.md) em `labs/`, começando pelo Hub EKS na Etapa 01.
 - `foundation/config/entity-a/{uat,prod}/environment.yaml` contém os registros de UAT e PROD com IDs distintos, região, baseline de rede e clusters EKS previstos. O roteiro usa UAT pela primeira vez na [Etapa 11](learning-roadmap.md#etapa-11--registro-de-uat). PROD entra na Etapa 31 para validar isolamento.
 

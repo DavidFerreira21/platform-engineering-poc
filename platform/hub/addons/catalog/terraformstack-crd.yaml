@@ -1,7 +1,0 @@
-name: terraformstack-crd
-project: platform-terraformstack-crd
-namespace: platform-system
-source:
-  repoURL: https://github.com/DavidFerreira21/platform-engineering-poc.git
-  targetRevision: main
-  path: control-plane/terraformstack/crd

@@ -1,8 +1,18 @@
-# Roteiro prático da POC — Roadmap V2
+# Roteiro da POC
 
 [← Início](../README.md) · [Arquitetura](architecture.md) · [Guias das etapas](../labs/README.md) · [GitOps](flows/gitops.md) · [TerraformStack](flows/terraformstack.md) · [Observabilidade](flows/observability.md)
 
 A POC é montada em **oito fases e 36 etapas (00–35)**. Cada etapa instala um bloco ou valida um comportamento sobre os blocos já instalados. Os diretórios de implementação seguem os componentes. A numeração organiza os guias e o roteiro. As etapas futuras descrevem entregas e evidências esperadas. [Convenção dos guias](../labs/README.md#como-ler-e-reproduzir-uma-etapa)
+
+## Estado da POC
+
+| Marco | Evidência registrada | Próximo aceite |
+| --- | --- | --- |
+| Hub EKS | Workload descartável concluído e primeiro sync gerenciado a partir de `main`. [Etapa 01](../labs/01-platform-management-cluster.md#o-que-observar) · [Etapa 02](../labs/02-argocd-central.md#evidência-no-hub-eks) | Consolidar o catálogo de add-ons no EKS. |
+| TerraformStack e Crossplane | O Simulator terminou em `Verified` e o Crossplane reconciliou o ConfigMap de demonstração no Hub EKS. [Simulator](../labs/06-terraformstack-simulator.md#evidências-de-aceite) · [Crossplane](../labs/08-crossplane-gitops.md#evidências-de-aceite) | Consolidar a instalação GitOps e repetir os cenários restantes de governança no EKS. |
+| Spokes AWS e observabilidade | As raízes reutilizáveis de Network e EKS estão versionadas. A topologia de observabilidade está definida. [Raízes Terraform](../foundation/stacks/README.md) · [ADR-0010](adr/0010-observability-topology.md) | Preparar UAT, validar identidade e backend, aplicar a rede da spoke e avançar até o aceite de observabilidade nas Etapas 26–27. |
+
+Os quadros das fases descrevem **evidências esperadas para aceitar cada etapa**. O estado acima registra o que foi observado nas execuções documentadas.
 
 ## Visão das oito fases
 
@@ -17,11 +27,10 @@ A POC é montada em **oito fases e 36 etapas (00–35)**. Cada etapa instala um 
 | **7 — Experience Layer** | 32–33 | Personas, permissões, catálogo e Starter Kit |
 | **8 — Golden Path ponta a ponta** | 34–35 | Solicitação federada e entrega integrada da aplicação |
 
-A Etapa 01 parte da conta de plataforma e documenta o bootstrap do Hub EKS. O acesso ao cluster e a saúde da capability Argo CD foram verificados. O aceite com workloads e o primeiro sync GitOps seguem nas Etapas 01–02. As Etapas 03–08 documentam os critérios de aceite. Os procedimentos de instalação e os manifests para o Hub EKS estão pendentes. [Evidências do Simulator](../labs/06-terraformstack-simulator.md#evidências-de-aceite).
 
 ## Fase 1 — Base do Hub EKS
 
-| Etapa | Entrega | Evidência |
+| Etapa | Entrega | Evidência esperada |
 | :--- | :--- | :--- |
 | **00** | [Documentação e monorepo](repository-structure.md) | Estrutura, camadas e ownership definidos |
 | **01** | [Bootstrap do Hub EKS Auto Mode](../labs/01-platform-management-cluster.md) | Rede, EKS, Argo CD gerenciado e bucket do executor provisionados por stack manual. Acesso, NodePools e primeiro workload verificados |
@@ -32,11 +41,11 @@ A Etapa 01 parte da conta de plataforma e documenta o bootstrap do Hub EKS. O ac
 
 Concluir o ciclo TerraformStack antes do Crossplane. Cada reconciliador gerencia seu próprio recurso de teste no Kubernetes. Os aceites no Hub EKS usam dados fictícios e recursos de teste.
 
-| Etapa | Entrega | Evidência |
+| Etapa | Entrega | Evidência esperada |
 | :--- | :--- | :--- |
 | **04** | [API do TerraformStack](../labs/04-terraformstack-crd.md) | CRD `v1alpha1` estabelecido e schema validado na API |
-| **05** | [Controller e pipeline do TerraformStack](../labs/05-terraformstack-runtime.md) | Controller Go e adapter Argo, configuração e perfil local imutáveis, runner e WorkflowTemplate instalados via GitOps; duas réplicas saudáveis, Lease e RBAC verificados; endpoint de métricas, logs JSON e Events disponíveis |
-| **06** | [Terraform Stack Simulator](../labs/06-terraformstack-simulator.md) | GitOps, Terraform real, três decisões OPA, aprovação auditada, claim, drift, retry e destroy comprovados no ConfigMap e no status. OpenTofu validado com state próprio |
+| **05** | [Controller e pipeline do TerraformStack](../labs/05-terraformstack-runtime.md) | Controller Go e adapter Argo, configuração e perfil do Simulator imutáveis, runner e WorkflowTemplate instalados via GitOps; duas réplicas saudáveis, Lease e RBAC verificados; endpoint de métricas, logs JSON e Events disponíveis |
+| **06** | [Terraform Stack Simulator](../labs/06-terraformstack-simulator.md) | GitOps, Terraform real, três decisões OPA, aprovação auditada, claim, drift, retry e destroy comprovados no ConfigMap e no status. Repetir com OpenTofu e state próprio |
 | **07** | [Crossplane Core e smoke test](../labs/07-crossplane-core.md) | Core disponível, Function saudável, XRD estabelecido e Composition local observável |
 | **08** | [Crossplane de ponta a ponta](../labs/08-crossplane-gitops.md) | Argo CD sincroniza XR e o Crossplane cria, atualiza e remove um ConfigMap distinto do Simulator. Conferir schema, `Synced`, `Ready`, ownership, re-sync e permissões |
 
@@ -46,7 +55,7 @@ Concluir o ciclo TerraformStack antes do Crossplane. Cada reconciliador gerencia
 
 Conferir os pré-requisitos da conta de plataforma e consolidar os aceites do Hub EKS antes de preparar as spokes. Cada destino mantém identidade e state próprios. Aplicações e workloads de negócio entram nas fases seguintes.
 
-| Etapa | Entrega | Evidência |
+| Etapa | Entrega | Evidência esperada |
 | :--- | :--- | :--- |
 | **09** | Foundation e módulos para as spokes | Conferir o escopo do state do executor, os destinos e os planos das raízes reutilizáveis de Network e EKS |
 | **10** | Aceite operacional do Hub EKS | Consolidar as evidências de TerraformStack e Crossplane, acesso ao Git e aos registries, imagens por digest e armazenamento antes do primeiro apply de spoke |
@@ -75,7 +84,7 @@ Validar a identidade de origem dos Pods do Hub EKS e a role autorizada de UAT us
 
 Entregar as primeiras Capabilities AWS a partir de contratos Kubernetes declarativos. Os Providers reconciliam recursos no Environment autorizado, sem Terraform Workflow para cada Capability.
 
-| Etapa | Entrega | Evidência |
+| Etapa | Entrega | Evidência esperada |
 | :--- | :--- | :--- |
 | **19** | Provider AWS e identidade Crossplane no Hub | Provider assume role temporária em UAT; conferir acesso correto, renovação e rejeição de destino não autorizado |
 | **20** | `ObjectStorage` via Crossplane | XRD/Composition solicitam um bucket S3 na conta UAT; verificar condições, permissões e política de remoção |
@@ -89,7 +98,7 @@ Construir uma aplicação **mínima e funcional** usando a infraestrutura pronta
 
 **Stack escolhida:** **Python + FastAPI** para backend HTTP/API e **Jinja2 + HTML/CSS** para uma interface renderizada pelo servidor. Não usar Django, React ou um segundo backend nesta POC. O banco será **Aurora PostgreSQL** da Capability `Database`; a API gravará um **JSON de evidência de recebimento** no S3 da Capability `ObjectStorage`. O S3 não substitui logs operacionais.
 
-| Etapa | Entrega | Evidência |
+| Etapa | Entrega | Evidência esperada |
 | :--- | :--- | :--- |
 | **22** | Aplicação de referência: FastAPI + Jinja2 | Frontend simples registra código da encomenda e lista recebimentos; API e testes locais funcionando |
 | **23** | Integração da aplicação com Capabilities | API persiste código e timestamp no Aurora, grava evidência JSON no S3 e valida leituras, IAM mínimo e conectividade; sem credenciais fixas no código |
@@ -106,7 +115,7 @@ Construir uma aplicação **mínima e funcional** usando a infraestrutura pronta
 
 Integrar a coleta e a consulta dos sinais do Hub e dos clusters do Environment. A Etapa 26 começa com Management e Non-PCI em UAT. As Etapas 30–31 ampliam a validação para PCI e PROD quando autorizados. O controller já expõe seus sinais operacionais localmente. A fase também consolida as validações de lifecycle e políticas na AWS. [ADR-0010](adr/0010-observability-topology.md) · [Fluxo e critérios de aceite](flows/observability.md)
 
-| Etapa | Entrega | Evidência |
+| Etapa | Entrega | Evidência esperada |
 | :--- | :--- | :--- |
 | **26** | Telemetria do Hub e de UAT | Validar Collectors no Management e no Non-PCI, envio direto ao AMP e scrape do Argo CD local. Correlacionar métrica, log e trace de aplicação no Managed Grafana. Validar consulta ao AMP via IAM cross-account, a Loki/Tempo via PrivateLink e proxy autenticado. Conferir os sinais essenciais do Hub no CloudWatch. |
 | **27** | Diagnóstico, recuperação e custos | Interromper o OTel Gateway em UAT, confirmar amostras no AMP com horário posterior ao início da falha e receber alerta de um check externo ao Management EKS. Após recuperar o Gateway, medir fila, perda de logs e traces e custo. |
@@ -127,7 +136,7 @@ Conferir a identidade e o mapeamento de PROD em uma conta distinta. Usar o regis
 
 Formalizar os canais de consumo **sem colocar Backstage ou uma REST API adicional como pré-requisito**. A Kubernetes API continua sendo o contrato técnico das Capabilities e do TerraformStack; Git, templates e ferramentas de acesso são interfaces possíveis.
 
-| Etapa | Entrega | Evidência |
+| Etapa | Entrega | Evidência esperada |
 | :--- | :--- | :--- |
 | **32** | Personas, ownership e permissões | Platform Team, DevOps Federado e Application Team operam com caminhos Git, RBAC, IAM, AppProjects e políticas limitados ao seu escopo |
 | **33** | Catálogo de contratos e Starter Kit | Configuração mínima de aplicação, template de CI, padrão de deployment e instruções de consumo das Capabilities acessíveis por Git/CLI; Backstage permanece opcional |
@@ -138,7 +147,7 @@ Formalizar os canais de consumo **sem colocar Backstage ou uma REST API adiciona
 
 Reutilizar a mesma aplicação de Rastreamento de Encomendas e a pipeline construída na Fase 5. Aqui o foco é **validar a jornada federada inteira**, não reimplementar ferramentas ou fazer outro projeto de aplicação.
 
-| Etapa | Entrega | Evidência |
+| Etapa | Entrega | Evidência esperada |
 | :--- | :--- | :--- |
 | **34** | Primeiro Domain e solicitações de Capabilities via GitOps | Registrar `Domain`, ownership e Environments permitidos; DevOps Federado solicita `ObjectStorage` e `Database` por PR e acompanha condições no Crossplane central |
 | **35** | Entrega integrada da aplicação pelo Golden Path | Squad altera FastAPI, CI testa e publica imagem no ECR, PR atualiza GitOps, Argo CD local promove e aplica no Non-PCI; frontend registra e consulta recebimentos no Aurora, com evidência S3 e telemetria |

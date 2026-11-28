@@ -4,3 +4,4 @@ resources:
   - ../../controller
   - simulator.yaml
   - admission.yaml
+  - storageclass.yaml

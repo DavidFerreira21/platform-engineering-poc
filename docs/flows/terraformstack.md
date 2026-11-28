@@ -1,6 +1,6 @@
 # Fluxo do TerraformStack
 
-[Arquitetura](../architecture.md) · [GitOps](gitops.md) · [ADR-0006](../adr/0006-terraformrun-and-application-ci.md) · [Roadmap](../learning-roadmap.md)
+[Arquitetura](../architecture.md) · [GitOps](gitops.md) · [ADR-0006](../adr/0006-terraformrun-and-application-ci.md) · [Roadmap](../learning-roadmap.md) · [Padrões em avaliação](../../README.md#padrões-em-avaliação)
 
 O `TerraformStack` declara a infraestrutura desejada de Foundation e Entity Core. O ensaio inicial comprovou o fluxo de ponta a ponta do Simulator. O aceite da Etapa 06 no Hub EKS segue no roteiro. O Terraform Stack Simulator usa o provider Kubernetes para gerenciar um ConfigMap com a configuração efetiva de Network. A integração com a AWS segue nas etapas do roadmap. [Guia do Simulator](../../labs/06-terraformstack-simulator.md)
 
@@ -10,7 +10,7 @@ O diagrama ilustra a pipeline de referência com autorização habilitada e os c
 
 ## 1. Do Git ao Workflow
 
-1. O Git versiona o manifesto e os YAMLs de configuração. O Argo CD sincroniza o CR na API do Hub e injeta o SHA resolvido pela Application em `platform.example.io/revision`. O estado `Synced` indica que o manifesto foi entregue à API. [Application do Simulator](../../platform/hub/addons/catalog/terraformstack-simulator.yaml)
+1. O Git versiona o manifesto e os YAMLs de configuração. O Argo CD sincroniza o CR na API do Hub e injeta o SHA resolvido pela Application em `platform.example.io/revision`. O estado `Synced` indica que o manifesto foi entregue à API. [Application do Simulator](../../platform/hub/addons/catalog/terraformstack/terraformstack-simulator.yaml)
 2. O controller Go usa Controller Runtime (padrão Kubebuilder), watches de TerraformStacks e Workflows, cache de informers e fila com rate limiting. Eventos de dependências e alterações de status ou revisão GitOps reativam a reconciliação; drift e retry usam RequeueAfter. Ele valida a estrutura da intenção, verifica as dependências e grava em `status.execution` a intenção declarada e o nome do Workflow antes de criá-lo. Em seguida, cria ou acompanha o Workflow na integração selecionada por `spec.workflowRef.name` ou pelo default da instalação; na POC, o namespace é `argo-workflows`. O CR permanece como a identidade da stack e cada Workflow representa uma tentativa. [Controller](../../control-plane/terraformstack/controller/internal/controller/reconciler.go)
 3. Na pipeline de referência, o Argo Workflows executa a pipeline governada. Terraform calcula o plano, OPA avalia as mudanças e o apply depende da decisão e da autorização para aquela execução. O adapter Argo traduz os resultados e a fase do Workflow para a interface interna; o reconciliador decide as transições e atualiza o CR. [WorkflowTemplate](../../workflow-plane/argo-workflows/terraformstack/workflowtemplate.yaml)
 
@@ -59,6 +59,7 @@ Os steps Terraform usam a mesma imagem de runner com ferramentas, e o `pipeline.
 | `approval` | Abre um nó suspenso na UI quando a política retorna `RequireApproval`. |
 | `authorize` | Emite o hash como pedido de apply quando a decisão permite. No caminho manual, exige `Approve` e o hash correto. |
 | `apply` e `verify` | Revalidam e aplicam o binário salvo, executam o `verify.sh` da stack quando presente e exigem um plan pós-apply sem mudanças. |
+| `cleanup` | Libera o diretório da tentativa quando a execução dos passos termina. Preserva state e vínculo. Uma falha na limpeza é observada no Workflow e não invalida o resultado funcional. |
 
 | Decisão | Exemplo no Simulator | Efeito |
 | --- | --- | --- |
@@ -67,7 +68,7 @@ Os steps Terraform usam a mesma imagem de runner com ferramentas, e o `pipeline.
 | `Deny` | Tentar configurar `0.0.0.0/0` ou mudar recursos fora do contrato do Simulator. | Encerra antes do apply e preserva o recurso. |
 | `NoChanges` | Plan regular sem diferenças. | Encerra a verificação sem apply. |
 
-Uma falha de avaliação do OPA ou uma decisão incompatível com o plano bloqueia o apply. No caminho manual, o aprovador autorizado abre o nó **approval**, seleciona **Resume**, escolhe `Approve` e informa o hash mostrado em `status.result.details.planHash`. O gate tem `Reject` como padrão. RBAC e admissão limitam a edição do Workflow ao gate ativo, e o aceite no EKS deve verificar se a auditoria registra quem retomou a execução. [Rego](../../workflow-plane/policy-engine/README.md) · [Aprovação pela UI](../../labs/06-terraformstack-simulator.md#2-exercitar-as-decisões-opa-pelo-gitops) · [Referência de admissão](../../control-plane/terraformstack/overlays/kind/admission.yaml)
+Uma falha de avaliação do OPA ou uma decisão incompatível com o plano bloqueia o apply. No caminho manual, o aprovador autorizado abre o nó **approval**, seleciona **Resume**, escolhe `Approve` e informa o hash mostrado em `status.result.details.planHash`. O gate tem `Reject` como padrão. RBAC e admissão limitam a edição do Workflow ao gate ativo, e o aceite no EKS deve verificar se a auditoria registra quem retomou a execução. [Rego](../../workflow-plane/policy-engine/README.md) · [Aprovação pela UI](../../labs/06-terraformstack-simulator.md#2-exercitar-as-decisões-opa-pelo-gitops) · [Referência de admissão](../../control-plane/terraformstack/overlays/eks/admission.yaml)
 
 ### Autorização final do apply
 
@@ -121,7 +122,7 @@ O controller publica a condição corrente em `status.conditions`, preservando c
 | `Failed` | `ExecutionFailed`, `ExecutionMissing` | O Workflow falhou ou desapareceu. Consulte os Pods e a última execução antes de intervir no state. |
 | `Destroyed` | `Verified` | O teardown foi aplicado e verificado. |
 
-Correlacione `status.observedGeneration` com a geração do CR e `status.resolvedSource.reference` com o commit efetivo. `status.resolvedSource.binding` identifica o destino autorizado. `status.execution` guarda a intenção, a fase, a referência do Workflow e o gatilho. O `status.result` informa o resultado e o diagnóstico do executor, como `PolicyDenied`, `PolicyError`, `ApprovalRejected` e `StateBindingMismatch`. O resultado acompanha a tentativa registrada em `status.execution`. Uma suspensão ou dependência pode atualizar a condição antes de existir uma nova tentativa. O binário, o JSON integral e o state ficam no volume. [Consultas do exercício](../../labs/06-terraformstack-simulator.md#o-que-observar)
+Correlacione `status.observedGeneration` com a geração do CR e `status.resolvedSource.reference` com o commit efetivo. `status.resolvedSource.binding` identifica o destino autorizado. `status.execution` guarda a intenção, a fase, a referência do Workflow e o gatilho. O `status.result` informa o resultado e o diagnóstico do executor, como `PolicyDenied`, `PolicyError`, `ApprovalRejected` e `StateBindingMismatch`. O resultado acompanha a tentativa registrada em `status.execution`. Uma suspensão ou dependência pode atualizar a condição antes de existir uma nova tentativa. O binário e o JSON integral ficam no diretório da tentativa durante a execução. A etapa `cleanup` remove esse diretório após a pipeline concluir seus passos. O state e o vínculo permanecem no PVC. Para diagnosticar falhas operacionais que interrompam a sequência, verificar a fase do Workflow antes de remover seu diretório. [Consultas do exercício](../../labs/06-terraformstack-simulator.md#o-que-observar)
 
 ## 7. Operação do controller
 

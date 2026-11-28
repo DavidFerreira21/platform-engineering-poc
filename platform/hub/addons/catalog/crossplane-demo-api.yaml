@@ -1,9 +1,0 @@
-name: crossplane-demo-api
-project: platform-crossplane-demo-api
-namespace: platform-system
-source:
-  repoURL: https://github.com/DavidFerreira21/platform-engineering-poc.git
-  targetRevision: main
-  path: control-plane/crossplane/demo
-  directory:
-    include: '{function.yaml,xrd.yaml,composition.yaml}'

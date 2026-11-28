@@ -99,12 +99,17 @@ jobs:
               ], stdout=subprocess.PIPE, text=True, check=True)
               assert json.loads(result.stdout)["decision"] == "NoChanges"
           PY
-          kubectl kustomize control-plane/terraformstack/overlays/kind > /tmp/controller.yaml
+          kubectl kustomize control-plane/terraformstack/overlays/eks > /tmp/controller.yaml
           python3 - <<'PY'
           import yaml
           docs = list(yaml.safe_load_all(open('/tmp/controller.yaml')))
           deployment = next(d for d in docs if d and d['kind'] == 'Deployment' and d['metadata']['name'] == 'terraformstack-controller')
           maps = {d['metadata']['name']: d for d in docs if d and d['kind'] == 'ConfigMap'}
+          storage = next(d for d in docs if d and d['kind'] == 'StorageClass')
+          assert storage['provisioner'] == 'ebs.csi.eks.amazonaws.com'
+          claims = [d for d in docs if d and d['kind'] == 'PersistentVolumeClaim']
+          assert {d['metadata']['name'] for d in claims} == {'simulator-network', 'simulator-dependent'}
+          assert all(d['spec']['storageClassName'] == storage['metadata']['name'] for d in claims)
           for volume in deployment['spec']['template']['spec']['volumes']:
               if 'configMap' in volume:
                   assert maps[volume['configMap']['name']]['immutable'] is True

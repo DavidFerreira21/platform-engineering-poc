@@ -38,10 +38,30 @@ Com a capability em `ACTIVE`, abra a URL retornada, autentique-se pelo IAM Ident
 
 ## 2. Registrar o Hub e autorizar o sync
 
-Criar `platform-system` se ainda estiver ausente. Os bindings abaixo usam o grupo da Access Entry da capability. O teste concede leitura para a descoberta de recursos no cluster e limita a escrita a ConfigMaps em `platform-system`.
+Os bindings usam o grupo `platform-hub-argocd` da Access Entry da capability. Antes de atualizar a Access Entry, conferir seus grupos atuais e preservá-los se o Hub já estiver em uso. O cache do Argo CD usa `resource.respectRBAC: strict`. A permissão de escrita do teste cobre ConfigMaps em `platform-system`.
 
 ```bash
 hub create namespace platform-system --dry-run=client -o yaml | hub apply -f -
+aws eks describe-access-entry --profile platform-hub --region us-east-1 \
+  --cluster-name platform-hub --principal-arn "$argo_role_arn" \
+  --query 'accessEntry.kubernetesGroups'
+
+# Em um Hub novo, cuja Access Entry ainda está sem grupos.
+aws eks update-access-entry --profile platform-hub --region us-east-1 \
+  --cluster-name platform-hub --principal-arn "$argo_role_arn" \
+  --kubernetes-groups platform-hub-argocd
+
+hub apply -f - <<'EOF_SETTINGS'
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: argocd
+data:
+  resource.respectRBAC: strict
+EOF_SETTINGS
 
 hub apply -f - <<'EOF_RBAC'
 apiVersion: rbac.authorization.k8s.io/v1
@@ -49,16 +69,19 @@ kind: ClusterRole
 metadata:
   name: lab02-argocd-discovery
 rules:
-  - apiGroups: ["*"]
-    resources: ["*"]
-    verbs: ["get", "list", "watch"]
+  - apiGroups: [admissionregistration.k8s.io]
+    resources: [mutatingadmissionpolicies, mutatingadmissionpolicybindings]
+    verbs: [get, list, watch]
+  - apiGroups: [argoproj.io]
+    resources: [appprojects, applications, applicationsets]
+    verbs: [get, list, watch]
 EOF_RBAC
 hub create clusterrolebinding lab02-argocd-discovery --clusterrole=lab02-argocd-discovery \
-  --group="eks-access-entry:$argo_role_arn" --dry-run=client -o yaml | hub apply -f -
+  --group=platform-hub-argocd --dry-run=client -o yaml | hub apply -f -
 hub -n platform-system create role lab02-argocd-deploy --resource=configmaps \
   --verb=get,list,watch,create,update,patch,delete --dry-run=client -o yaml | hub apply -f -
 hub -n platform-system create rolebinding lab02-argocd-deploy --role=lab02-argocd-deploy \
-  --group="eks-access-entry:$argo_role_arn" --dry-run=client -o yaml | hub apply -f -
+  --group=platform-hub-argocd --dry-run=client -o yaml | hub apply -f -
 
 hub apply -f - <<EOF_HUB
 apiVersion: v1
@@ -74,7 +97,7 @@ stringData:
 EOF_HUB
 ```
 
-Se o Hub já estiver registrado, reutilize o cadastro existente. Confira o destino em **Settings → Clusters** na interface. Os ARNs são resolvidos na sessão do operador e ficam fora do Git. [Configuração do destino local](https://docs.aws.amazon.com/eks/latest/userguide/argocd-register-clusters.html#argocd-register-local)
+Se o Hub já estiver registrado, reutilize o cadastro existente. O ConfigMap de configuração é compartilhado. Se já existir, ajuste o campo e o rótulo preservando as demais opções. Confira o destino em **Settings → Clusters** na interface. Os ARNs são resolvidos na sessão do operador e ficam fora do Git. [Configuração do destino local](https://docs.aws.amazon.com/eks/latest/userguide/argocd-register-clusters.html#argocd-register-local)
 
 ## 3. Sincronizar o ConfigMap
 
@@ -99,6 +122,10 @@ hub -n platform-system get configmap lab02-gitops-demo \
 ```
 
 Se a Application não resolver o Git ou o destino, confira `hub -n argocd describe application lab02-gitops-demo`. Em caso de `Forbidden`, verifique o ARN da role, os bindings e as restrições do AppProject.
+
+## Evidência no Hub EKS
+
+Em 28/11/2026, o Argo CD concluiu o sync manual com `Synced`, `Healthy` e operação `Succeeded`. O ConfigMap continha `definido-no-git`. Antes do ajuste, a comparação falhou por falta de permissões de leitura no cache. O grupo explícito na Access Entry, os bindings e o ConfigMap de configuração com o rótulo exigido resolveram o bloqueio. [Configuração do Argo CD gerenciado](https://docs.aws.amazon.com/eks/latest/userguide/argocd-configure-settings.html)
 
 ## O que observar
 
