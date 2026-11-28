@@ -17,7 +17,7 @@ O código é organizado pelo componente que a plataforma instala e mantém. A nu
 | `data-plane/<entity>/domains/<domain>/<env>/infrastructure/` | **Domain Infrastructure** · manifests de Capabilities sob gestão do DevOps Federado; Crossplane central é reconciliador |
 | **Repositório próprio da aplicação (etapa futura)**: `src/`, `tests/`, `.github/workflows/`, `k8s/` | **Domain Applications** · Application Team (código, manifests K8s, CI/CD) + Argo CD local |
 | `control-plane/`, `workflow-plane/`, `platform/hub/` | Código e configuração dos componentes centrais |
-| [`observability-plane/`](../observability-plane/README.md) | Observability Plane sob gestão central, com componentes no Hub e nos Environments |
+| [`observability-plane/`](../observability-plane/README.md) | Documentação do Observability Plane sob gestão do Platform Team. A topologia prevê consulta central e coleta e armazenamento por Environment |
 
 Os registros de Domain ficam no monorepo. O DevOps Federado mantém os manifests de infraestrutura em `infrastructure/` para cada destino, e a squad mantém os manifests da aplicação no próprio repositório. Ver [ADR-0007](adr/0007-personas-and-developer-experience.md).
 
@@ -35,9 +35,8 @@ O repositório mantém os valores em `foundation/config/`. As stacks com configu
 
 **Platform Team:** mantém plataforma, Foundation, Core compartilhado, Capabilities e Golden Paths. **Federated DevOps Team:** gerencia a intenção e o lifecycle de **Domain Infrastructure** no monorepo. **Application Team:** mantém código, testes, imagens, GitHub Actions e manifests Kubernetes no **mesmo repositório de aplicação**. Os paths `applications/` no monorepo eram apenas exemplos anteriores; **não criá-los** para Application Team neste lab. Backstage/CLI/Git são canais de consumo do Starter Kit, não imposição de um único frontend. Ver [ADR-0007](adr/0007-personas-and-developer-experience.md).
 
-### Primeira implementação
+### Implementação atual e aceites pendentes
 
-- `platform/hub/kind-config.yaml` e `platform/hub/scripts/`: criação, inspeção e remoção **apenas do cluster local kind**.
 - `platform/hub/addons/` reúne o bootstrap dos AppProjects e do `ApplicationSet`, além de uma entrada por add-on do Hub. O primeiro sync no EKS é validado na [Etapa 02](../labs/02-argocd-central.md).
 - [Guias das etapas](../labs/README.md) em `labs/`, começando pelo Hub EKS na Etapa 01.
 - `foundation/config/entity-a/{uat,prod}/environment.yaml` contém os registros de UAT e PROD com IDs distintos, região, baseline de rede e clusters EKS previstos. O roteiro usa UAT pela primeira vez na [Etapa 11](learning-roadmap.md#etapa-11--registro-de-uat). PROD entra na Etapa 31 para validar isolamento.

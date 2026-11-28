@@ -14,7 +14,7 @@ O GitOps abrange quatro fluxos complementares:
 
 | Fluxo | Entrada declarativa | Responsável pela execução/reconciliação | Resultado |
 | --- | --- | --- | --- |
-| **Platform GitOps** | Catálogo de add-ons e Applications | Argo CD central e ApplicationSet | Componentes Kubernetes corporativos |
+| **Platform GitOps** | Catálogo de add-ons e Applications | Argo CD central e ApplicationSet | Componentes Kubernetes da plataforma |
 | **Infrastructure GitOps — Crossplane** | CRs de Capabilities | Crossplane central e Provider AWS | S3, Aurora PostgreSQL e demais Capabilities |
 | **Infrastructure GitOps — Terraform** | CR `TerraformStack` | TerraformStack Controller → Argo Workflows → Terraform Executor | ConfigMap no Simulator. Foundation, rede, IAM e EKS no alvo AWS |
 | **Domain GitOps** | Manifests de aplicações no repositório da squad | Argo CD local | Aplicações nos clusters PCI/Non-PCI autorizados |
@@ -29,9 +29,9 @@ O catálogo em `platform/hub/addons/catalog/` organiza uma Application por compo
 
 ## 3. Platform GitOps — governança dos add-ons
 
-O **Platform Team** mantém o padrão corporativo de componentes Kubernetes ao longo de seu ciclo de vida: instalação, atualização, configuração e reconciliação.
+O **Platform Team** mantém o padrão de componentes Kubernetes da plataforma ao longo de seu ciclo de vida: instalação, atualização, configuração e reconciliação.
 
-São exemplos de add-ons corporativos: Metrics Server, Karpenter, External Secrets Operator, logging, observabilidade, segurança e controllers da plataforma. Os **recursos AWS associados**, como IAM Roles e dependências de Karpenter, são provisionados pelo motor de infraestrutura designado, e não automaticamente pelo Helm Chart.
+O catálogo pode incluir componentes como External Secrets Operator, OTel Collector e add-ons de segurança. Os **recursos AWS associados**, como IAM Roles, são provisionados pelo motor de infraestrutura designado, e não automaticamente pelo Helm Chart.
 
 ### Descoberta e seleção
 
@@ -45,7 +45,7 @@ Perfis previstos:
 
 | Perfil | Escopo de add-ons |
 | --- | --- |
-| **Hub (perfil físico central)** | Argo CD central e Argo Workflows (Workflow Plane), Crossplane e controllers (Control Plane), coleta dos sinais operacionais do Hub |
+| **Hub** | Argo Workflows, Crossplane, controllers e coleta dos sinais operacionais do Hub. A EKS Capability for Argo CD é provisionada no bootstrap do Hub. |
 | **Management** | Argo CD local, OTel Collector, OTel Gateway, Loki e Tempo |
 | **PCI** | Add-ons do perfil PCI, incluindo Collector quando a fronteira de telemetria for aprovada |
 | **Non-PCI** | Add-ons do perfil padrão, incluindo OTel Collector |
@@ -54,7 +54,7 @@ O [fluxo de observabilidade](observability.md) detalha os destinos e acessos de 
 
 Cada cluster poderá receber labels como `entity`, `environment`, `cluster-role` e `compliance`. Essas labels são **metadados de seleção**, não mecanismo de autorização por si sós. O onboarding estabelece previamente acesso, identidade, RBAC e confiança do cluster.
 
-**Overrides por Entity/Environment** são permitidos quando definidos e aprovados pelo Platform Team. A customização de parâmetros não transfere o ownership do add-on corporativo.
+**Overrides por Entity/Environment** são permitidos quando definidos e aprovados pelo Platform Team. O Platform Team mantém o ownership do add-on após a customização de parâmetros.
 
 ## 4. Infrastructure GitOps — Crossplane
 
@@ -91,7 +91,7 @@ A squad mantém **código, testes, pipeline CI/CD e manifests Kubernetes em repo
 
 | Tipo de recurso | Quem detecta divergência | Comportamento |
 | --- | --- | --- |
-| Componentes Kubernetes corporativos | Argo CD central | Detecta OutOfSync; `selfHeal` corrige quando habilitado e autorizado |
+| Componentes Kubernetes da plataforma | Argo CD central | Detecta OutOfSync; `selfHeal` corrige quando habilitado e autorizado |
 | Domain Applications | Argo CD local | Sync e rollback conforme políticas de aplicação |
 | Capabilities AWS | Crossplane | Reconciliação contínua conforme configuração/provider |
 | Foundation e EKS via Terraform | TerraformStack Controller + Terraform | Plan/avaliação de drift e remediação conforme política |

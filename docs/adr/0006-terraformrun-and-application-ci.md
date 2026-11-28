@@ -134,7 +134,7 @@ Outros campos já validados pelo schema: `spec.suspend`, `spec.reconciliation.re
 
 ## Decisão 3 — três etapas incrementais da POC
 
-A Etapa 06 valida primeiro o ciclo completo no `kind` com Terraform real, OPA, aprovação, destroy, drift periódico e status, usando apenas recursos locais. As Etapas 13, 28 e 29 retomam esses mecanismos no contexto AWS.
+O Simulator usa recursos Kubernetes de teste para validar o ciclo completo com Terraform, OPA, aprovação, destroy, drift periódico e status. O aceite da Etapa 06 no Hub EKS segue no roteiro. As Etapas 13, 28 e 29 retomam esses mecanismos no contexto AWS.
 
 ### Etapa 13 — Deploy declarativo ponta a ponta com aprovação
 

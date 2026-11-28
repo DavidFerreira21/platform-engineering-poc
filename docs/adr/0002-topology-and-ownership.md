@@ -1,8 +1,8 @@
 # ADR-0002 — Topologia, ownership e organização do Data Plane
 
-**Estado:** decisão vigente, implementação pendente · **Data:** 19/11/2026
+**Estado:** decisão vigente, implementação parcial · **Data:** 19/11/2026
 
-**Decisão:** a taxonomia tem **Experience Layer, Control Plane, Workflow Plane, Observability Plane e Data Plane**. O Hub (`kind` inicialmente) hospeda Control Plane e Workflow Plane. O Observability Plane tem consulta central e componentes por Environment. Uma **Entity** possui UAT/PROD (contas AWS distintas no alvo), cada um com três EKS — Management, PCI, Non-PCI — e AWS Runtime. Essa topologia é replicável; sete clusters é apenas a contagem de uma entidade mais Hub. Hub-and-Spoke não significa rede AWS.
+**Decisão:** a taxonomia tem **Experience Layer, Control Plane, Workflow Plane, Observability Plane e Data Plane**. O Hub EKS Auto Mode reúne Control Plane e Workflow Plane. A EKS Capability for Argo CD provê o GitOps central gerenciado. [ADR-0008](0008-managed-argocd-connectivity.md) O Observability Plane tem consulta central e componentes por Environment. Uma **Entity** possui UAT/PROD (contas AWS distintas no alvo), cada um com três EKS — Management, PCI, Non-PCI — e AWS Runtime. Essa topologia é replicável; sete clusters é apenas a contagem de uma entidade mais Hub. Hub-and-Spoke não significa rede AWS.
 
 As **três personas** são **Platform Team**, **Federated DevOps Team** e **Application Team**. Seus níveis de abstração diferem: a plataforma constrói os contratos e motores, o federado opera as intenções de infraestrutura do Domain e o desenvolvimento concentra-se no código e no ciclo da aplicação. Ver [ADR-0007](0007-personas-and-developer-experience.md).
 

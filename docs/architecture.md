@@ -24,16 +24,16 @@ A **Entity** reúne a operação organizacional. Um **Environment** (UAT/PROD) �
 
 [Abrir diagrama em tamanho completo](arquitetura%20Plataform.png)
 
-A [Etapa 01](../labs/01-platform-management-cluster.md) documenta o Hub EKS provisionado com Argo CD gerenciado. O smoke test com workload e o primeiro sync da [Etapa 02](../labs/02-argocd-central.md) ainda precisam ser executados. O Simulator e o Crossplane serão exercitados nesse Hub com recursos Kubernetes de teste. [Evidências do Simulator](../labs/06-terraformstack-simulator.md#evidências-de-aceite) · [Crossplane Core](../labs/07-crossplane-core.md) · [Roadmap](learning-roadmap.md).
+A [Etapa 01](../labs/01-platform-management-cluster.md) documenta o Hub EKS provisionado com Argo CD gerenciado. O smoke test com workload e o primeiro sync da [Etapa 02](../labs/02-argocd-central.md) ainda precisam ser executados. As Etapas 03–08 ainda precisam de adequação e aceite no EKS. [Evidências do Simulator](../labs/06-terraformstack-simulator.md#evidências-de-aceite) · [Crossplane Core](../labs/07-crossplane-core.md) · [Roadmap](learning-roadmap.md).
 
-O Hub EKS, as spokes, o consumo de Capabilities AWS, o GitOps Bridge e a topologia de observabilidade por ambiente compõem a arquitetura-alvo. A Foundation mantém raízes reutilizáveis e utilitários versionados para as etapas AWS. A entrega das aplicações usará o repositório da squad e o Argo CD local. [Foundation](../foundation/README.md) · [GitOps Bridge](flows/gitops-bridge.md).
+A topologia-alvo inclui o Hub EKS, as spokes, o consumo de Capabilities AWS, o GitOps Bridge e a observabilidade por ambiente. A integração de observabilidade entra nas Etapas 26–27 em UAT. A Foundation mantém raízes reutilizáveis e utilitários versionados para as etapas AWS. A entrega das aplicações usará o repositório da squad e o Argo CD local. [Foundation](../foundation/README.md) · [GitOps Bridge](flows/gitops-bridge.md).
 
 | Plano | Responsabilidade |
 | :--- | :--- |
 | **Experience Layer** | Consumidores independentes: Backstage, CLI, PR GitOps, AI/MCP; Backstage não é gateway obrigatório |
 | **Control Plane** | Kubernetes API Server, Crossplane central, TerraformStack Controller, RBAC e admission Kubernetes |
 | **Workflow Plane** | Argo CD central, Argo Workflows, runner e Policy Engine da implementação de referência |
-| **Observability Plane** | Managed Grafana e CloudWatch na conta da Plataforma. Collectors por cluster, AMP/S3 por Environment e Gateway/Loki/Tempo no Management EKS do ambiente. |
+| **Observability Plane** | Amazon Managed Grafana para consulta central e CloudWatch para os sinais do Hub, na conta da Plataforma. OTel Collectors por cluster, AMP e S3 por Environment, OTel Gateway, Loki e Tempo no Management EKS. |
 | **Data Plane** | Contas AWS das Entities, Core compartilhado, Domains, Management EKS com Argo CD local e EKS PCI/Non-PCI |
 
 ## 3. Quatro conceitos e seus contratos
@@ -88,7 +88,7 @@ Esses YAMLs **não são manifests Kubernetes** e não devem ser sincronizados di
 - **Domain Applications:** as squads manterão **código, GitHub Actions e manifests Kubernetes da aplicação em repositório próprio**, separado deste monorepo e previsto para uma etapa posterior. O pipeline faz build/testes/scans e publicação, propõe atualização declarativa GitOps; **Argo CD local** em cada Management EKS faz o deploy nos EKS PCI/Non-PCI autorizados. O workflow CI existente neste monorepo só valida a POC.
 - **Management EKS.** Argo CD local, Operators a escolher, Collector local e serviços de ingestão de logs e traces do ambiente. O Collector captura também as métricas do Argo CD local.
 - **Observabilidade do controller:** logs JSON, Events Kubernetes e métricas nativas e por CR já são disponibilizados sem dependência de coletores ou backends externos. A saúde deriva do status persistido; a coleta e os alertas pertencem ao operador. [Operação](../control-plane/terraformstack/controller/README.md).
-- **Observabilidade por ambiente.** Collectors enviam métricas diretamente ao AMP. Logs e traces vão ao OTel Gateway no Management EKS e seguem para Loki e Tempo com armazenamento S3. O Grafana do Hub consulta AMP via IAM cross-account e Loki/Tempo via PrivateLink. CloudWatch recebe os sinais essenciais do Hub. [ADR-0010](adr/0010-observability-topology.md) · [Diagrama e critérios de aceite](flows/observability.md)
+- **Observabilidade por ambiente.** Collectors enviam métricas diretamente ao AMP. Logs e traces vão ao OTel Gateway no Management EKS e seguem para Loki e Tempo com armazenamento S3. O Grafana na conta da Plataforma consulta AMP via IAM cross-account e Loki/Tempo via PrivateLink e proxy autenticado. CloudWatch recebe os sinais essenciais do Hub. A inclusão de PCI depende da validação da fronteira de ingestão, armazenamento e consulta. [ADR-0010](adr/0010-observability-topology.md) · [Diagrama e critérios de aceite](flows/observability.md)
 
 ### Personas, limites de abstração e modelo de consumo
 

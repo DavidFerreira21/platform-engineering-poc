@@ -2,7 +2,7 @@
 
 [← ADRs](README.md) · [Fluxo](../flows/terraformstack.md) · [Execution Contract](../flows/terraformstack-execution-contract.md)
 
-**Status** — decisão vigente, com runtime Go e pipeline de referência no Hub `kind`.
+**Status** — decisão vigente, com runtime Go e pipeline de referência versionados. O aceite no Hub EKS está previsto nas Etapas 05–06.
 
 ## Contexto
 

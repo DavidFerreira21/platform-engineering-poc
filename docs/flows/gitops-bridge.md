@@ -2,7 +2,7 @@
 
 [← Arquitetura](../architecture.md) · [GitOps Flow](gitops.md) · [TerraformStack Flow](terraformstack.md) · [Roadmap](../learning-roadmap.md)
 
-O Simulator validado no Hub `kind` termina com a verificação do ConfigMap local. As raízes AWS expõem `bridge_parameters` e o publicador já está versionado. A Etapa 17 integra a publicação após `verify` ao SSM da conta do Environment e valida o consumo por External Secrets Operator (ESO) no Management EKS. O diagrama mostra a topologia-alvo. [Raízes e publicador](../../foundation/stacks/README.md)
+O Simulator termina com a verificação do ConfigMap local. As raízes AWS expõem `bridge_parameters` e o publicador já está versionado. A Etapa 17 integra a publicação após `verify` ao SSM da conta do Environment e valida o consumo por External Secrets Operator (ESO) no Management EKS. O diagrama mostra a topologia-alvo. [Raízes e publicador](../../foundation/stacks/README.md)
 
 ![GitOps Bridge — provisionamento, publicação de outputs e consumo no Environment](./gitops-bridge-flow.png)
 
@@ -26,13 +26,14 @@ Na arquitetura AWS futura há pelo menos **duas fronteiras**: a conta de platafo
 
 | Componente | Onde executa / reside | Ownership |
 | --- | --- | --- |
-| **Argo CD central, TerraformStack Controller e Argo Workflows** | Hub da plataforma. Argo CD autogerenciado no `kind` e EKS Capability for Argo CD no alvo AWS | Platform Team |
+| **Argo CD central** | EKS Capability for Argo CD na conta da Plataforma | Platform Team |
+| **TerraformStack Controller e Argo Workflows** | Hub EKS na topologia-alvo | Platform Team |
 | **VPC, IAM, Management EKS, PCI e Non-PCI** | Conta AWS do Environment selecionado | Foundation / Entity Core, sob governança do Platform Team |
 | **AWS SSM Parameter Store** | **Mesma conta e região autorizadas do Environment** para os parâmetros publicados nesse destino | Publicação governada pela plataforma |
 | **External Secrets Operator para consumo de gestão** | **Management EKS do Environment**, quando esse cluster já existir | Instalação/configuração-base via Platform GitOps |
 | **ESO de workloads (quando necessário)** | **EKS PCI ou Non-PCI** correspondente, sem compartilhamento automático entre clusters | Platform Team para instalação; consumidores autorizados para ExternalSecrets |
 | **Kubernetes Secrets gerados pelo ESO** | Namespace do **cluster onde o ESO reconcilia** | Consumidor e políticas Kubernetes do cluster |
-| **ApplicationSet corporativo** | **Argo CD central**, não no Management EKS apenas por haver ESO local | Platform Team |
+| **ApplicationSet da plataforma** | **Argo CD central**, não no Management EKS apenas por haver ESO local | Platform Team |
 | **Argo CD local** | Instância autogerenciada no Management EKS do Environment | Aplicações e extensões locais autorizadas |
 
 **Regra:** o ESO **não é um serviço por conta AWS**. É um controller executando **dentro de um cluster Kubernetes**. Uma instância no Management EKS não distribui Kubernetes Secrets automaticamente para PCI, Non-PCI ou Control Plane.
@@ -115,7 +116,7 @@ O **Cluster Generator** do ApplicationSet lê **os clusters registrados no próp
 
 **Não basta criar um Kubernetes Secret genérico no Management EKS.** Ele não será lido automaticamente pelo Cluster Generator central. O Secret de registro de cluster reconhecido pelo Argo CD é um objeto distinto, localizado no contexto do Argo CD que faz a descoberta.
 
-Essa integração de metadados é **opcional**, requer desenho de segurança próprio e **não transfere o ApplicationSet corporativo para a entidade**. Os Platform Addons continuam sob ownership central; o Argo CD local mantém o ownership das aplicações e extensões autorizadas.
+Essa integração de metadados é **opcional**, requer desenho de segurança próprio e **não transfere o ApplicationSet da plataforma para a entidade**. Os Platform Addons continuam sob ownership central; o Argo CD local mantém o ownership das aplicações e extensões autorizadas.
 
 ## 5. Onboarding é separado do GitOps Bridge
 
@@ -158,7 +159,7 @@ A arquitetura AWS adota a **EKS Capability for Argo CD** como Argo CD central. A
 
 **Idempotência:** republicar a mesma versão não pode provocar efeitos colaterais indevidos. Eventos duplicados, falhas parciais e parâmetros ausentes devem gerar sinais observáveis, não estados falsamente saudáveis.
 
-## 8. Laboratório: kind primeiro, AWS depois
+## 8. Laboratório do GitOps Bridge
 
 ### Ensaio local opcional
 
